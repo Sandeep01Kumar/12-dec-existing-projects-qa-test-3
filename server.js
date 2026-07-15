@@ -32,6 +32,32 @@ app.get('/good-evening', (req, res) => {
   res.set('X-Content-Type-Options', 'nosniff').type('text/plain').send('Good evening');
 });
 
-app.listen(port, hostname, () => {
-  console.log(`Server running at http://${hostname}:${port}/`);
+// Start listening on the configured host/port. In Express 5 (Node's net
+// stack) the listen callback fires even when the underlying bind FAILS — for
+// example when the port is already in use: the callback runs with
+// `server.listening === false` while a separate 'error' event carries the
+// actual failure (e.g. EADDRINUSE). With no 'error' handler that error is
+// swallowed, the event loop drains, and the process exits 0 after printing a
+// misleading "Server running" line. To make startup failures observable and
+// correctly signalled, the success log is guarded on `server.listening` and a
+// dedicated 'error' handler surfaces the failure to stderr with a non-zero
+// exit code.
+const server = app.listen(port, hostname, () => {
+  // Only announce a successful start once the socket is actually bound and
+  // listening. A failed bind still invokes this callback, but with
+  // `server.listening === false`, so this guard suppresses the false-success
+  // message in that case (the 'error' handler below reports the real cause).
+  if (server.listening) {
+    console.log(`Server running at http://${hostname}:${port}/`);
+  }
+});
+
+// Surface bind/startup failures (such as EADDRINUSE when the port is already
+// in use) to stderr and terminate with a non-zero status, so a failed launch
+// is never reported as success. Setting `process.exitCode` (rather than
+// calling `process.exit`) lets any pending output flush and the event loop
+// unwind cleanly while still exiting non-zero.
+server.on('error', (err) => {
+  console.error(`Failed to start server at http://${hostname}:${port}/: ${err.message}`);
+  process.exitCode = 1;
 });
