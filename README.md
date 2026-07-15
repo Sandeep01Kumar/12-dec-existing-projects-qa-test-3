@@ -1,2 +1,37 @@
 # hao-backprop-test
-test project for backprop integration. Do not touch!
+
+Minimal Node.js HTTP server built with Express.
+
+## Requirements
+
+- Node.js 18 or higher (Express 5 requires `node >= 18`)
+
+## Install
+
+```bash
+npm install
+```
+
+## Run
+
+```bash
+node server.js
+# or
+npm start
+```
+
+The server listens at http://127.0.0.1:3000/.
+
+## Endpoints
+
+Both endpoints respond with `Content-Type: text/plain`.
+
+| Method | Path            | Response        |
+|--------|-----------------|-----------------|
+| GET    | `/`             | `Hello, World!` |
+| GET    | `/good-evening` | `Good evening`  |
+
+```bash
+curl http://127.0.0.1:3000/
+curl http://127.0.0.1:3000/good-evening
+```
