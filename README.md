@@ -31,6 +31,8 @@ Both endpoints respond with `Content-Type: text/plain`.
 | GET    | `/`             | `Hello, World!` |
 | GET    | `/good-evening` | `Good evening`  |
 
+The exact response bodies differ only by a trailing newline: `GET /` returns `Hello, World!\n` (one trailing newline), while `GET /good-evening` returns `Good evening` (no trailing newline).
+
 ```bash
 curl http://127.0.0.1:3000/
 curl http://127.0.0.1:3000/good-evening
