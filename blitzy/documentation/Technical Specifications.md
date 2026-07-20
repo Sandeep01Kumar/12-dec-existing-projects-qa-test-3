@@ -2,51 +2,53 @@
 
 # 1. Introduction
 
-This Technical Specification documents **hao-backprop-test**, a minimal Node.js HTTP server designed specifically as a controlled test environment for Backprop integration testing. The repository, explicitly marked with a "Do not touch!" warning, provides a simple, zero-dependency implementation that serves as a test harness for validating Backprop's code analysis and AI-assisted development capabilities.
-
----
-
 ## 1.1 Executive Summary
 
 ### 1.1.1 Project Overview
 
-The hao-backprop-test project (npm package name: `hello_world`) is a deliberately minimal Node.js application that implements a basic HTTP server responding with "Hello, World!" to all incoming requests. Created by developer **hxu** and released under the MIT license, this project exists solely to support integration testing with Backprop—a tool or service used for code analysis, refactoring, or AI-assisted development workflows.
+`hao-backprop-test` is a deliberately minimal, localhost-only Node.js HTTP service, distributed under the npm package name `hello_world`. As recorded in `package.json`, it is version `1.0.0`, authored by `hxu`, and licensed under MIT. The repository originated as a controlled test project for Backprop integration: its first committed `README.md` described it verbatim as a "test project for backprop integration. Do not touch!", and the repository is named accordingly.
+
+The service has since been re-platformed from its original zero-dependency implementation — which relied solely on the Node.js built-in `http` module — onto the Express 5 web framework (`express` at `^5.2.1`, resolved to `5.2.1`). In its current form, `server.js` creates an Express application, binds it to `127.0.0.1:3000`, and serves two plain-text routes: `GET /` preserves the original, byte-exact greeting `Hello, World!\n`, while `GET /good-evening` returns `Good evening`.
 
 | Attribute | Value |
 |-----------|-------|
-| Repository Name | hao-backprop-test |
-| Package Name | hello_world |
-| Version | 1.0.0 |
-| Author | hxu |
-| License | MIT |
+| Repository name | `hao-backprop-test` |
+| npm package name | `hello_world` |
+| Version | `1.0.0` |
+| Author / License | `hxu` / MIT |
+| Runtime requirement | Node.js ≥ 18 (Express 5 engine constraint) |
+| Web framework | Express `^5.2.1` (resolved `5.2.1`) |
+| Bind target | `127.0.0.1:3000` (loopback only) |
+| HTTP endpoints | `GET /`, `GET /good-evening` |
+
+The human-facing project name (`hao-backprop-test`, from `README.md` and the repository) differs from the npm package name (`hello_world`, from `package.json`); both identifiers refer to the same project.
 
 ### 1.1.2 Core Business Problem
 
-The project addresses the need for a **controlled, minimal test environment** to validate Backprop tool integration. Rather than testing Backprop against complex production codebases—which would introduce numerous variables and potential failure points—this project provides:
+The project exists to provide a controlled, minimal, and predictable environment rather than exercising tooling against a large production codebase that would introduce many variables and potential failure points. Two related problems are addressed:
 
-- A predictable, stable codebase with known behavior
-- Zero external dependencies that could complicate analysis
-- Simple, easily verifiable functionality
-- A restricted environment (marked "Do not touch!") ensuring test consistency
+- **Original purpose — a stable target for Backprop integration testing.** A tiny, deterministic service with known behavior makes it straightforward to validate a code-analysis or AI-assisted development tool ("Backprop") against a predictable baseline, with clear cause-and-effect and no confounding complexity. This purpose is established by the repository name and the project's first committed `README.md` ("test project for backprop integration").
+- **Recent delivery — removing the baseline's inability to grow.** The original implementation used a single request handler that answered every method and path with an identical response, so the codebase could not host additional endpoints without structural change. Re-platforming onto Express introduces path-based routing, which resolves that limitation while preserving the original greeting byte-for-byte (as documented in `blitzy/documentation/Project Guide.md`).
 
 ### 1.1.3 Key Stakeholders and Users
 
-| Stakeholder | Role | Interest |
-|-------------|------|----------|
-| Development/Integration Team | Primary Users | Validating Backprop integration functionality |
-| hxu (Author) | Owner/Maintainer | Maintaining test environment integrity |
-| Backprop Tool Developers | Indirect Users | Receiving integration test feedback |
+| Stakeholder | Role | Primary interest |
+|-------------|------|------------------|
+| Development / integration team | Primary users | Run, validate, and extend the service; exercise Backprop integration workflows |
+| `hxu` (author) | Owner / maintainer | Preserve test-environment integrity and backward compatibility |
+| Backprop tooling developers | Indirect users | Receive integration feedback against a known, stable target |
 
 ### 1.1.4 Business Impact and Value Proposition
 
-As a test project, this system delivers value through:
+As an internal test and tutorial asset, the system delivers value through simplicity, isolation, and disciplined change management rather than through production features. The Express re-platforming preserved the original contract while adding routing capacity and security hardening beyond the original baseline.
 
-- **Risk Reduction**: Provides isolated environment for Backprop testing without impacting production systems
-- **Validation Capability**: Enables verification of Backprop's code analysis features against known, predictable code
-- **Simplicity**: Minimal complexity ensures clear cause-effect relationships during integration testing
-- **Reproducibility**: Zero-dependency architecture guarantees consistent test conditions across environments
-
----
+| Value driver | How it is delivered | Evidence |
+|--------------|---------------------|----------|
+| Risk reduction / isolation | Binds to `127.0.0.1:3000` only; never externally exposed | `server.js` |
+| Backward compatibility | `GET /` preserved byte-exact (`Hello, World!\n`, 14 bytes) | `server.js`, `Project Guide.md` |
+| Extensibility | Express path-based routing enables new endpoints such as `GET /good-evening` | `server.js` |
+| Reproducibility | Committed `package-lock.json` (lockfileVersion 3, 68 entries); `npm audit` reports 0 vulnerabilities | `package-lock.json`, `Project Guide.md` |
+| Security hardening | `X-Powered-By` disabled (CWE-200); `X-Content-Type-Options: nosniff` on both routes; fail-fast startup on bind failure | `server.js` |
 
 ## 1.2 System Overview
 
@@ -54,123 +56,136 @@ As a test project, this system delivers value through:
 
 #### Business Context and Market Positioning
 
-This project occupies a purely internal, infrastructure-support role within the Backprop integration testing workflow. It is not intended for market deployment, customer-facing operations, or production workloads. The explicit "Do not touch!" warning in the README.md underscores its purpose as a protected test asset.
+The service occupies a purely internal, infrastructure-support role. It is not intended for market deployment, customer-facing operation, or production workloads; it is a protected test and tutorial asset whose original `README.md` carried an explicit "Do not touch!" directive. All operation is confined to the loopback interface (`127.0.0.1:3000`), so the service is never externally reachable by design (`server.js`).
 
-#### Current System Characteristics
+#### Current System Limitations (Baseline Being Upgraded)
 
-The repository employs a deliberately constrained architecture:
+The current implementation is the result of a recent re-platforming of an earlier baseline that lived in the same repository. The baseline (recorded in the initial commit) was a 14-line `server.js` built on the Node.js built-in `http` module with a single request handler that returned `Hello, World!\n` with HTTP 200 and `text/plain` to every method and path, had no external dependencies, and logged startup success unconditionally. That design imposed several limitations that motivated the upgrade:
 
-| Characteristic | Implementation | Rationale |
-|----------------|----------------|-----------|
-| Runtime | Node.js (v20.19.6 compatible) | Widely available, predictable runtime |
-| Dependencies | None (zero external packages) | Eliminates dependency-related test variables |
-| Network Binding | localhost only (127.0.0.1) | Prevents external access, maintains isolation |
-| Configuration | Hardcoded values | Ensures consistent behavior across test runs |
+- **No routing or path differentiation** — every request received an identical response, so additional endpoints could not be added without structural change.
+- **No startup error handling** — a failed bind (for example, port `3000` already in use) could still print a success message and allow the process to exit `0`, masking the failure.
+- **No hardening hooks** — the response contract was fixed with no place to attach security headers or framework-level behavior.
 
-#### Integration with Existing Landscape
+The current Express 5 implementation resolves these limitations while preserving the original greeting byte-for-byte. The transition is summarized below.
 
-The project contains mixed-language artifacts suggesting potential multi-language testing scenarios:
+| Aspect | Original native-`http` baseline | Current Express 5 implementation |
+|--------|--------------------------------|----------------------------------|
+| Foundation | Node.js built-in `http` module, zero dependencies | Express `^5.2.1` framework (+ 67 transitive packages) |
+| Request handling | Single catch-all handler; all methods/paths identical | Path-based routing; unmatched paths return Express default `404` |
+| Endpoints | 1 undifferentiated response | 2 named routes: `GET /`, `GET /good-evening` |
+| Startup failure handling | None (could log success and exit `0`) | Fail-fast: success guarded on `server.listening`; `error` handler writes to stderr and sets exit code `1` |
+| Response header hardening | Framework/runtime defaults only | `X-Powered-By` disabled; `X-Content-Type-Options: nosniff` on both routes |
+| Install step | None required | `npm install` required (committed lockfile) |
 
-- **Primary**: Node.js HTTP server (`server.js`)
-- **Placeholder**: Java test stub (`LoginTest.java` in `com.blitzyTest` package)
-- **Placeholder**: Python test file (`test.py.txt` - empty)
-- **Static Data**: Industry categories dataset (`industry.csv` - 44 entries)
+#### Integration with the Existing Landscape
 
-These artifacts indicate the repository may serve as a testing ground for Backprop's multi-language analysis capabilities.
+The service is self-contained and integrates with only a minimal local toolchain. It requires Node.js ≥ 18 and npm, and its sole external supply-chain touchpoint is the npm registry, from which Express and its transitive dependencies are installed and pinned deterministically in `package-lock.json`. It reads no environment variables, connects to no database, message queue, or third-party service, and requires no credentials or secrets (`server.js`, `package.json`, `blitzy/documentation/Project Guide.md`).
+
+Within the repository the runtime coexists with several non-runtime artifacts that suggest a multi-artifact / multi-language test ground but are **not read or served by the running process**: a static `industry.csv` dataset, an incomplete Java stub (`LoginTest.java`), two empty placeholder files (`test.py.txt`, `test.txt.txt`), and binary test fixtures (`100Pages.pdf`, `demo.jpg`, `sample.doc`).
+
+Two identity/configuration discrepancies exist in the current repository and are noted here for accuracy: the repository/README name (`hao-backprop-test`) differs from the npm package name (`hello_world`), and `package.json` declares `"main": "index.js"` while the actual executable entry point (and the `start` script) is `server.js`. Neither affects runtime behavior, and the entry-point discrepancy was intentionally preserved during the re-platforming.
 
 ### 1.2.2 High-Level Description
 
 #### Primary System Capabilities
 
-The system provides a single, well-defined capability:
+The system provides a small set of well-defined, deterministic HTTP capabilities over the loopback interface:
 
-**HTTP Request Handling**: A Node.js HTTP server that listens on port 3000 and responds to all incoming requests with a plain-text "Hello, World!" message and HTTP 200 status code.
+- **Static greeting endpoint** — `GET /` returns `Hello, World!\n` (`200`, `text/plain; charset=utf-8`, 14 bytes), preserved byte-for-byte from the baseline.
+- **Evening greeting endpoint** — `GET /good-evening` returns `Good evening` (`200`, `text/plain; charset=utf-8`, 12 bytes, no trailing newline).
+- **Default routing behavior** — requests that match neither route receive Express's default `404` response.
+- **Response hardening** — the framework `X-Powered-By` header is disabled and `X-Content-Type-Options: nosniff` is set on both success routes.
+- **Observable, fail-fast startup** — the service logs `Server running at http://127.0.0.1:3000/` only once actually listening, and surfaces bind errors (such as `EADDRINUSE`) to stderr with a non-zero exit code.
 
 #### Major System Components
 
 ```mermaid
 flowchart TB
-    subgraph Repository["hao-backprop-test Repository"]
-        subgraph Core["Core Application"]
-            Server["server.js<br/>HTTP Server Implementation"]
-        end
-        
-        subgraph Config["Configuration"]
-            Package["package.json<br/>NPM Metadata"]
-            Lock["package-lock.json<br/>Dependency Lock"]
-        end
-        
-        subgraph Docs["Documentation"]
-            README["README.md<br/>Project Identity"]
-        end
-        
-        subgraph Placeholders["Test Placeholders"]
-            Java["LoginTest.java<br/>Java Stub"]
-            Python["test.py.txt<br/>Empty"]
-            Text["test.txt.txt<br/>Empty"]
-        end
-        
-        subgraph Data["Static Data"]
-            CSV["industry.csv<br/>44 Industry Categories"]
-        end
+    Client["HTTP client<br/>curl / browser / test"]
+
+    subgraph Runtime["Runtime — Node.js &gt;= 18"]
+        Server["server.js<br/>Express 5 application"]
+        Express["express 5.2.1<br/>+ 67 transitive deps"]
     end
-    
-    Server --> Package
+
+    subgraph Config["Manifests and configuration"]
+        Pkg["package.json<br/>manifest and scripts"]
+        Lock["package-lock.json<br/>lockfileVersion 3, 68 entries"]
+        Ignore[".gitignore<br/>excludes node_modules/"]
+    end
+
+    subgraph Static["Static and placeholder artifacts — not read at runtime"]
+        CSV["industry.csv<br/>Industry header + 43 rows"]
+        Java["LoginTest.java<br/>incomplete stub"]
+        Empty["test.py.txt / test.txt.txt<br/>empty, 0 bytes"]
+        Bin["100Pages.pdf / demo.jpg / sample.doc<br/>binary test fixtures"]
+    end
+
+    subgraph Docs["Documentation"]
+        Readme["README.md<br/>usage guide"]
+    end
+
+    Client -->|"GET / and GET /good-evening"| Server
+    Server -->|requires| Express
+    Pkg -.declares.-> Express
+    Lock -.locks.-> Express
 ```
 
 #### Component Inventory
 
-| Component | File | Lines | Purpose | Status |
-|-----------|------|-------|---------|--------|
-| HTTP Server | `server.js` | 14 | Main application entry point | Functional |
-| Package Manifest | `package.json` | ~12 | NPM metadata and scripts | Configured |
-| Dependency Lock | `package-lock.json` | — | lockfileVersion 3 | Present |
-| Documentation | `README.md` | 2 | Project identity and warning | Minimal |
-| Java Placeholder | `LoginTest.java` | ~8 | Non-functional test stub | Incomplete |
-| Industry Data | `industry.csv` | 45 | Static industry categories | Static data |
-| Test Placeholder | `test.py.txt` | 0 | Empty placeholder | Placeholder |
-| Test Placeholder | `test.txt.txt` | 0 | Empty placeholder | Placeholder |
+| Component | File(s) | Role | Status |
+|-----------|---------|------|--------|
+| HTTP server | `server.js` | Express app, routing, startup/error handling | Functional (63 lines) |
+| Package manifest | `package.json` | Metadata, scripts, `express` dependency | Configured |
+| Dependency lock | `package-lock.json` | Deterministic install (lockfileVersion 3, 68 entries) | Present |
+| Installed dependencies | `node_modules/` | Express plus 67 transitive packages | Installed |
+| VCS ignore | `.gitignore` | Excludes `node_modules/` | Present |
+| Documentation | `README.md` | Install / run / endpoint usage guide | Current |
+| Static dataset | `industry.csv` | 43 industry categories under an `Industry` header | Static, unused at runtime |
+| Java placeholder | `LoginTest.java` | Incomplete `com.blitzyTest` stub | Non-functional |
+| Empty placeholders | `test.py.txt`, `test.txt.txt` | 0-byte placeholder files | Placeholder |
+| Binary fixtures | `100Pages.pdf`, `demo.jpg`, `sample.doc` | Test document / image / file | Static, unused at runtime |
 
 #### Core Technical Approach
 
-The project employs a **zero-dependency, single-file architecture**:
-
-1. **Built-in Modules Only**: Uses exclusively the Node.js native `http` module
-2. **Single Entry Point**: All server logic contained in `server.js` (14 lines)
-3. **No Framework**: Pure Node.js implementation without Express, Fastify, or similar
-4. **Synchronous Response**: Simple, blocking response pattern with static content
-5. **Flat Structure**: All files at repository root level with no subdirectories
+1. **Single-file Express application** — all runtime logic resides in `server.js`, written in CommonJS (`require('express')`).
+2. **Framework-based routing** — an `express()` application registers explicit `GET` routes; unmatched paths fall through to Express's default `404` handler.
+3. **Hardcoded configuration** — `hostname` (`127.0.0.1`) and `port` (`3000`) are constants; no environment variables are consulted.
+4. **Backward-compatible responses** — each route sets `text/plain` explicitly and sends a byte-exact body, preserving the original response contract.
+5. **Defensive startup** — the success log is guarded on `server.listening`, and an `error` listener reports bind failures to stderr and sets `process.exitCode = 1` (rather than calling `process.exit()` abruptly).
+6. **Deterministic dependencies** — exactly one direct dependency (`express`) with a committed lockfile; installed modules are excluded from version control.
 
 ### 1.2.3 Success Criteria
 
 #### Measurable Objectives
 
-As a test project without formal requirements documentation, success criteria are inferred from the project's purpose:
-
-| Objective | Measurement | Target |
-|-----------|-------------|--------|
-| Server Availability | HTTP response on localhost:3000 | 100% when running |
-| Response Correctness | Output matches "Hello, World!\n" | Exact match |
-| Backprop Compatibility | Successful tool integration | Analysis completes without errors |
-| Environment Stability | Consistent behavior across runs | No variation |
+| Objective | Measurement | Target / observed |
+|-----------|-------------|-------------------|
+| Requirement delivery | Delivery of requirements R1–R4 | 4 of 4 delivered |
+| Endpoint correctness | Byte-exact response bodies | `GET /` = 14 bytes; `GET /good-evening` = 12 bytes |
+| Startup | Server starts via `node server.js` and `npm start` | Both succeed and log the URL |
+| Dependency security | `npm audit` vulnerabilities | 0 |
 
 #### Critical Success Factors
 
-1. **Minimal Complexity**: Codebase remains simple enough for unambiguous analysis
-2. **Zero Dependencies**: No external packages that could introduce variability
-3. **Isolation**: Localhost binding prevents unintended external interactions
-4. **Reproducibility**: Identical behavior across all test executions
+- **Backward compatibility** — the `GET /` body remains byte-exact (`Hello, World!\n`).
+- **Localhost isolation** — binding stays confined to `127.0.0.1:3000`.
+- **Minimal change surface** — the delivery touched only five files (`server.js`, `package.json`, `package-lock.json`, `.gitignore`, `README.md`), keeping the change reviewable.
+- **Reproducible installs** — a committed lockfile yields a deterministic dependency tree.
+- **Convention preservation** — CommonJS, single-file structure, and hardcoded host/port were retained.
 
 #### Key Performance Indicators
 
-| KPI | Description | Current State |
-|-----|-------------|---------------|
-| Dependency Count | Number of external npm packages | 0 |
-| Code Complexity | Lines of executable code | 14 (server.js) |
-| Startup Time | Time to server ready state | < 100ms |
-| Response Latency | Time to return "Hello, World!" | < 10ms |
+The KPIs below are drawn from the current manifests, source, and the validation recorded in `blitzy/documentation/Project Guide.md`. Latency/throughput targets are intentionally omitted because no measured values exist in the repository.
 
----
+| KPI | Current value | Source |
+|-----|---------------|--------|
+| Direct runtime dependencies | 1 (`express` `^5.2.1`) | `package.json` |
+| Transitive dependencies | 67 (68 lockfile entries incl. root) | `package-lock.json` |
+| `npm audit` vulnerabilities | 0 | `Project Guide.md` |
+| Validation checks passed | 8 of 8 | `Project Guide.md` |
+| `server.js` size | 63 lines | `server.js` |
+| Runtime endpoints | 2 (plus Express default `404`) | `server.js` |
 
 ## 1.3 Scope
 
@@ -178,6010 +193,3996 @@ As a test project without formal requirements documentation, success criteria ar
 
 #### Core Features and Functionalities
 
-**Must-Have Capabilities:**
+**Must-have capabilities** (all implemented in `server.js`):
 
 | Capability | Description | Implementation |
 |------------|-------------|----------------|
-| HTTP Server Initialization | Create and configure HTTP server instance | `http.createServer()` in `server.js` |
-| Request Handling | Accept and respond to HTTP requests | Callback function with 200 status |
-| Startup Logging | Display server URL on successful start | `console.log()` output |
-| Static Response | Return consistent "Hello, World!" message | Plain text response body |
+| Application initialization | Create the Express app and disable the framework header | `express()` + `app.disable('x-powered-by')` |
+| Root greeting route | `GET /` returns byte-exact `Hello, World!\n` as `text/plain` | `app.get('/', …)` |
+| Evening greeting route | `GET /good-evening` returns `Good evening` as `text/plain` | `app.get('/good-evening', …)` |
+| Response header hardening | `X-Content-Type-Options: nosniff` on both success routes | `res.set('X-Content-Type-Options', 'nosniff')` |
+| Loopback listen + fail-fast | Bind `127.0.0.1:3000`; guard the success log; surface bind errors | `app.listen(…)` + `server.on('error', …)` |
+| Startup logging | Print the running URL once the socket is listening | `console.log(…)` |
 
-**Primary User Workflow:**
+**Primary user workflow:**
 
 ```mermaid
 flowchart LR
-    A[Developer] --> B[Run: node server.js]
-    B --> C[Server Logs URL]
-    C --> D[Access localhost:3000]
-    D --> E[Receive Hello World Response]
-    E --> F[Backprop Analyzes Codebase]
+    A["Developer"] --> B["npm install"]
+    B --> C["node server.js<br/>or npm start"]
+    C --> D["Server logs<br/>127.0.0.1:3000"]
+    D --> E["curl GET / and<br/>GET /good-evening"]
+    E --> F["Byte-exact<br/>plain-text responses"]
 ```
 
-1. Developer executes `node server.js` from the repository root
-2. Server initializes and logs: "Server running at http://127.0.0.1:3000/"
-3. Developer or automated test accesses the endpoint
-4. Server responds with "Hello, World!\n" (HTTP 200, text/plain)
-5. Backprop tool performs analysis on the running or static codebase
+1. The developer runs `npm install` to install Express and its transitive dependencies from the committed lockfile.
+2. The developer starts the service with `node server.js` or `npm start`.
+3. The service logs `Server running at http://127.0.0.1:3000/` once it is listening.
+4. A client issues requests: `GET /` yields `Hello, World!\n`, `GET /good-evening` yields `Good evening`, and any unmatched request yields Express's default `404`.
+5. Responses can be verified for both body bytes and headers (`X-Content-Type-Options: nosniff` present, `X-Powered-By` absent).
 
-**Essential Technical Requirements:**
+**Essential integrations** (deliberately minimal):
+
+| Integration | Purpose | Basis |
+|-------------|---------|-------|
+| npm registry | Install and pin `express` plus transitive packages | Declared in `package.json`, locked in `package-lock.json` |
+| Node.js runtime (≥ 18) | Execute `server.js` | Express 5 engine requirement |
+| Local HTTP client | Exercise and verify the two endpoints | Documented `curl` examples in `README.md` |
+
+**Key technical requirements:**
 
 | Requirement | Specification |
 |-------------|---------------|
-| Runtime | Node.js (no version constraint specified) |
-| Network | Local network access (127.0.0.1) |
-| Port | 3000 (hardcoded) |
-| Storage | Read access to repository files |
+| Runtime | Node.js ≥ 18 (Express 5 engine constraint) |
+| Framework | Express `^5.2.1` |
+| Network binding | Loopback `127.0.0.1` |
+| Port | `3000` (hardcoded) |
+| Module system | CommonJS (`require`) |
 
 #### Implementation Boundaries
 
-**System Boundaries:**
+**System boundaries:**
 
-- Single server instance operation
-- Localhost-only network binding (127.0.0.1)
-- All HTTP methods treated identically (GET, POST, etc.)
-- No URL path differentiation (all paths return same response)
-- No query parameter processing
+- A single Express application instance.
+- Loopback-only binding to `127.0.0.1:3000`.
+- Exactly two `GET` routes; all other methods and paths return Express's default `404`.
+- Plain-text responses only — no dynamic content, templating, or persistence.
+- Hardcoded host and port — no environment-variable configuration.
 
-**User Groups Covered:**
+**User groups covered:**
 
-- Development team members running integration tests
-- Automated CI/CD processes executing Backprop analysis
-- Repository owner/maintainer (hxu)
+- Developers and maintainers who run, verify, and extend the service.
+- `hxu`, the repository owner/maintainer.
+- Automated or manual verification driven by a local HTTP client.
 
-**Data Domains Included:**
+**Geographic / market coverage:**
 
-| Domain | File | Records | Usage |
-|--------|------|---------|-------|
-| Industry Categories | `industry.csv` | 44 | Available for potential analysis testing |
+- Not applicable. The service binds to loopback only and is not deployed to any network, region, cloud, or market. Operation is single-host and single-developer in nature.
+
+**Data domains included:**
+
+| Domain | File | Records | Runtime usage |
+|--------|------|---------|---------------|
+| Industry categories | `industry.csv` | 43 rows under an `Industry` header | None — static repository artifact, not read by the server |
 
 ### 1.3.2 Out-of-Scope Elements
 
 #### Explicitly Excluded Features
 
-| Feature | Exclusion Rationale |
-|---------|---------------------|
-| Production Deployment | Localhost binding; test project designation |
-| External Network Access | Intentionally bound to 127.0.0.1 only |
-| Authentication/Authorization | No security requirements for test harness |
-| Database Connectivity | No data persistence needed |
-| HTTPS/TLS Encryption | Security unnecessary for localhost testing |
-| Request Routing | Single response for all requests by design |
-| Error Handling | Minimal implementation acceptable for test scope |
-| Logging Infrastructure | Console output sufficient for test purposes |
-| Configuration Management | Hardcoded values ensure consistency |
-| Health Checks/Monitoring | Not required for test environment |
+| Excluded feature | Rationale |
+|------------------|-----------|
+| Production deployment / non-localhost exposure | Loopback binding; internal test and tutorial asset |
+| Authentication / authorization | No security requirements for a localhost harness |
+| TLS / HTTPS encryption | Unnecessary for loopback-only testing |
+| Database connectivity / persistence | No stateful data; `industry.csv` is not consumed at runtime |
+| Environment-based configuration (`PORT` / `HOST`) | Hardcoded constants ensure consistent behavior |
+| Health-check endpoint | Not required within the current scope |
+| Structured logging / monitoring / observability | Console output is sufficient |
+| Automated test framework / unit tests | Intentionally excluded; the placeholder `npm test` script is left unchanged |
+| Linting / formatting tooling | No ESLint/Prettier or `devDependencies` are configured |
+| Deployment / CI-CD / containerization | Excluded per the delivery guide |
 
 #### Future Phase Considerations
 
-Evidence from placeholder files suggests potential future expansions:
+These items are documented as optional and explicitly outside the current scope in `blitzy/documentation/Project Guide.md`:
 
-| Artifact | Potential Future Use |
-|----------|---------------------|
-| `LoginTest.java` | Java integration testing with Backprop |
-| `test.py.txt` | Python test implementation |
-| `test.txt.txt` | Additional test scenarios |
-| `industry.csv` | Data processing/analysis feature testing |
+- A minimal smoke test to guard the byte-exact response contract against future changes.
+- If the service ever moves off localhost: environment-based `PORT`/`HOST` configuration, a health-check endpoint, and structured logging.
+
+The repository also contains placeholder artifacts (`LoginTest.java`, `test.py.txt`, `test.txt.txt`) and a static `industry.csv` dataset. These are not exercised by the current implementation, and no future behavior for them is defined in the codebase.
 
 #### Integration Points Not Covered
 
-- External API integrations
-- Database connections (SQL, NoSQL)
-- Message queue systems
-- Cloud service providers (AWS, Azure, GCP)
-- Third-party authentication services
-- CDN or caching layers
-- Container orchestration platforms
+The current codebase references none of the following, and each is therefore out of scope:
+
+- External / third-party APIs.
+- Databases (SQL or NoSQL).
+- Message queues or event streams.
+- Cloud service providers (AWS, Azure, GCP).
+- Third-party authentication or identity providers.
+- CDN or caching layers.
+- Container orchestration platforms.
 
 #### Unsupported Use Cases
 
-| Use Case | Reason for Exclusion |
-|----------|---------------------|
-| Multi-user concurrent access | Single-purpose test server |
-| Production traffic handling | Not designed for load |
-| Dynamic content serving | Static response only |
-| API versioning | Single endpoint, no versioning |
-| Geographic distribution | Localhost binding only |
-| Data persistence | No storage implementation |
-| Session management | Stateless by design |
-| Rate limiting | No traffic management features |
+| Use case | Reason for exclusion |
+|----------|----------------------|
+| Production traffic / load handling | Single-instance localhost test server |
+| Multi-tenant or authenticated access | No authentication or session management |
+| Dynamic or templated content serving | Static plain-text responses only |
+| Data persistence / stateful sessions | Stateless by design; no storage |
+| Non-`GET` semantics on the two routes | Only `GET` routes are registered; other methods return `404` |
+| Remote or cross-host access | Loopback binding only |
 
----
+## 1.4 References
 
-## 1.4 Document Conventions
+The following repository files, folders, and version-control history were examined as evidence for this section.
 
-### 1.4.1 Terminology
+**Repository source and configuration files**
 
-| Term | Definition |
-|------|------------|
-| Backprop | Code analysis, refactoring, or AI-assisted development tool being tested |
-| Test Harness | The controlled environment (this project) used for integration testing |
-| Placeholder | Files present in repository but not functionally implemented |
-| Zero-dependency | Architecture using only Node.js built-in modules |
+- `server.js` — Current Express 5 server: `require('express')`, `app.disable('x-powered-by')`, the two `GET` routes (`/` → `Hello, World!\n`; `/good-evening` → `Good evening`), `nosniff` headers, hardcoded `127.0.0.1:3000`, and the guarded `listen` + `error` handler.
+- `package.json` — Package identity (`hello_world`, `1.0.0`, `hxu`, MIT), `main: index.js`, `start`/`test` scripts, and the `express` `^5.2.1` dependency.
+- `package-lock.json` — lockfileVersion 3 with 68 total package entries (root + 67 dependencies), establishing the deterministic dependency tree.
+- `README.md` — Current usage guide: Node.js 18+ requirement, install/run commands, the endpoint table, and the trailing-newline distinction.
+- `.gitignore` — Excludes `node_modules/`.
+- `industry.csv` — Static dataset: an `Industry` header followed by 43 category rows; not read at runtime.
+- `LoginTest.java` — Incomplete Java stub in the `com.blitzyTest` package (non-functional placeholder).
+- `test.py.txt`, `test.txt.txt` — Empty (0-byte) placeholder files.
+- `100Pages.pdf`, `demo.jpg`, `sample.doc` — Binary test fixtures present in the working tree (referenced as test document/image/file in the reference specification).
+- `node_modules/express/package.json` — Confirmed the resolved Express version (`5.2.1`) and its `engines` requirement (`node >= 18`).
 
-### 1.4.2 Configuration Discrepancy Note
+**Documentation**
 
-The `package.json` file specifies `"main": "index.js"`, however the actual executable entry point is `server.js`. This discrepancy does not affect functionality but should be noted for documentation accuracy.
+- `blitzy/documentation/Project Guide.md` — Express delivery guide: requirements R1–R4, the five changed files, security/robustness hardening, the validation results (8 of 8 checks passing, `npm audit` 0 vulnerabilities), business impact, and the explicit out-of-scope list.
+- `blitzy/documentation/Technical Specifications.md` — Reference specification for the original native-`http` baseline; source of still-valid business context, stakeholder roles, and scope framing.
 
----
+**Folders**
 
-#### References
+- `blitzy/documentation/` — Authoritative prior documentation (the two Markdown documents above).
+- `node_modules/` — Installed dependency tree (Express plus 67 transitive packages).
 
-- `server.js` - Main HTTP server implementation (14 lines, core application logic)
-- `package.json` - NPM package metadata, scripts, author, and license information
-- `package-lock.json` - Dependency lock file (lockfileVersion 3, confirms zero dependencies)
-- `README.md` - Project identity ("hao-backprop-test"), purpose statement, and access warning
-- `industry.csv` - Static data file containing 44 industry category entries
-- `LoginTest.java` - Java placeholder stub in com.blitzyTest package (non-functional)
-- `test.py.txt` - Empty Python test placeholder file (0 bytes)
-- `test.txt.txt` - Empty text test placeholder file (0 bytes)
+**Version-control history**
+
+- Git commit history — Commit `01e3721` established the original baseline (14-line native-`http` `server.js`; `README.md` reading "test project for backprop integration. Do not touch!"); commits `7dbaf47`, `c2caa49`, `2befd70`, `ec987aa`, `3ba1489`, and `55f5b91` performed the Express re-platforming, documentation, and hardening.
+
+No external web sources were used for this section.
 
 # 2. Product Requirements
 
 ## 2.1 Feature Catalog
 
-### 2.1.1 Feature Overview
+This catalog decomposes the current Express 5 implementation of `hao-backprop-test` (npm package `hello_world`, version `1.0.0`) into discrete, individually testable features. All runtime behavior resides in a single file, `server.js`, and every feature below is grounded in that source, in the project manifests (`package.json`, `package-lock.json`, `.gitignore`), the user documentation (`README.md`), or the delivery record in `blitzy/documentation/Project Guide.md`. The delivery record frames the implemented work as four requirements (R1–R4) plus two hygiene items (H1–H2) and two constraints (C1–C2); those identifiers are used throughout this section for traceability.
 
-This section documents the discrete, testable features of the hao-backprop-test repository. Given the project's intentionally minimal nature as a Backprop integration test harness, the feature catalog reflects a constrained scope focused on providing a predictable, zero-dependency test environment.
+Features F-001 through F-006 constitute the running service. Features F-007 and F-008 are static repository artifacts that physically exist and are version-controlled but are **not read, imported, or served by the running process** — they are catalogued for completeness because they are part of the delivered repository. No feature has been invented; each maps to observed code or files.
 
-#### Feature Summary Matrix
+**Feature summary:**
 
-| Feature ID | Feature Name | Category | Priority | Status |
-|------------|--------------|----------|----------|--------|
-| F-001 | HTTP Server | Core Functionality | Critical | Completed |
-| F-002 | Backprop Integration Test Support | Integration | Critical | Completed |
-| F-003 | Static Data Asset Availability | Data Resources | Low | Completed |
-| F-004 | Multi-Language Test Stubs | Future Testing | Low | Proposed |
+| Feature ID | Feature Name | Category | Priority |
+|------------|--------------|----------|----------|
+| F-001 | Express Application & Routing Foundation | Web Framework / Application Core | Critical |
+| F-002 | Root Greeting Endpoint (`GET /`) | HTTP API Endpoint | Critical |
+| F-003 | Evening Greeting Endpoint (`GET /good-evening`) | HTTP API Endpoint | High |
+| F-004 | HTTP Response Security Hardening | Security / Response Hardening | Medium |
+| F-005 | Observable Fail-Fast Startup & Error Handling | Runtime Operations / Reliability | Medium |
+| F-006 | Deterministic Dependency Management & Repository Hygiene | Build & Dependency Management | High |
+| F-007 | Static Industry Dataset Asset | Static Data Artifact (Non-Runtime) | Low |
+| F-008 | Multi-Language Placeholder & Test-Fixture Artifacts | Placeholder / Fixture (Non-Runtime) | Low |
 
----
+**Status summary:** F-001 through F-006 are **Completed** — each was delivered and independently validated (8 of 8 validation checks passing, `npm audit` reporting 0 vulnerabilities, per `blitzy/documentation/Project Guide.md`). F-007 and F-008 are **Completed** in the sense of being present in their intended, inert placeholder state; `LoginTest.java` is deliberately an incomplete, non-compilable stub.
 
-### 2.1.2 Feature: HTTP Server (F-001)
-
-#### Feature Metadata
+### 2.1.1 F-001 — Express Application & Routing Foundation
 
 | Attribute | Value |
 |-----------|-------|
-| Feature ID | F-001 |
-| Feature Name | HTTP Server |
-| Category | Core Functionality |
+| Unique ID | F-001 |
+| Feature Name | Express Application & Routing Foundation |
+| Feature Category | Web Framework / Application Core |
 | Priority Level | Critical |
 | Status | Completed |
-| Implementation | `server.js` |
+| Requirement Provenance | R1 (Express dependency), R2 (re-platform onto Express with path-based routing) |
 
-#### Description
+**Description**
 
-**Overview:**
-The HTTP Server feature provides a minimal, deterministic web server that responds to all incoming HTTP requests with a static "Hello, World!" message. This server operates exclusively on localhost (127.0.0.1) on port 3000.
+- **Overview:** `server.js` requires Express (`require('express')`), instantiates a single application object (`const app = express();`), and uses Express's path-based router as the foundation on which all endpoints are registered. Requests that match no registered route fall through to Express's built-in default `404` handler.
+- **Business Value:** Replaces the original native-`http` single catch-all handler with a routing layer, enabling multiple differentiated endpoints to be added without structural rewrites — the stated business driver of "enabling path-based routing for future endpoint growth" in `blitzy/documentation/Project Guide.md`.
+- **User Benefits:** Developers and maintainers gain a conventional, idiomatic Express surface for adding and reasoning about routes; unknown paths return a clear `404` instead of an undifferentiated success response.
+- **Technical Context:** CommonJS module system; a single self-starting `server.js` (no exported application object). Express resolves to version `5.2.1`, which declares `engines: { node: '>= 18' }`. This feature is the prerequisite substrate for F-002, F-003, F-004, and F-005.
 
-**Business Value:**
-- Establishes a predictable baseline for Backprop tool integration testing
-- Provides verifiable server behavior with known, expected outputs
-- Enables isolated testing without external system dependencies
+**Dependencies**
 
-**User Benefits:**
-- Single-command server startup via `node server.js`
-- Immediate feedback through console logging
-- Consistent response format across all request types
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | F-006 (Express must be installed and locked before the app can be created) |
+| System Dependencies | Node.js ≥ 18 runtime; CommonJS module loader |
+| External Dependencies | `express` `^5.2.1` (resolved `5.2.1`) plus 67 transitive packages from the npm registry |
+| Integration Requirements | `npm install` to populate `node_modules/`; loopback TCP stack for binding at `127.0.0.1:3000` |
 
-**Technical Context:**
-The implementation uses only the Node.js built-in `http` module, eliminating external package dependencies. All configuration values (hostname, port, response content) are hardcoded to ensure reproducible test conditions.
-
-#### Dependencies
-
-| Dependency Type | Dependency | Notes |
-|-----------------|------------|-------|
-| Runtime | Node.js | Required runtime environment |
-| Built-in Module | `http` | Node.js native HTTP module |
-| External NPM | None | Zero external dependencies |
-| System | Network stack | Localhost binding capability |
-
-#### Technical Specifications
-
-| Specification | Value |
-|---------------|-------|
-| Hostname | 127.0.0.1 |
-| Port | 3000 |
-| Response Status | 200 |
-| Content-Type | text/plain |
-| Response Body | "Hello, World!\n" |
-| Supported Methods | All (undifferentiated) |
-| Path Handling | All paths return same response |
-
----
-
-### 2.1.3 Feature: Backprop Integration Test Support (F-002)
-
-#### Feature Metadata
+### 2.1.2 F-002 — Root Greeting Endpoint (`GET /`)
 
 | Attribute | Value |
 |-----------|-------|
-| Feature ID | F-002 |
-| Feature Name | Backprop Integration Test Support |
-| Category | Integration |
+| Unique ID | F-002 |
+| Feature Name | Root Greeting Endpoint (`GET /`) |
+| Feature Category | HTTP API Endpoint |
 | Priority Level | Critical |
 | Status | Completed |
-| Implementation | Repository structure |
+| Requirement Provenance | R3 (preserve original greeting byte-for-byte) |
 
-#### Description
+**Description**
 
-**Overview:**
-This feature encompasses the repository's architectural design as a controlled test environment for validating Backprop tool integration. The "Do not touch!" directive in `README.md` designates this as a protected test asset.
+- **Overview:** `app.get('/', …)` responds to `GET /` with the plain-text body `Hello, World!\n` (14 bytes, one trailing newline). The handler explicitly sets `text/plain` via `res.type('text/plain')` and sends the byte-exact body; `server.js` comments identify this route as requirement R3.
+- **Business Value:** Guarantees backward compatibility with the original service contract — the greeting is preserved byte-for-byte through the Express re-platforming, protecting any existing consumer or Backprop test baseline that depends on it.
+- **User Benefits:** A client issuing `GET /` receives an identical response to the pre-migration server, so no downstream change is required.
+- **Technical Context:** Express's `res.send` would default a string body to `text/html`; the explicit `res.type('text/plain')` preserves the original `Content-Type`. Independent execution confirmed `HTTP 200`, `Content-Type: text/plain; charset=utf-8`, `Content-Length: 14`.
 
-**Business Value:**
-- Provides stable codebase for Backprop analysis validation
-- Reduces risk of integration failures in production environments
-- Enables reproducible test scenarios across development cycles
+**Dependencies**
 
-**User Benefits:**
-- Confidence in Backprop tool behavior through verified integration
-- Clear cause-effect relationships during debugging
-- Isolated environment prevents cross-contamination with production code
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | F-001 (routing foundation) |
+| System Dependencies | Express response API (`res.type`, `res.set`, `res.send`) |
+| External Dependencies | `express` (transitively) |
+| Integration Requirements | An HTTP client (e.g., `curl`, browser, or Node `http` client) on the loopback interface |
 
-**Technical Context:**
-The repository structure, zero-dependency architecture, and minimal code complexity are deliberate design choices to support unambiguous code analysis by external tools.
-
-#### Dependencies
-
-| Dependency Type | Dependency | Notes |
-|-----------------|------------|-------|
-| Prerequisite Feature | F-001 (HTTP Server) | Primary analysis target |
-| External Tool | Backprop | Code analysis/AI development tool |
-| Repository | Complete file structure | All 8 files contribute to test harness |
-
----
-
-### 2.1.4 Feature: Static Data Asset Availability (F-003)
-
-#### Feature Metadata
+### 2.1.3 F-003 — Evening Greeting Endpoint (`GET /good-evening`)
 
 | Attribute | Value |
 |-----------|-------|
-| Feature ID | F-003 |
-| Feature Name | Static Data Asset Availability |
-| Category | Data Resources |
-| Priority Level | Low |
+| Unique ID | F-003 |
+| Feature Name | Evening Greeting Endpoint (`GET /good-evening`) |
+| Feature Category | HTTP API Endpoint |
+| Priority Level | High |
 | Status | Completed |
-| Implementation | `industry.csv` |
+| Requirement Provenance | R4 (add new endpoint) |
 
-#### Description
+**Description**
 
-**Overview:**
-The repository includes a static CSV data file containing 44 industry category entries. While not actively consumed by the HTTP server functionality, this data asset provides potential testing scenarios for data processing analysis.
+- **Overview:** `app.get('/good-evening', …)` responds to `GET /good-evening` with the plain-text body `Good evening` (12 bytes, **no** trailing newline). `server.js` comments identify this route as requirement R4.
+- **Business Value:** Demonstrates and exercises the newly introduced routing capacity (F-001), validating that additional endpoints can be added cleanly — the concrete deliverable that justified the re-platforming.
+- **User Benefits:** Provides a second, distinct, verifiable endpoint that maintainers can use as a template for future routes.
+- **Technical Context:** Sets `text/plain` for consistency with the root route. The absence of a trailing newline (unlike `GET /`) is intentional and documented in `README.md`. Independent execution confirmed `HTTP 200`, `Content-Type: text/plain; charset=utf-8`, `Content-Length: 12`.
 
-**Business Value:**
-- Extends test coverage to include data file parsing scenarios
-- Provides structured data for potential multi-format analysis testing
-- Demonstrates repository capability to host diverse file types
+**Dependencies**
 
-**User Benefits:**
-- Available dataset for Backprop data handling validation
-- Structured content for file type recognition testing
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | F-001 (routing foundation) |
+| System Dependencies | Express response API (`res.type`, `res.set`, `res.send`) |
+| External Dependencies | `express` (transitively) |
+| Integration Requirements | An HTTP client on the loopback interface |
 
-**Technical Context:**
-The `industry.csv` file contains a single-column list of 44 industry categories (e.g., Accounting/Finance, Technology, Healthcare, Legal) in standard CSV format.
-
-#### Dependencies
-
-| Dependency Type | Dependency | Notes |
-|-----------------|------------|-------|
-| File System | `industry.csv` | 45 lines including header |
-| External Dependencies | None | Self-contained static file |
-
----
-
-### 2.1.5 Feature: Multi-Language Test Stubs (F-004)
-
-#### Feature Metadata
+### 2.1.4 F-004 — HTTP Response Security Hardening
 
 | Attribute | Value |
 |-----------|-------|
-| Feature ID | F-004 |
-| Feature Name | Multi-Language Test Stubs |
-| Category | Future Testing |
+| Unique ID | F-004 |
+| Feature Name | HTTP Response Security Hardening |
+| Feature Category | Security / Response Hardening |
+| Priority Level | Medium |
+| Status | Completed |
+| Requirement Provenance | Hardening beyond the AAP minimum (delivery record §1.3, §6) |
+
+**Description**
+
+- **Overview:** Two complementary hardening measures: `app.disable('x-powered-by')` removes the framework-advertising `X-Powered-By` header from all responses, and each success route sets `X-Content-Type-Options: nosniff` via `res.set('X-Content-Type-Options', 'nosniff')`.
+- **Business Value:** Reduces information disclosure (the delivery record ties the `X-Powered-By` removal to CWE-200) and provides MIME-sniffing protection parity between success and error responses, improving the service's security posture beyond the original baseline at negligible cost.
+- **User Benefits:** Clients and security scanners observe hardened headers; the framework is not advertised on any response.
+- **Technical Context:** `res.set()` returns `res`, so the `nosniff` header chains ahead of `res.type().send()` in each handler. Independent execution confirmed `X-Content-Type-Options: nosniff` present on both routes and `X-Powered-By` absent from responses.
+
+**Dependencies**
+
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | F-001 (`app.disable` at app level); F-002 and F-003 (the `nosniff` header is set inside their handlers) |
+| System Dependencies | Express header APIs (`app.disable`, `res.set`) |
+| External Dependencies | `express` (transitively) |
+| Integration Requirements | An HTTP client capable of inspecting response headers (e.g., `curl -i`) |
+
+### 2.1.5 F-005 — Observable Fail-Fast Startup & Error Handling
+
+| Attribute | Value |
+|-----------|-------|
+| Unique ID | F-005 |
+| Feature Name | Observable Fail-Fast Startup & Error Handling |
+| Feature Category | Runtime Operations / Reliability |
+| Priority Level | Medium |
+| Status | Completed |
+| Requirement Provenance | Robustness hardening beyond the AAP minimum (delivery record §1.3, §6) |
+
+**Description**
+
+- **Overview:** The service binds `127.0.0.1:3000` via `app.listen(port, hostname, callback)`. The success log `Server running at http://127.0.0.1:3000/` is emitted **only** when `server.listening` is true, and a dedicated `server.on('error', …)` handler writes bind/startup failures to stderr and sets `process.exitCode = 1`.
+- **Business Value:** Prevents a failed launch (for example, port `3000` already in use) from being reported as success — a defect present in the original baseline where the process could log success and exit `0` despite a failed bind.
+- **User Benefits:** Operators receive an accurate, actionable startup signal and a non-zero exit status on failure, making the service safe to script and integrate.
+- **Technical Context:** In Express 5 the `listen` callback fires even when the underlying bind fails, so the success message is guarded on `server.listening`. Using `process.exitCode` (rather than `process.exit()`) lets pending output flush and the event loop unwind cleanly. Independent execution confirmed the success log on a clean start, and — on a second instance against a busy port — the stderr message `Failed to start server at http://127.0.0.1:3000/: listen EADDRINUSE: address already in use 127.0.0.1:3000` with exit code `1` and no false success line.
+
+**Dependencies**
+
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | F-001 (the Express `app` object being listened on) |
+| System Dependencies | Node.js `net`/`http` stack (`app.listen`, server `error` event); `process.exitCode`; `console` |
+| External Dependencies | `express` (transitively; `app.listen` wraps Node's HTTP server) |
+| Integration Requirements | Availability of loopback port `3000`; stdout/stderr for logging |
+
+### 2.1.6 F-006 — Deterministic Dependency Management & Repository Hygiene
+
+| Attribute | Value |
+|-----------|-------|
+| Unique ID | F-006 |
+| Feature Name | Deterministic Dependency Management & Repository Hygiene |
+| Feature Category | Build & Dependency Management / Documentation |
+| Priority Level | High |
+| Status | Completed |
+| Requirement Provenance | R1 (declare/lock/install Express), H1 (`.gitignore`), H2 (`README.md`), C2 (pin patched version) |
+
+**Description**
+
+- **Overview:** `package.json` declares one direct dependency, `express` `^5.2.1`, and `package-lock.json` (lockfileVersion 3, 68 entries = root + 67 dependencies) pins the exact resolved graph. `.gitignore` excludes `node_modules/`, and `README.md` documents the install/run steps and both endpoints (including the trailing-newline distinction).
+- **Business Value:** Delivers reproducible installs (a committed lockfile yields a deterministic tree), supply-chain hygiene (`npm audit` reports 0 vulnerabilities), and clear onboarding documentation — supporting the project's value drivers of reproducibility and disciplined change management.
+- **User Benefits:** Any developer can `npm install` and obtain an identical dependency tree, then follow the `README.md` to run and verify the service.
+- **Technical Context:** The caret range `^5.2.1` combined with the committed lockfile keeps installs deterministic; `node_modules/` is intentionally not committed. The manifest retains `"main": "index.js"` while the executable entry point is `server.js` — an intentional discrepancy preserved under constraint C1.
+
+**Dependencies**
+
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | None (foundational) |
+| System Dependencies | npm (lockfileVersion 3 implies npm ≥ 7); Git (for `.gitignore` semantics) |
+| External Dependencies | npm registry (source of `express` and transitive tarballs) |
+| Integration Requirements | `npm install`; version control honoring `.gitignore` |
+
+### 2.1.7 F-007 — Static Industry Dataset Asset
+
+| Attribute | Value |
+|-----------|-------|
+| Unique ID | F-007 |
+| Feature Name | Static Industry Dataset Asset |
+| Feature Category | Static Data Artifact (Non-Runtime) |
 | Priority Level | Low |
-| Status | Proposed |
-| Implementation | Placeholder files |
+| Status | Completed (present as a static asset) |
+| Requirement Provenance | None (pre-existing repository artifact) |
 
-#### Description
+**Description**
 
-**Overview:**
-The repository contains placeholder artifacts for potential multi-language testing scenarios, including Java and Python test stubs. These files are currently non-functional but indicate planned expansion of testing capabilities.
+- **Overview:** `industry.csv` (749 bytes) contains a single `Industry` header row followed by 43 industry-category rows (`Accounting/Finance` … `Other`). It is a static, version-controlled data file.
+- **Business Value:** Retained as a repository data artifact; it contributes to the repository's role as a mixed-artifact test ground but adds no runtime capability.
+- **User Benefits:** Available as reference/reusable static data for future or external use; it does not affect the running service.
+- **Technical Context:** The file is **not opened, parsed, or served** by `server.js`; the running service consults no data files. It is documented as an in-scope data domain with "no runtime usage" in Section 1.3.1.
 
-**Business Value:**
-- Establishes foundation for cross-language Backprop analysis testing
-- Prepares repository for expanded integration validation scenarios
+**Dependencies**
 
-**User Benefits:**
-- Framework for future multi-language test implementation
-- Placeholder structure for organized test expansion
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | None |
+| System Dependencies | None (not loaded at runtime) |
+| External Dependencies | None |
+| Integration Requirements | None |
 
-**Technical Context:**
-Current placeholder state:
-- `LoginTest.java`: Non-functional Java stub in `com.blitzyTest` package
-- `test.py.txt`: Empty Python test placeholder (0 bytes)
-- `test.txt.txt`: Empty text placeholder (0 bytes)
+### 2.1.8 F-008 — Multi-Language Placeholder & Test-Fixture Artifacts
 
-#### Dependencies
+| Attribute | Value |
+|-----------|-------|
+| Unique ID | F-008 |
+| Feature Name | Multi-Language Placeholder & Test-Fixture Artifacts |
+| Feature Category | Placeholder / Fixture (Non-Runtime) |
+| Priority Level | Low |
+| Status | Completed (present as intentionally inert placeholders) |
+| Requirement Provenance | None (pre-existing repository artifacts) |
 
-| Dependency Type | Dependency | Notes |
-|-----------------|------------|-------|
-| Java Runtime | JDK | Required for Java test execution |
-| Python Runtime | Python 3.x | Required for Python test execution |
-| Status | Incomplete | Requires implementation |
+**Description**
 
----
+- **Overview:** A set of non-runtime artifacts present and version-controlled in the repository root: `LoginTest.java` (128 bytes, an incomplete `com.blitzyTest` stub containing a stray `Web` token — non-compilable), `test.py.txt` and `test.txt.txt` (0-byte empty placeholders), and three binary test fixtures — `100Pages.pdf` (~9 MB), `demo.jpg` (~2 MB), and `sample.doc` (~96 KB).
+- **Business Value:** Preserves the repository's multi-artifact / multi-language character used for tooling exercises; no production value is claimed.
+- **User Benefits:** Serve as inert fixtures/placeholders for experimentation; they impose no behavior on the service.
+- **Technical Context:** None of these files is imported, compiled, executed, or served by `server.js`. `LoginTest.java` is intentionally an incomplete stub, not a functioning program.
 
-## 2.2 Functional Requirements Tables
+**Dependencies**
 
-### 2.2.1 HTTP Server Requirements (F-001)
+| Dependency Type | Detail |
+|-----------------|--------|
+| Prerequisite Features | None |
+| System Dependencies | None (not loaded, compiled, or served) |
+| External Dependencies | None |
+| Integration Requirements | None |
 
-#### Core Requirements
+## 2.2 Functional Requirements
 
-| Req ID | Description | Priority |
-|--------|-------------|----------|
-| F-001-RQ-001 | Server Initialization | Must-Have |
-| F-001-RQ-002 | Request Handling | Must-Have |
-| F-001-RQ-003 | Response Generation | Must-Have |
-| F-001-RQ-004 | Startup Logging | Must-Have |
+This section specifies the testable functional requirements for each catalogued feature. Requirement IDs follow the `F-XXX-RQ-YYY` convention. Priority uses the MoSCoW scale (Must-Have / Should-Have / Could-Have) and complexity is rated relative to this deliberately minimal codebase. Because the repository defines **no measured latency or throughput targets** (Section 1.2.3 intentionally omits them for lack of recorded values), performance criteria are stated qualitatively; no numeric SLA is fabricated. All acceptance criteria below were confirmed either by the validation record in `blitzy/documentation/Project Guide.md` or by direct execution of `server.js`.
 
----
+### 2.2.1 F-001 — Express Application & Routing Foundation
 
-#### F-001-RQ-001: Server Initialization
+**Requirement details**
 
-**Requirement Details**
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-001-RQ-001 | Load Express via `require('express')` and instantiate exactly one application via `express()` | Must-Have | Low |
+| F-001-RQ-002 | Route requests by path; unmatched paths and non-registered methods receive Express's default `404` | Must-Have | Low |
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-001-RQ-001 |
-| Description | System shall initialize HTTP server on localhost:3000 |
-| Priority | Must-Have |
-| Complexity | Low |
+**Acceptance criteria**
 
-**Acceptance Criteria**
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-001-RQ-001 | `node --check server.js` exits `0`; `npm ls express` resolves `express@5.2.1`; the server starts and dispatches requests |
+| F-001-RQ-002 | `GET /` and `GET /good-evening` dispatch to their handlers; `GET /nope` and `POST /` return HTTP `404` |
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-001-01 | Server binds to IP address 127.0.0.1 |
-| AC-001-02 | Server listens on port 3000 |
-| AC-001-03 | Server accepts incoming HTTP connections |
-| AC-001-04 | No errors thrown during initialization |
+**Technical specifications**
 
-**Technical Specifications**
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-001-RQ-001 | None (module load at process start) | Initialized Express `app` with routes registered | `node_modules/express` populated by `npm install` |
+| F-001-RQ-002 | HTTP method plus request path | Handler dispatch, otherwise default `404` (`text/html; charset=utf-8`, 143-byte page) | None (stateless; no persistence) |
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | `node server.js` command execution |
-| Output | Running server instance |
-| Performance | Startup time < 100ms |
-| Data Requirements | `server.js` file accessible |
+**Performance criteria:** Routing is resolved in-process with no external I/O or shared state; the repository defines no latency or throughput target.
 
-**Validation Rules**
+**Validation rules**
 
-| Rule Type | Rule |
-|-----------|------|
-| Business Rule | Server must use hardcoded configuration |
-| Data Validation | Port must be numeric (3000) |
-| Security | Binding restricted to localhost only |
-| Compliance | MIT license compliance required |
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-001-RQ-001 | Exactly one app instance; CommonJS retained (C1) | No request input is parsed or trusted | Dependency graph locked; `npm audit` 0 vulnerabilities |
+| F-001-RQ-002 | Only explicitly registered routes succeed | Unknown path/method rejected with `404` (no catch-all body) | Verified default `404` carries `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` |
 
----
+### 2.2.2 F-002 — Root Greeting Endpoint (`GET /`)
 
-#### F-001-RQ-002: Request Handling
+**Requirement details**
 
-**Requirement Details**
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-002-RQ-001 | `GET /` returns the byte-exact body `Hello, World!\n` (14 bytes) with status `200` and `Content-Type: text/plain` | Must-Have | Low |
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-001-RQ-002 |
-| Description | System shall accept all HTTP requests regardless of method or path |
-| Priority | Must-Have |
-| Complexity | Low |
+**Acceptance criteria**
 
-**Acceptance Criteria**
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-002-RQ-001 | `curl http://127.0.0.1:3000/` returns `Hello, World!` followed by exactly one trailing newline; response is `200`, `Content-Type: text/plain; charset=utf-8`, `Content-Length: 14` |
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-002-01 | GET requests are accepted and processed |
-| AC-002-02 | POST requests are accepted and processed |
-| AC-002-03 | All URL paths return identical response |
-| AC-002-04 | Query parameters are ignored |
-
-**Technical Specifications**
+**Technical specifications**
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | Any HTTP request to localhost:3000 |
-| Output | Triggers response generation |
-| Performance | Request processing < 10ms |
-| Data Requirements | Valid HTTP request format |
-
-**Validation Rules**
-
-| Rule Type | Rule |
-|-----------|------|
-| Business Rule | No path differentiation implemented |
-| Data Validation | HTTP protocol compliance |
-| Security | Localhost-only access |
-| Compliance | Standard HTTP/1.1 protocol |
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-002-RQ-001 | `GET` request to path `/` (no query or body consumed) | `200`; `text/plain; charset=utf-8`; `Content-Length: 14`; body `Hello, World!\n` | Static literal body; no data source |
 
----
-
-#### F-001-RQ-003: Response Generation
+**Performance criteria:** Static in-memory string served without I/O; no defined latency/throughput target in the repository.
 
-**Requirement Details**
+**Validation rules**
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-001-RQ-003 |
-| Description | System shall respond with "Hello, World!" message |
-| Priority | Must-Have |
-| Complexity | Low |
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-002-RQ-001 | Body preserved byte-for-byte from the original baseline (R3) | Exactly 14 bytes including one trailing `\n`; explicit `text/plain` | `X-Content-Type-Options: nosniff` present; `X-Powered-By` absent; loopback-only exposure |
 
-**Acceptance Criteria**
+### 2.2.3 F-003 — Evening Greeting Endpoint (`GET /good-evening`)
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-003-01 | Response body contains exactly "Hello, World!\n" |
-| AC-003-02 | HTTP status code is 200 |
-| AC-003-03 | Content-Type header is "text/plain" |
-| AC-003-04 | Response is consistent across all requests |
+**Requirement details**
 
-**Technical Specifications**
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-003-RQ-001 | `GET /good-evening` returns the body `Good evening` (12 bytes, no trailing newline) with status `200` and `Content-Type: text/plain` | Must-Have | Low |
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | Processed HTTP request |
-| Output | HTTP 200 with "Hello, World!\n" |
-| Performance | Response latency < 10ms |
-| Data Requirements | Static response string |
+**Acceptance criteria**
 
-**Validation Rules**
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-003-RQ-001 | `curl http://127.0.0.1:3000/good-evening` returns `Good evening` with no trailing newline; response is `200`, `Content-Type: text/plain; charset=utf-8`, `Content-Length: 12` |
 
-| Rule Type | Rule |
-|-----------|------|
-| Business Rule | Response content is immutable |
-| Data Validation | Exact string match required |
-| Security | No sensitive data in response |
-| Compliance | UTF-8 encoding |
+**Technical specifications**
 
----
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-003-RQ-001 | `GET` request to path `/good-evening` (no query or body consumed) | `200`; `text/plain; charset=utf-8`; `Content-Length: 12`; body `Good evening` | Static literal body; no data source |
 
-#### F-001-RQ-004: Startup Logging
+**Performance criteria:** Static in-memory string served without I/O; no defined latency/throughput target in the repository.
 
-**Requirement Details**
+**Validation rules**
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-001-RQ-004 |
-| Description | System shall log server URL upon successful startup |
-| Priority | Must-Have |
-| Complexity | Low |
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-003-RQ-001 | New endpoint delivered under R4 | Exactly 12 bytes with no trailing newline | `X-Content-Type-Options: nosniff` present; `X-Powered-By` absent; loopback-only exposure |
 
-**Acceptance Criteria**
+### 2.2.4 F-004 — HTTP Response Security Hardening
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-004-01 | Console displays server URL on startup |
-| AC-004-02 | Log message format: "Server running at http://127.0.0.1:3000/" |
-| AC-004-03 | Log appears only after successful binding |
+**Requirement details**
 
-**Technical Specifications**
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-004-RQ-001 | Disable the `X-Powered-By` header on all responses via `app.disable('x-powered-by')` | Should-Have | Low |
+| F-004-RQ-002 | Set `X-Content-Type-Options: nosniff` on both success routes | Should-Have | Low |
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | Successful server binding |
-| Output | Console log message |
-| Performance | Immediate upon binding |
-| Data Requirements | None |
+**Acceptance criteria**
 
-**Validation Rules**
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-004-RQ-001 | `curl -i` on both routes shows no `X-Powered-By` header on any response |
+| F-004-RQ-002 | `curl -i` on `GET /` and `GET /good-evening` shows `X-Content-Type-Options: nosniff` |
 
-| Rule Type | Rule |
-|-----------|------|
-| Business Rule | Single log message per startup |
-| Data Validation | Valid URL format in message |
-| Security | No sensitive information logged |
-| Compliance | Standard console output |
+**Technical specifications**
 
----
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-004-RQ-001 | Any HTTP response | Response with no `X-Powered-By` header | None |
+| F-004-RQ-002 | `GET /` or `GET /good-evening` | Response including `X-Content-Type-Options: nosniff` | None |
 
-### 2.2.2 Backprop Integration Requirements (F-002)
+**Performance criteria:** Header operations are constant-time in-process; no defined target.
 
-| Req ID | Description | Priority |
-|--------|-------------|----------|
-| F-002-RQ-001 | Repository Accessibility | Must-Have |
-| F-002-RQ-002 | Codebase Stability | Must-Have |
-| F-002-RQ-003 | Zero-Dependency Maintenance | Should-Have |
+**Validation rules**
 
----
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-004-RQ-001 | The framework must not be advertised | Header absent on every response | Mitigates information disclosure (CWE-200, per delivery record) |
+| F-004-RQ-002 | Success/error header parity | Header value is exactly `nosniff` | Reduces MIME-sniffing risk (defense-in-depth) |
 
-#### F-002-RQ-001: Repository Accessibility
+### 2.2.5 F-005 — Observable Fail-Fast Startup & Error Handling
 
-**Requirement Details**
+**Requirement details**
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-002-RQ-001 |
-| Description | Repository structure shall remain accessible for Backprop analysis |
-| Priority | Must-Have |
-| Complexity | Low |
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-005-RQ-001 | Bind `127.0.0.1:3000` and log `Server running at http://127.0.0.1:3000/` only when `server.listening` is true | Must-Have | Medium |
+| F-005-RQ-002 | On a bind/startup `error`, write the failure to stderr and set a non-zero exit code (fail-fast) | Should-Have | Medium |
 
-**Acceptance Criteria**
+**Acceptance criteria**
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-010-01 | All 8 repository files accessible |
-| AC-010-02 | File permissions allow read access |
-| AC-010-03 | No encrypted or obfuscated content |
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-005-RQ-001 | `node server.js` and `npm start` print the running URL exactly once, only after the socket is listening |
+| F-005-RQ-002 | A second instance on a busy port prints `Failed to start server at http://127.0.0.1:3000/: … EADDRINUSE …` to stderr, exits with code `1`, and prints no success line |
 
-**Technical Specifications**
+**Technical specifications**
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | Backprop analysis request |
-| Output | File content availability |
-| Performance | Standard file system access |
-| Data Requirements | Complete repository structure |
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-005-RQ-001 | Host `127.0.0.1`, port `3000` (hardcoded constants) | stdout log line plus a listening socket | None |
+| F-005-RQ-002 | Node server `error` event (e.g., `EADDRINUSE`) | stderr message; `process.exitCode = 1` | None |
 
----
+**Performance criteria:** Startup performs a single bind attempt with no retry or backoff; no defined target.
 
-#### F-002-RQ-002: Codebase Stability
+**Validation rules**
 
-**Requirement Details**
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-005-RQ-001 | Success is announced only when actually listening | Log guarded on `server.listening` | Bind is loopback-only, not externally exposed |
+| F-005-RQ-002 | A failed launch is never reported as success | Error surfaced to stderr, not swallowed | Non-zero exit enables safe scripting and automation |
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-002-RQ-002 |
-| Description | Codebase shall maintain consistent state for reproducible testing |
-| Priority | Must-Have |
-| Complexity | Low |
+### 2.2.6 F-006 — Deterministic Dependency Management & Repository Hygiene
 
-**Acceptance Criteria**
+**Requirement details**
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-011-01 | "Do not touch!" directive respected |
-| AC-011-02 | File contents unchanged between tests |
-| AC-011-03 | Package version remains 1.0.0 |
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-006-RQ-001 | Declare `express` `^5.2.1`, lock the full tree in `package-lock.json`, and install into `node_modules/` deterministically | Must-Have | Low |
+| F-006-RQ-002 | `.gitignore` excludes `node_modules/` (H1) | Should-Have | Low |
+| F-006-RQ-003 | `README.md` documents install/run commands and both endpoints, including the trailing-newline distinction (H2) | Should-Have | Low |
 
-**Technical Specifications**
+**Acceptance criteria**
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | Repository state |
-| Output | Consistent analysis results |
-| Performance | N/A |
-| Data Requirements | Version-controlled files |
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-006-RQ-001 | `npm install` is idempotent; `npm ls express` resolves `express@5.2.1`; `npm audit` reports 0 vulnerabilities; lockfileVersion 3 with 68 entries |
+| F-006-RQ-002 | `git check-ignore node_modules/` confirms exclusion; `node_modules/` is untracked |
+| F-006-RQ-003 | `README.md` lists Node ≥ 18, `npm install`, `node server.js` / `npm start`, and an endpoint table with the newline note |
 
----
+**Technical specifications**
 
-#### F-002-RQ-003: Zero-Dependency Maintenance
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-006-RQ-001 | `npm install` against the committed lockfile | Reproducible `node_modules/` tree (root plus 67 deps) | `package.json`, `package-lock.json` |
+| F-006-RQ-002 | Git operations | `node_modules/` excluded from version control | `.gitignore` |
+| F-006-RQ-003 | Reader/operator | Documented usage contract | `README.md` |
 
-**Requirement Details**
+**Performance criteria:** Not applicable — build-time and documentation concern with no runtime performance dimension.
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-002-RQ-003 |
-| Description | Repository shall maintain zero external npm dependencies |
-| Priority | Should-Have |
-| Complexity | Low |
+**Validation rules**
 
-**Acceptance Criteria**
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-006-RQ-001 | Pin the current patched stable release (C2) | Lockfile integrity (SHA-512 per entry) | `npm audit` 0 vulnerabilities; deterministic supply chain |
+| F-006-RQ-002 | Installed dependencies are not version-controlled | `node_modules/` absent from tracked files | Avoids committing third-party code |
+| F-006-RQ-003 | Documentation must match implemented behavior | Documented bodies/bytes match `server.js` | Not applicable |
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-012-01 | `package.json` dependencies object empty |
-| AC-012-02 | `package-lock.json` confirms no packages |
-| AC-012-03 | Only Node.js built-in modules used |
+### 2.2.7 F-007 — Static Industry Dataset Asset
 
-**Technical Specifications**
+**Requirement details**
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | Dependency configuration |
-| Output | Isolated execution environment |
-| Performance | No dependency resolution overhead |
-| Data Requirements | package.json, package-lock.json |
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-007-RQ-001 | `industry.csv` is present and well-formed (an `Industry` header plus 43 category rows) and is not read by the running service | Could-Have | Low |
 
----
+**Acceptance criteria**
 
-### 2.2.3 Static Data Requirements (F-003)
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-007-RQ-001 | The file exists at repository root with 44 lines (1 header + 43 rows); `server.js` contains no read of it; server behavior is identical with or without the file present |
 
-| Req ID | Description | Priority |
-|--------|-------------|----------|
-| F-003-RQ-001 | Data File Availability | Could-Have |
-| F-003-RQ-002 | Data Format Compliance | Could-Have |
+**Technical specifications**
 
----
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-007-RQ-001 | None (never loaded) | None (never served) | Single-column CSV (`Industry`) with 43 category values |
 
-#### F-003-RQ-001: Data File Availability
+**Performance criteria:** Not applicable — the file is not loaded at runtime.
 
-**Requirement Details**
+**Validation rules**
 
-| Attribute | Specification |
-|-----------|---------------|
-| Requirement ID | F-003-RQ-001 |
-| Description | Industry data file shall be present and readable |
-| Priority | Could-Have |
-| Complexity | Low |
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-007-RQ-001 | Static asset, not a runtime data source | Header plus 43 non-empty rows | No exposure — the server never serves or reads the file |
 
-**Acceptance Criteria**
+### 2.2.8 F-008 — Multi-Language Placeholder & Test-Fixture Artifacts
 
-| Criterion ID | Description |
-|--------------|-------------|
-| AC-020-01 | `industry.csv` exists in repository root |
-| AC-020-02 | File contains 44 industry entries |
-| AC-020-03 | Standard CSV format maintained |
+**Requirement details**
 
-**Technical Specifications**
+| Requirement ID | Description | Priority | Complexity |
+|----------------|-------------|----------|------------|
+| F-008-RQ-001 | Placeholder/fixture artifacts (`LoginTest.java`, `test.py.txt`, `test.txt.txt`, `100Pages.pdf`, `demo.jpg`, `sample.doc`) are present and inert — never imported, compiled, executed, or served | Could-Have | Low |
 
-| Parameter | Specification |
-|-----------|---------------|
-| Input | File system read request |
-| Output | CSV content |
-| Performance | Standard file read |
-| Data Requirements | Valid CSV syntax |
+**Acceptance criteria**
 
----
+| Requirement ID | Acceptance Criteria |
+|----------------|---------------------|
+| F-008-RQ-001 | The files exist and are version-controlled; `server.js` references none of them; server behavior is unaffected by their presence or absence |
+
+**Technical specifications**
+
+| Requirement ID | Input Parameters | Output / Response | Data Requirements |
+|----------------|------------------|-------------------|-------------------|
+| F-008-RQ-001 | None (never loaded) | None (never served) | Inert files: two 0-byte placeholders, one incomplete Java stub, three binary fixtures |
+
+**Performance criteria:** Not applicable — none of the artifacts is loaded at runtime.
+
+**Validation rules**
+
+| Requirement ID | Business Rules | Data Validation | Security & Compliance |
+|----------------|----------------|-----------------|-----------------------|
+| F-008-RQ-001 | Non-functional placeholders retained as-is | `LoginTest.java` is a known-incomplete stub | No runtime exposure — none are served or executed |
 
 ## 2.3 Feature Relationships
 
+The relationships below are limited to those directly evident in `server.js`, the manifests, and `.gitignore`. Because the entire runtime is a single-process, single-file monolith, feature coupling is intentionally shallow: the Express application object created in F-001 is the hub through which the endpoint, hardening, and startup features connect, and the two non-runtime artifact features (F-007, F-008) are fully isolated.
+
 ### 2.3.1 Feature Dependency Map
 
-The hao-backprop-test repository implements a deliberately simple architecture with minimal feature interdependencies. The following diagram illustrates the relationship hierarchy:
+In the diagram, an arrow from **X to Y** (labelled with the enabling mechanism in `server.js` or the manifests) means **X provides or enables Y** — equivalently, Y builds upon X. Nodes are grouped by lifecycle: install-time supply chain, the runtime service, and inert non-runtime artifacts.
 
 ```mermaid
-flowchart TB
-    subgraph CoreFeatures["Core Features"]
-        F001["F-001<br/>HTTP Server<br/>(Critical)"]
+flowchart TD
+    subgraph Supply["Install-time supply chain and hygiene"]
+        F006["F-006 Dependency Mgmt and Hygiene"]
     end
-    
-    subgraph SupportFeatures["Support Features"]
-        F002["F-002<br/>Backprop Integration<br/>(Critical)"]
-        F003["F-003<br/>Static Data Assets<br/>(Low)"]
+    subgraph Runtime["Runtime service — server.js on 127.0.0.1:3000"]
+        F001["F-001 Express App and Routing Foundation"]
+        F002["F-002 Root Greeting (GET /)"]
+        F003["F-003 Evening Greeting (GET /good-evening)"]
+        F004["F-004 Response Security Hardening"]
+        F005["F-005 Fail-Fast Startup and Error Handling"]
     end
-    
-    subgraph FutureFeatures["Future Features"]
-        F004["F-004<br/>Multi-Language Stubs<br/>(Proposed)"]
+    subgraph Inert["Non-runtime artifacts — present, not loaded"]
+        F007["F-007 Static Industry Dataset"]
+        F008["F-008 Placeholder and Fixture Artifacts"]
     end
-    
-    F001 --> F002
-    F003 --> F002
-    F004 -.->|Future| F002
+    F006 -->|"installs express 5.2.1"| F001
+    F001 -->|"registers GET /"| F002
+    F001 -->|"registers GET /good-evening"| F003
+    F001 -->|"disables X-Powered-By"| F004
+    F002 -->|"sets nosniff in handler"| F004
+    F003 -->|"sets nosniff in handler"| F004
+    F001 -->|"app.listen bind"| F005
 ```
 
-### 2.3.2 Dependency Matrix
+**Dependency matrix:**
 
-| Feature | Depends On | Required By | Relationship Type |
-|---------|------------|-------------|-------------------|
-| F-001 | None | F-002 | Primary dependency |
-| F-002 | F-001, F-003 | None | Integration feature |
-| F-003 | None | F-002 | Optional enhancement |
-| F-004 | None | F-002 | Future expansion |
+| Feature | Depends On | Depended On By | Relationship Basis |
+|---------|-----------|----------------|--------------------|
+| F-001 | F-006 | F-002, F-003, F-004, F-005 | Provides the `express()` app and router |
+| F-002 | F-001 | F-004 | Route registered on the app; hosts a `nosniff` header |
+| F-003 | F-001 | F-004 | Route registered on the app; hosts a `nosniff` header |
+| F-004 | F-001, F-002, F-003 | — | `x-powered-by` disabled at app level; `nosniff` set within each handler |
+| F-005 | F-001 | — | Calls `app.listen` on the app object |
+| F-006 | — | F-001 (and, transitively, all runtime features) | Declares, locks, and installs Express |
+| F-007 | — | — | Isolated — never loaded or served |
+| F-008 | — | — | Isolated — never loaded, compiled, or served |
 
-### 2.3.3 Integration Points
+### 2.3.2 Integration Points
 
-| Integration Point | Features Involved | Description |
-|-------------------|-------------------|-------------|
-| HTTP Endpoint | F-001, F-002 | Server provides testable endpoint |
-| File System | F-001, F-002, F-003 | Repository files available for analysis |
-| Console Output | F-001, F-002 | Startup log enables verification |
+All integration points are evident in the code and configuration; the service exposes exactly one inbound runtime surface (the loopback HTTP listener) and has no outbound runtime integrations (no database, message queue, or third-party API is referenced anywhere in `server.js`).
 
-### 2.3.4 Shared Components
+| Integration Point | Type | Direction / Lifecycle | Features Involved |
+|-------------------|------|-----------------------|-------------------|
+| npm registry | Package registry | Outbound, install-time | F-006 → F-001 |
+| Loopback HTTP `127.0.0.1:3000` | HTTP over TCP | Inbound, runtime | F-001, F-002, F-003, F-004 |
+| `stdout` / `stderr` console | Process I/O | Outbound, runtime | F-005 |
+| Node.js runtime and `net`/`http` stack | Host runtime | Hosts the process, runtime | F-001, F-005 |
+| Git working tree and `.gitignore` | Source control | Development-time | F-006 |
 
-| Component | Used By | Purpose |
-|-----------|---------|---------|
-| Node.js Runtime | F-001 | Server execution environment |
-| Repository Structure | F-002, F-003, F-004 | File organization for analysis |
-| Package Configuration | F-001, F-002 | npm metadata and scripts |
+The repository's broader purpose as a **Backprop integration-test target** (Section 1.1) is an external, read-only, out-of-process concern — Backprop analyzes repository files statically and is **not referenced by any source code**, so it is not a runtime integration of any feature and is deliberately excluded from the map above.
 
-### 2.3.5 Common Services
+### 2.3.3 Shared Components
 
-Given the minimal nature of this test harness, common services are limited to:
+| Shared Component | Defined In | Shared By | Purpose |
+|------------------|-----------|-----------|---------|
+| Express `app` object | `server.js` (F-001) | F-002, F-003, F-004, F-005 | Route registration, `x-powered-by` disable, and `listen` |
+| `express` dependency | `package.json` / `node_modules/` (F-006) | All runtime features | The HTTP framework itself |
+| Response idiom `res.set(...).type('text/plain').send(...)` | `server.js` (F-002, F-003) | F-002, F-003 (carrying F-004's `nosniff`) | Consistent, hardened plain-text responses |
+| `hostname` / `port` constants (`127.0.0.1`, `3000`) | `server.js` | F-005 (bind and both log messages) | Single source of the bind target and logged URL |
+| The single `server.js` module | Repository root | F-001 through F-005 | Houses all runtime logic in one file |
 
-| Service | Features | Implementation |
-|---------|----------|----------------|
-| Logging | F-001 | Console.log output |
-| Configuration | F-001 | Hardcoded values in server.js |
+### 2.3.4 Common Services
 
----
+The system has **no internal service decomposition** and therefore no shared internal services in the microservice or service-layer sense. It is a single-process "Minimal Monolith": there is no separate data service, cache, authentication service, message broker, or background worker — consistent with the out-of-scope determinations in Section 1.3.2 and the "not applicable" architecture assessments in Section 6 (System Components Design). The only shared infrastructural substrate is the **Node.js runtime** and the **Express middleware/routing pipeline**, which every runtime feature (F-001 through F-005) relies upon; the technology details of that substrate are documented in Section 3 (Technology Stack). Non-runtime features F-007 and F-008 share nothing with the runtime and participate in no service.
 
 ## 2.4 Implementation Considerations
 
-### 2.4.1 HTTP Server (F-001) Implementation
+The considerations below reflect only what is observable in the repository. Where the codebase defines no measured target (notably for latency, throughput, and scaling), that absence is stated explicitly rather than filled with assumed figures. The risk framing draws on the LOW-severity risk register in `blitzy/documentation/Project Guide.md` (§6).
 
-#### Technical Constraints
+### 2.4.1 Technical Constraints
 
-| Constraint | Description | Impact |
-|------------|-------------|--------|
-| Hardcoded Configuration | Port 3000 and IP 127.0.0.1 immutable | Prevents flexible deployment |
-| Single Response | All requests receive identical response | No dynamic behavior |
-| No Path Routing | URL paths ignored | Limited endpoint testing |
-| No Error Handling | Basic error scenarios unhandled | May fail silently |
+Several constraints apply system-wide and were deliberately preserved during the Express re-platforming (constraint C1): the CommonJS module system, a single self-starting `server.js` (no exported app object), the hardcoded bind target `127.0.0.1:3000` (no `PORT`/`HOST` environment configuration is read), the retained `"main": "index.js"` manifest field despite `server.js` being the true entry point, the Node.js ≥ 18 floor imposed by Express 5, and the intentionally unchanged placeholder `npm test` script (no test framework).
 
-#### Performance Requirements
+| Feature | Feature-Specific Technical Constraints |
+|---------|----------------------------------------|
+| F-001 | Single `express()` instance; CommonJS retained; requires Node ≥ 18; app is self-starting and not exported |
+| F-002 | Body must stay byte-exact `Hello, World!\n` (14 bytes); `text/plain` must be set explicitly or Express defaults the string body to `text/html` |
+| F-003 | Body must stay exactly `Good evening` (12 bytes, no trailing newline) |
+| F-004 | `app.disable('x-powered-by')` must run at app scope; `nosniff` is set per-handler (no global middleware is used) |
+| F-005 | Hardcoded bind target; single bind attempt (no retry); must use `process.exitCode` rather than `process.exit()`; success log guarded on `server.listening` |
+| F-006 | lockfileVersion 3 implies npm ≥ 7; `node_modules/` not committed; caret range `^5.2.1` relies on the committed lockfile for determinism |
+| F-007 | Retained as-is; wiring it into the runtime would expand the documented scope |
+| F-008 | Retained as-is; `LoginTest.java` is non-compilable and must not be treated as a build input |
 
-| Metric | Target | Rationale |
-|--------|--------|-----------|
-| Startup Time | < 100ms | Rapid test initialization |
-| Response Latency | < 10ms | Efficient test execution |
-| Memory Footprint | Minimal | Single-purpose operation |
-| CPU Usage | Negligible | Static response generation |
+### 2.4.2 Performance Requirements
 
-#### Scalability Considerations
+The repository specifies **no numeric latency or throughput requirement** (Section 1.2.3 omits such KPIs because no measured values exist). The following are qualitative characteristics observable from the code, not targets.
 
-| Aspect | Current State | Notes |
-|--------|---------------|-------|
-| Concurrent Connections | Relies on Node.js defaults | No explicit handling |
-| Horizontal Scaling | Not applicable | Single instance by design |
-| Vertical Scaling | Not applicable | Minimal resource requirements |
-| Load Handling | Not designed for load | Test environment only |
+| Feature | Observed Performance Characteristic |
+|---------|-------------------------------------|
+| F-001 | Path routing resolved in-process; Express adds ETag generation, `charset` negotiation, and keep-alive as emergent overhead |
+| F-002 / F-003 | Responses are constant, in-memory string literals served with no file, database, or network I/O |
+| F-004 | Header set/disable operations are constant-time |
+| F-005 | Startup is a single asynchronous bind; no warm-up, pooling, or health polling |
+| F-006 | Build-time only; `npm install` is idempotent against the committed lockfile |
 
-#### Security Implications
+Any performance verification is manual (for example, `curl` timing) and is not automated in the repository.
 
-| Aspect | Implementation | Risk Level |
-|--------|----------------|------------|
-| Network Exposure | Localhost only (127.0.0.1) | Low |
-| Authentication | None | Acceptable for test scope |
-| Data Transmission | Plain HTTP | Low (localhost only) |
-| Input Validation | None | Low (no input processing) |
+### 2.4.3 Scalability Considerations
 
-#### Maintenance Requirements
+The service is a single Node.js process bound to one hardcoded loopback port, so it is **not horizontally scalable in its current form** and no clustering, load-balancing, or process-manager configuration exists (all explicitly out of scope per Section 1.3.2). Two observations temper this:
 
-| Requirement | Frequency | Description |
-|-------------|-----------|-------------|
-| Code Updates | Minimal | Intentionally stable |
-| Dependency Updates | None | Zero external dependencies |
-| Security Patches | None | Localhost isolation |
-| Documentation | As needed | Maintain accuracy |
+- **Statelessness aids future scaling.** F-001 through F-005 keep no per-request or shared mutable state, so the handlers themselves would parallelize cleanly if host/port configuration and a process manager were introduced — but those are future-phase items, not present capabilities.
+- **Feature-level extensibility is the delivered scalability benefit.** The routing foundation (F-001) is precisely what allows new endpoints (such as F-003) to be added without structural change — the stated purpose of the re-platforming. F-007 and F-008 are inert and impose no scaling concern.
 
----
+### 2.4.4 Security Implications
 
-### 2.4.2 Backprop Integration (F-002) Implementation
+| Feature | Security Implication and Mitigation |
+|---------|-------------------------------------|
+| F-001 | Introduces an Express supply chain of 67 transitive packages; mitigated by a committed lockfile and `npm audit` reporting 0 vulnerabilities (residual risk S1 — periodic audit recommended) |
+| F-002 / F-003 | Responses are static with no reflected user input, so there is no injection or templating surface |
+| F-004 | `X-Powered-By` removed (CWE-200 information-disclosure hardening); `nosniff` on success routes; the Express default `404` additionally carries `Content-Security-Policy: default-src 'none'` and `nosniff` |
+| F-005 | Fail-fast startup prevents a masked bind failure; loopback-only binding keeps the service unreachable off-host (risk S2 accepted for a localhost harness) |
+| F-006 | No secrets, credentials, or API keys are present or required; dependency integrity enforced via lockfile SHA-512 hashes |
 
-#### Technical Constraints
+Cross-cutting: there is **no TLS and no authentication/authorization**, which is an accepted risk because the service binds to loopback only and is never externally exposed. No request body or query string is parsed, so there is no input-validation attack surface in the current routes.
 
-| Constraint | Description | Impact |
-|------------|-------------|--------|
-| Repository Immutability | "Do not touch!" directive | Limited modification |
-| Version Lock | Fixed at v1.0.0 | No version progression |
-| Structure Stability | Fixed file layout | Consistent analysis baseline |
+### 2.4.5 Maintenance Requirements
 
-#### Performance Requirements
+| Feature | Maintenance Requirement |
+|---------|-------------------------|
+| F-001 | Keep CommonJS and the single-file structure; track the Node ≥ 18 floor as Express evolves |
+| F-002 / F-003 | Guard the byte-exact response contract on any future edit (risk T1); an optional smoke test is suggested but out of scope |
+| F-004 | Preserve the `nosniff`/`x-powered-by` behavior when adding routes (apply the same pattern to new handlers) |
+| F-005 | Preserve the `server.listening` guard and `error` handler when changing startup logic |
+| F-006 | Run `npm audit` periodically (risk S1); the caret range can float on lock-less installs, mitigated by the committed lockfile (risk T3); re-lock after intentional upgrades |
+| F-007 / F-008 | None — inert artifacts require no maintenance and should not be wired into the runtime |
 
-| Metric | Target | Rationale |
-|--------|--------|-----------|
-| Analysis Completion | Within tool timeout | Backprop compatibility |
-| File Accessibility | Immediate | No access barriers |
-| Parse Success | 100% | Clean, standard code |
-
-#### Security Implications
-
-| Aspect | Implementation | Risk Level |
-|--------|----------------|------------|
-| Code Exposure | Intentional for analysis | Accepted |
-| Tool Access | Required for Backprop | Controlled environment |
-
-#### Maintenance Requirements
-
-| Requirement | Frequency | Description |
-|-------------|-----------|-------------|
-| Stability Verification | Per Backprop version | Ensure compatibility |
-| Structure Preservation | Continuous | Maintain test baseline |
-
----
-
-### 2.4.3 Static Data (F-003) Implementation
-
-#### Technical Constraints
-
-| Constraint | Description | Impact |
-|------------|-------------|--------|
-| Read-Only | Data not programmatically consumed | Analysis only |
-| Static Content | 44 fixed entries | No dynamic updates |
-| Single Column | Limited data complexity | Simple parsing |
-
-#### Maintenance Requirements
-
-| Requirement | Frequency | Description |
-|-------------|-----------|-------------|
-| Data Integrity | None | Static, unchanging |
-| Format Validation | Initial | CSV compliance |
-
----
-
-### 2.4.4 Configuration Discrepancy Resolution
-
-**Issue:** The `package.json` file specifies `"main": "index.js"`, while the actual executable entry point is `server.js`.
-
-**Impact Assessment:**
-
-| Aspect | Impact Level | Notes |
-|--------|--------------|-------|
-| Functionality | None | Direct execution unaffected |
-| npm Start | Potential Issue | If npm start script added |
-| Backprop Analysis | Minor | May note discrepancy |
-
-**Recommendation:** Maintain current state to preserve test baseline stability. Document discrepancy for reference.
-
----
+The overall maintenance surface is deliberately small: the entire delivery touched only five files (`server.js`, `package.json`, `package-lock.json`, `.gitignore`, `README.md`), keeping changes reviewable. The primary standing maintenance obligations are dependency hygiene and preserving the byte-exact endpoint contracts.
 
 ## 2.5 Traceability Matrix
 
-### 2.5.1 Feature to Requirement Traceability
+This matrix ties every functional requirement to its implementing feature, the exact source evidence, and the validation that confirms it. Line references are to `server.js` as read during this analysis; validation entries derive from `blitzy/documentation/Project Guide.md` (§3) and from direct execution.
 
-| Feature ID | Requirements | Implementation File |
-|------------|--------------|---------------------|
-| F-001 | F-001-RQ-001, F-001-RQ-002, F-001-RQ-003, F-001-RQ-004 | `server.js` |
-| F-002 | F-002-RQ-001, F-002-RQ-002, F-002-RQ-003 | Repository structure |
-| F-003 | F-003-RQ-001, F-003-RQ-002 | `industry.csv` |
-| F-004 | (Proposed) | Placeholder files |
+### 2.5.1 Requirement-to-Source Traceability
 
-### 2.5.2 Requirement to Acceptance Criteria Traceability
+| Requirement ID | Feature | Source Evidence | Validation |
+|----------------|---------|-----------------|------------|
+| F-001-RQ-001 | F-001 | `server.js` L1 (`require('express')`), L3 (`express()`) | `node --check` exit 0; `npm ls express` → `5.2.1` |
+| F-001-RQ-002 | F-001 | `server.js` L19, L30 (routes); Express default `404` fall-through | `GET /nope` and `POST /` → `404` |
+| F-002-RQ-001 | F-002 | `server.js` L19–L25 (L24 sends `Hello, World!\n`) | `curl GET /` → 200, 14 bytes, `text/plain` |
+| F-003-RQ-001 | F-003 | `server.js` L30–L33 (L32 sends `Good evening`) | `curl GET /good-evening` → 200, 12 bytes |
+| F-004-RQ-001 | F-004 | `server.js` L9 (`app.disable('x-powered-by')`) | `curl -i` → `X-Powered-By` absent |
+| F-004-RQ-002 | F-004 | `server.js` L24, L32 (`res.set('X-Content-Type-Options','nosniff')`) | `curl -i` → `nosniff` on both routes |
+| F-005-RQ-001 | F-005 | `server.js` L45–L53 (L50 guard, L51 log) | `node server.js` / `npm start` log the URL |
+| F-005-RQ-002 | F-005 | `server.js` L60–L63 (error handler, L62 `process.exitCode = 1`) | second instance → stderr `EADDRINUSE`, exit `1` |
+| F-006-RQ-001 | F-006 | `package.json` L12–14; `package-lock.json` (lockfileVersion 3, 68 entries) | `npm ls`; `npm audit` → 0 vulnerabilities |
+| F-006-RQ-002 | F-006 | `.gitignore` (`node_modules/`) | `git check-ignore node_modules/` |
+| F-006-RQ-003 | F-006 | `README.md` (requirements, install/run, endpoint table) | Manual documentation review |
+| F-007-RQ-001 | F-007 | `industry.csv` (44 lines); no read in `server.js` | File present; server behavior unaffected |
+| F-008-RQ-001 | F-008 | `LoginTest.java`, `test.py.txt`, `test.txt.txt`, `100Pages.pdf`, `demo.jpg`, `sample.doc`; no references in `server.js` | Files present and inert |
 
-| Requirement ID | Acceptance Criteria | Verification Method |
-|----------------|---------------------|---------------------|
-| F-001-RQ-001 | AC-001-01 through AC-001-04 | Server startup test |
-| F-001-RQ-002 | AC-002-01 through AC-002-04 | HTTP request tests |
-| F-001-RQ-003 | AC-003-01 through AC-003-04 | Response validation |
-| F-001-RQ-004 | AC-004-01 through AC-004-03 | Console output check |
-| F-002-RQ-001 | AC-010-01 through AC-010-03 | File access test |
-| F-002-RQ-002 | AC-011-01 through AC-011-03 | Integrity check |
-| F-002-RQ-003 | AC-012-01 through AC-012-03 | Dependency audit |
-| F-003-RQ-001 | AC-020-01 through AC-020-03 | CSV validation |
+### 2.5.2 Feature-to-Delivery-Requirement Mapping
 
-### 2.5.3 Requirement to Source File Mapping
+The Express delivery was recorded as four requirements (R1–R4), two hygiene items (H1–H2), and two constraints (C1–C2) in `blitzy/documentation/Project Guide.md`. This table maps those identifiers onto the features catalogued in Section 2.1.
 
-| Requirement ID | Source File(s) | Line Reference |
-|----------------|----------------|----------------|
-| F-001-RQ-001 | `server.js` | Lines 1-4 (imports, config) |
-| F-001-RQ-002 | `server.js` | Lines 6-9 (createServer callback) |
-| F-001-RQ-003 | `server.js` | Lines 7-9 (response generation) |
-| F-001-RQ-004 | `server.js` | Lines 11-13 (listen callback) |
-| F-002-RQ-003 | `package.json`, `package-lock.json` | Dependencies section |
-| F-003-RQ-001 | `industry.csv` | Full file |
+| Feature | AAP Requirements / Hygiene | Constraints | Delivery Status |
+|---------|----------------------------|-------------|-----------------|
+| F-001 | R1, R2 | C1 (conventions preserved) | Completed |
+| F-002 | R3 | — | Completed |
+| F-003 | R4 | — | Completed |
+| F-004 | Security hardening (beyond AAP minimum) | — | Completed |
+| F-005 | Robustness hardening (beyond AAP minimum) | — | Completed |
+| F-006 | R1, H1, H2 | C2 (patched-version pin) | Completed |
+| F-007 | — (pre-existing artifact) | — | Present (non-runtime) |
+| F-008 | — (pre-existing artifacts) | — | Present (non-runtime) |
 
-### 2.5.4 Feature to Stakeholder Traceability
+### 2.5.3 Validation Traceability
 
-| Feature ID | Primary Stakeholder | Interest |
-|------------|---------------------|----------|
-| F-001 | Development/Integration Team | Test execution |
-| F-002 | Backprop Tool Developers | Integration validation |
-| F-003 | Development/Integration Team | Data analysis testing |
-| F-004 | Development/Integration Team | Future expansion |
+The delivery record documents eight validation checks (8 of 8 passing; unit tests intentionally excluded). Each is mapped to the feature(s) it exercises.
 
----
+| Validation Check | Method | Feature(s) Covered | Result |
+|------------------|--------|--------------------|--------|
+| Functional acceptance (endpoints) | `curl` / Node `http` client | F-002, F-003 | 2 of 2 pass |
+| Runtime smoke | `node server.js` and `npm start` | F-001, F-005 | 2 of 2 pass |
+| Negative routing | Unmatched path → `404` | F-001 | 1 of 1 pass |
+| Static syntax gate | `node --check server.js` | F-001 | 1 of 1 pass |
+| Dependency resolution | `npm ls` | F-006 | 1 of 1 pass |
+| Dependency audit | `npm audit` | F-006 | 1 of 1 pass |
+| Unit tests | None — excluded by design | — | 0 (intentional) |
+
+### 2.5.4 Related Flowcharts and Specifications
+
+| Related Artifact | Relevance to Section 2 Features |
+|------------------|---------------------------------|
+| Section 1.2.2 (Major System Components diagram) | Component inventory backing F-001 and F-006 |
+| Section 1.3.1 (Primary user workflow flowchart) | End-to-end `npm install` → run → `curl` flow across F-002, F-003, F-005, F-006 |
+| Section 3 (Technology Stack) | Express/Node/npm details underpinning F-001, F-006 |
+| Section 4 (Process Flowchart) | Request/response, startup, and error-handling process flows for F-001, F-002, F-003, F-005 |
+| Section 5 (System Architecture) | Component boundaries and data flow for the runtime features |
+| Section 6 (System Components Design) | Rationale for why database, microservice, and integration architectures are not applicable (relevant to F-007 and to the "no common services" finding in Section 2.3.4) |
+| `blitzy/documentation/Project Guide.md` (§3 validation, §5 compliance, §6 risk) | Authoritative delivery record for requirements, validation results, and risk posture |
 
 ## 2.6 Assumptions and Constraints
 
-### 2.6.1 Documented Assumptions
+This sub-section records the assumptions the requirements depend on, the constraints they operate within, and the version provenance of the delivered requirements. A documentation caveat applies throughout: the repository contains an older reference specification (`blitzy/documentation/Technical Specifications.md`) that describes the **superseded** native-`http` baseline; Section 2 documents the **current** Express 5 state as observed in `server.js` and the manifests. Where the two disagree, the current code is authoritative.
 
-| ID | Assumption | Impact if Invalid |
-|----|------------|-------------------|
-| A-001 | Node.js runtime available on test system | Server cannot start |
-| A-002 | Port 3000 available on localhost | Binding fails |
-| A-003 | Backprop tool compatible with Node.js analysis | Integration fails |
-| A-004 | Repository remains unchanged during testing | Inconsistent results |
-| A-005 | Single-user test execution model | Concurrent access undefined |
+### 2.6.1 Assumptions
 
-### 2.6.2 Documented Constraints
+| ID | Assumption | Basis / Evidence |
+|----|------------|------------------|
+| A-001 | Node.js ≥ 18 is available on the host | Express 5 declares `engines: { node: '>= 18' }`; `README.md` states the requirement; verified on Node v22.23.1 |
+| A-002 | `npm install` is run before startup to populate `node_modules/` from the committed lockfile | `node_modules/` is git-ignored; `README.md` step 1 is `npm install` |
+| A-003 | Loopback port `3000` is free at startup | Hardcoded `port = 3000`; a busy port triggers the fail-fast `error` handler (F-005) |
+| A-004 | Operation is single-host, single-developer, and loopback-only | Bind target `127.0.0.1`; no external exposure is intended (Section 1.3) |
+| A-005 | No environment variables, secrets, database, or external services are required | `server.js` reads none; `package.json` declares only `express` |
+| A-006 | The `main: index.js` vs. `server.js` entry-point discrepancy does not affect execution | Documented commands and the `start` script use `server.js`; discrepancy intentionally preserved (C-001) |
 
-| ID | Constraint | Rationale |
-|----|------------|-----------|
-| C-001 | Localhost binding only | Security and isolation |
-| C-002 | No external dependencies | Test predictability |
-| C-003 | Hardcoded configuration | Reproducibility |
-| C-004 | Static response content | Simplicity |
-| C-005 | Repository immutability | Test baseline preservation |
+### 2.6.2 Constraints
 
----
+| ID | Constraint | AAP Mapping | Evidence |
+|----|------------|-------------|----------|
+| C-001 | Preserve original conventions: CommonJS, single-file `server.js`, hardcoded `127.0.0.1:3000`, retained `main: index.js` | C1 | `server.js`; `package.json`; `blitzy/documentation/Project Guide.md` §5 |
+| C-002 | Pin a current patched-stable dependency version with a committed lockfile | C2 | `express` `^5.2.1` in `package.json`; `package-lock.json` (lockfileVersion 3); `npm audit` 0 |
+| C-003 | Loopback-only binding; no TLS and no authentication/authorization | — | Hardcoded `127.0.0.1`; no TLS/auth code (Section 1.3.2) |
+| C-004 | Hardcoded configuration; no `PORT`/`HOST` environment overrides | — | `hostname`/`port` constants in `server.js` |
+| C-005 | No automated test framework; verification is manual | — | Placeholder `npm test` exits `1`; no test files or devDependencies |
+| C-006 | Exactly one direct runtime dependency; no linter or build tooling | — | Only `express` in `package.json`; no `devDependencies` |
+| C-007 | `GET /` body must remain byte-exact (`Hello, World!\n`, 14 bytes) | R3 | `server.js` L24; `README.md`; delivery record |
 
-## 2.7 Requirement Version History
+### 2.6.3 Requirement Version Tracking
 
-| Version | Date | Author | Changes |
-|---------|------|--------|---------|
-| 1.0.0 | Initial | hxu | Initial feature set established |
+The package is at version `1.0.0` (`package.json`). The current requirement set (R1–R4, plus hygiene H1–H2 and constraints C1–C2) was delivered by re-platforming an earlier native-`http` baseline. The table below tracks the provenance of the requirements against the version-control history cited in Section 1.4 and `blitzy/documentation/Project Guide.md` (§2.1, §5).
 
----
+| Version / Commit | Change | Requirements / Features Affected |
+|------------------|--------|----------------------------------|
+| Baseline `01e3721` | Original 14-line native-`http` single-handler server; zero dependencies | Pre-migration (superseded) |
+| `7dbaf47` | Declare and install `express`; regenerate lockfile; add `.gitignore` | R1, H1 (F-006) |
+| `ec987aa` | Re-platform onto `express()` with path-based routing and the two `GET` routes | R2, R3, R4 (F-001, F-002, F-003) |
+| `c2caa49`, `838a2ad` | Author and refine `README.md` (endpoint table, trailing-newline note) | H2 (F-006) |
+| `2befd70` | Trim `.gitignore` to a minimal `node_modules/` exclusion | H1 (F-006) |
+| `3ba1489` | Response header hardening (`x-powered-by` disabled, `nosniff` added) | F-004 |
+| `55f5b91` | Observable fail-fast `listen` error handling (non-zero exit on `EADDRINUSE`) | F-005 |
 
-#### References
+**Requirement version status:** All four requirements (R1–R4) are delivered and independently validated as of package version `1.0.0`; the Section 2 feature catalog (F-001–F-008) and its requirements are documented at revision 1.0 corresponding to this state. Non-runtime artifact features (F-007, F-008) are pre-existing and unversioned within this requirement set.
 
-- `server.js` - HTTP server implementation containing all core functionality (14 lines)
-- `package.json` - NPM package manifest defining project metadata and version (v1.0.0)
-- `package-lock.json` - Dependency lock file confirming zero external dependencies
-- `README.md` - Project identity documentation with "Do not touch!" protection directive
-- `industry.csv` - Static data file with 44 industry category entries
-- `LoginTest.java` - Java test placeholder stub (non-functional)
-- `test.py.txt` - Python test placeholder (empty, 0 bytes)
-- `test.txt.txt` - Text test placeholder (empty, 0 bytes)
+## 2.7 References
 
----
+The following repository files, folders, documentation, and technical-specification sections were examined as evidence for Section 2. No external web sources were used.
+
+**Repository source and configuration files**
+
+- `server.js` — Established every runtime feature: `require('express')` and `express()` (F-001), the two `GET` routes and their byte-exact bodies (F-002, F-003), `app.disable('x-powered-by')` and per-handler `nosniff` (F-004), and the guarded `app.listen` plus `error` handler with `process.exitCode = 1` (F-005). Provided the line references in Section 2.5.
+- `package.json` — Established package identity (`hello_world` `1.0.0`, `hxu`, MIT), the `express` `^5.2.1` dependency, the `start`/`test` scripts, and the `main: index.js` entry-point discrepancy (F-006, C-001).
+- `package-lock.json` — Established the deterministic dependency graph (lockfileVersion 3, 68 entries = root + 67 dependencies) supporting F-006 and constraint C-002.
+- `README.md` — Established the documented install/run contract, the endpoint table, and the trailing-newline distinction (hygiene item H2 within F-006).
+- `.gitignore` — Established the `node_modules/` exclusion (hygiene item H1 within F-006).
+
+**Repository data and placeholder artifacts**
+
+- `industry.csv` — Established the static dataset (an `Industry` header plus 43 category rows) that is not read at runtime (F-007).
+- `LoginTest.java` — Established the incomplete, non-compilable `com.blitzyTest` stub (F-008).
+- `test.py.txt`, `test.txt.txt` — Established the 0-byte empty placeholders (F-008).
+- `100Pages.pdf`, `demo.jpg`, `sample.doc` — Established the binary test fixtures present in the working tree (F-008).
+
+**Installed dependencies**
+
+- `node_modules/express/package.json` — Confirmed the resolved Express version (`5.2.1`) and its `engines` requirement (`node >= 18`).
+- `node_modules/` — Contained the installed Express dependency tree (Express plus 67 transitive packages).
+
+**Documentation**
+
+- `blitzy/documentation/Project Guide.md` — Authoritative delivery record: the definitions of requirements R1–R4, hygiene items H1–H2, and constraints C1–C2; the eight validation checks (§3); the compliance mapping (§5); and the LOW-severity risk register (§6).
+- `blitzy/documentation/Technical Specifications.md` — Prior reference specification describing the **superseded** native-`http` baseline; consulted only to confirm which facts are historical rather than current.
+- `blitzy/documentation/` — Folder containing the two Markdown documents above.
+
+**Technical Specification cross-references** (retrieved via the specification)
+
+- Section 1.1 Executive Summary — Project identity, the Backprop-integration business problem, stakeholders, and value drivers.
+- Section 1.2 System Overview — Primary capabilities, component inventory, and success criteria/KPIs (including the intentional omission of latency/throughput targets).
+- Section 1.3 Scope — In-scope capabilities, out-of-scope exclusions, system boundaries, and the `industry.csv` data domain.
+- Section 1.4 References — Location of the R1–R4 definitions and the version-control commit history.
+- Sections 3 (Technology Stack), 4 (Process Flowchart), 5 (System Architecture), and 6 (System Components Design) — Linked from Section 2.5.4 for stack, process-flow, architecture, and applicability context.
+
+**Runtime verification**
+
+- Independent execution of `server.js` on Node v22.23.1 with `express@5.2.1` — Confirmed the status codes, headers (`nosniff` present, `X-Powered-By` absent, default `404` carrying `Content-Security-Policy: default-src 'none'`), byte-exact bodies (14 and 12 bytes), the startup log, and the `EADDRINUSE` fail-fast exit code that underpin the acceptance criteria in Section 2.2.
 
 # 3. Technology Stack
 
-## 3.1 Overview
+## 3.1 Programming Languages
 
-The hao-backprop-test project employs a **deliberately minimal technology stack** as a fundamental architectural decision. This minimalism is not a limitation but rather a core requirement to ensure predictable, reproducible behavior for Backprop integration testing. The zero-dependency architecture eliminates external variables that could compromise test reliability.
+This system employs a **deliberately minimal, single-language technology stack**. The entire executable runtime is one JavaScript file (`server.js`) running on Node.js, with the Express framework as its only direct dependency. The stack was inherited from an earlier native-`http` baseline and preserved during the Express 5 re-platforming, so the technology choices below reflect a conscious commitment to minimalism rather than an accumulation of tooling. The figure below orients the whole of Section 3; each layer is expanded in the sub-sections that follow.
 
 ```mermaid
 flowchart TB
-    subgraph TechStack["Technology Stack Overview"]
-        subgraph Runtime["Runtime Environment"]
-            NodeJS["Node.js<br/>v20.19.6 Compatible"]
-        end
-        
-        subgraph Language["Programming Language"]
-            JS["JavaScript<br/>ES6+ Syntax"]
-        end
-        
-        subgraph BuiltIn["Built-in Modules"]
-            HTTP["http Module<br/>Native Node.js"]
-        end
-        
-        subgraph PackageMgmt["Package Management"]
-            NPM["npm<br/>v7+ (lockfileVersion 3)"]
-        end
+    subgraph Lang["Runtime and Language"]
+        Node["Node.js 18 or higher"]
+        JS["JavaScript CommonJS in server.js"]
     end
-    
-    NodeJS --> JS
-    JS --> HTTP
-    JS --> NPM
-    
-    style Runtime fill:#e1f5fe
-    style Language fill:#fff3e0
-    style BuiltIn fill:#e8f5e9
-    style PackageMgmt fill:#fce4ec
+    subgraph Fw["Application Framework"]
+        Express["express 5.2.1 MIT"]
+    end
+    subgraph Deps["Open Source Dependencies"]
+        Tree["67 packages under node_modules"]
+        Lock["package-lock.json lockfileVersion 3"]
+    end
+    subgraph Tooling["Build and Development Tooling"]
+        NPM["npm scripts start and test"]
+        Val["node check, npm audit, curl"]
+    end
+    NoExt["Not used: database, cache, cloud, auth, monitoring, CI CD, containers"]
+
+    JS --> Node
+    JS --> Express
+    Express --> Tree
+    Tree --> Lock
+    Lock --> NPM
+    NPM --> Val
+    JS -.-> NoExt
 ```
 
-### 3.1.1 Technology Selection Philosophy
+### 3.1.1 Runtime Language — JavaScript on Node.js
 
-| Principle | Implementation | Rationale |
-|-----------|----------------|-----------|
-| Zero Dependencies | No external npm packages | Eliminates dependency-related test variables |
-| Built-in Only | Native Node.js `http` module | Guaranteed availability across Node.js installations |
-| Single Language | JavaScript only (functional) | Simplifies analysis scope |
-| Minimal Tooling | npm for package metadata only | Reduces configuration complexity |
+JavaScript is the only language in the runtime path. All application logic lives in the single source file `server.js`, which is written in modern JavaScript (ES2015+ syntax — `const`, arrow functions, template literals) under the **CommonJS** module system. It is loaded and executed directly by the Node.js runtime with no compilation, transpilation, or bundling step. There is no TypeScript in the project (no `tsconfig.json`, no `.ts` files), and `server.js` is the only `.js` source outside of `node_modules/`.
 
-### 3.1.2 Stack Summary
+| Component | Language | Module System | Source | Evidence |
+|-----------|----------|---------------|--------|----------|
+| HTTP service (routing, responses, startup) | JavaScript (ES2015+) | CommonJS | `server.js` | `require('express')`, `app.get(...)`, `app.listen(...)` |
 
-| Layer | Technology | Version | Status |
-|-------|------------|---------|--------|
-| Runtime | Node.js | v20.19.6 compatible | Active |
-| Language | JavaScript (ES6+) | — | Active |
-| Core Module | Node.js `http` | Built-in | Active |
-| Package Manager | npm | v7+ | Metadata only |
-| Frameworks | None | — | Intentionally excluded |
-| External Dependencies | None | — | Intentionally excluded |
-| Database | None | — | Intentionally excluded |
-| Cloud Services | None | — | Intentionally excluded |
+The CommonJS choice is explicit and observable: the framework is imported with `require`, and `package.json` declares no `"type": "module"` field, so Node treats `server.js` as CommonJS by default.
 
----
+```javascript
+const express = require('express'); // CommonJS require; JavaScript is the sole runtime language
+const app = express();
+```
 
-## 3.2 Programming Languages
+### 3.1.2 Language Selection Criteria and Justification
 
-### 3.2.1 Primary Language: JavaScript (Node.js)
+The JavaScript/Node.js choice was **inherited from the project's original baseline and deliberately retained** during the Express re-platforming, per the convention-preservation constraint (C-001 in Section 2.6, "C1" in `blitzy/documentation/Project Guide.md`). The selection criteria observable in the repository are:
 
-JavaScript serves as the sole functional programming language in this project, executed within the Node.js runtime environment.
+- **Minimalism and reproducibility** — a single interpreted language with no build toolchain keeps this tutorial/integration-test harness small and its behavior deterministic; the whole delivery touched only five files.
+- **Fit for purpose** — the service's sole responsibility is to serve two static plain-text HTTP endpoints on loopback, which Node.js (through Express) satisfies natively without additional language runtimes.
+- **Convention continuity** — retaining CommonJS and the single self-starting `server.js` avoided restructuring during the migration and kept the change reviewable.
 
-#### Language Specification
+### 3.1.3 Language Constraints and Dependencies
+
+The one hard language-runtime constraint is the **Node.js version floor imposed transitively by Express 5**.
+
+| Constraint | Value | Source / Evidence |
+|------------|-------|-------------------|
+| Minimum Node.js version | `>= 18` | Express 5 `engines: { node: ">= 18" }` (`node_modules/express/package.json`); `README.md` states "Node.js 18 or higher" |
+| Documented reference version | Node.js v20.19.6 (compatible) | `blitzy/documentation/` specification |
+| Validated runtime | Node.js v22.23.1 | `blitzy/documentation/Project Guide.md` (risk I2) |
+| Package manager | npm `>= 7` | Implied by `package-lock.json` `lockfileVersion: 3` |
+| Module system | CommonJS (retained) | No `"type": "module"` in `package.json`; `require()` used in `server.js` |
+
+Two related observations: the project's own `package.json` declares **no `engines` field** (the Node floor is inherited from Express, not asserted locally), and there are **no runtime-version pin files** (`.nvmrc`, `.node-version`, `.npmrc` are all absent), so version enforcement relies on the Express engine declaration and the README rather than on tooling.
+
+### 3.1.4 Non-Runtime Placeholder Language Artifacts
+
+The repository additionally contains source-file artifacts in **other languages that are not part of the runtime** and are never executed or compiled by the service. They are documented here for completeness and explicitly excluded from the active technology stack:
+
+| Artifact | Language | Status | Evidence |
+|----------|----------|--------|----------|
+| `LoginTest.java` | Java (`package com.blitzyTest`) | Incomplete, non-compilable stub (contains a stray `Web` token); not a build input | `LoginTest.java` |
+| `test.py.txt` | Python (by name only) | 0-byte placeholder; the `.py.txt` double extension means it is not even a runnable `.py` file | `test.py.txt` |
+| `test.txt.txt` | Plain text | 0-byte placeholder | `test.txt.txt` |
+
+These files suggest a multi-language "test ground" heritage but contribute **no runtime language** to the stack. Consistent with Sections 1.2 and 2.4, they are inert and must not be treated as compilation or execution inputs.
+
+## 3.2 Frameworks and Libraries
+
+The application layer is built on exactly **one framework — Express — and no additional first-party supporting libraries**. Every other package in the tree is a transitive dependency pulled in by Express (documented in Section 3.3). This one-framework posture is a stated constraint of the system (C-006 in Section 2.6: "exactly one direct dependency, no linter or build tooling").
+
+### 3.2.1 Application Framework — Express 5.2.1
+
+Express is the sole web framework and the only direct dependency declared by the project. It provides the HTTP server, the routing layer, and the response-construction helpers used throughout `server.js`.
 
 | Attribute | Value | Evidence |
 |-----------|-------|----------|
-| Language | JavaScript | `server.js` implementation |
-| Runtime | Node.js | Uses `http` module (Node.js built-in) |
-| Compatibility | Node.js v20.19.6 | Documented runtime target |
-| Syntax Level | ES6+ | `const` declarations, arrow function support |
-| Module System | CommonJS | `require('http')` pattern |
+| Package | `express` | `package.json` → `dependencies` |
+| Declared range | `^5.2.1` | `package.json` |
+| Resolved / installed version | `5.2.1` | `package-lock.json`; `node_modules/express/package.json` |
+| License | MIT | `node_modules/express/package.json` |
+| Node engine requirement | `>= 18` | `express` `engines` field |
+| Funding | Open Collective | `express` package metadata |
 
-#### Selection Criteria
+Express is imported once at the top of `server.js` using CommonJS and used to instantiate the application object:
 
-| Criterion | Assessment | Justification |
-|----------|------------|---------------|
-| Runtime Availability | Excellent | Node.js widely available on development systems |
-| Predictability | High | Consistent behavior across installations |
-| Simplicity | High | No compilation or transpilation required |
-| Backprop Compatibility | Verified | Primary target for integration testing |
-
-#### Implementation Details
-
-The JavaScript implementation in `server.js` demonstrates minimal, standards-compliant code:
-
-| Aspect | Implementation |
-|--------|----------------|
-| Variable Declarations | `const` for immutable bindings |
-| Module Import | CommonJS `require()` |
-| Callback Handling | Standard function callbacks |
-| String Output | Template-free static strings |
-
-### 3.2.2 Placeholder Languages
-
-The repository contains non-functional placeholder files for potential future multi-language testing capabilities:
-
-#### Java Placeholder
-
-| Attribute | Value |
-|-----------|-------|
-| File | `LoginTest.java` |
-| Package | `com.blitzyTest` |
-| Class | `LoginTest` |
-| Status | **Non-functional** (empty method body) |
-| Purpose | Future multi-language Backprop testing |
-
-#### Python Placeholder
-
-| Attribute | Value |
-|-----------|-------|
-| File | `test.py.txt` |
-| Size | 0 bytes (empty) |
-| Status | **Placeholder only** |
-| Purpose | Future Python integration testing |
-
-### 3.2.3 Language Distribution
-
-```mermaid
-pie title Functional Code Distribution by Language
-    "JavaScript" : 100
+```javascript
+const express = require('express');
+const app = express();
 ```
 
-| Language | Files | Lines of Code | Functional Status |
-|----------|-------|---------------|-------------------|
-| JavaScript | 1 (`server.js`) | 14 | ✅ Fully functional |
-| Java | 1 (`LoginTest.java`) | ~8 | ❌ Non-functional stub |
-| Python | 1 (`test.py.txt`) | 0 | ❌ Empty placeholder |
+### 3.2.2 Express Capabilities Utilized
 
----
+The service uses a small, well-defined subset of Express's surface area. No sub-routers, view engines, sessions, or body-parsing middleware are wired up (the endpoints are read-only and take no request bodies).
 
-## 3.3 Frameworks & Libraries
+| Capability | Express API used | Purpose in `server.js` |
+|------------|------------------|------------------------|
+| Path-based routing | `app.get('/', ...)`, `app.get('/good-evening', ...)` | Maps the two `GET` endpoints to handlers |
+| Response construction | `res.type('text/plain')`, `res.send(...)` | Sets Content-Type and writes the plain-text body |
+| Response headers | `res.set('X-Content-Type-Options', 'nosniff')` | Per-response MIME-sniffing hardening |
+| Framework hardening | `app.disable('x-powered-by')` | Suppresses the `X-Powered-By: Express` banner (info-disclosure hardening) |
+| Server lifecycle | `app.listen(port, hostname, callback)` | Binds `127.0.0.1:3000` and confirms readiness |
 
-### 3.3.1 Framework Selection: None
+The routing layer is what motivated the framework's adoption: Express's declarative `app.get(path, handler)` model makes adding endpoints (such as `GET /good-evening`) a one-line addition rather than manual URL parsing on the raw request object.
 
-This project **intentionally uses no frameworks**. The absence of frameworks such as Express.js, Fastify, Koa, or Hapi is a deliberate architectural decision.
+### 3.2.3 Version Declaration, Compatibility, and Supporting Libraries
 
-#### Rationale for Framework Exclusion
+- **Declared vs. resolved.** `package.json` uses the caret range `^5.2.1`, which permits any `5.x` at or above `5.2.1`; the `package-lock.json` (lockfileVersion 3) pins the exact resolved version `5.2.1` with a SHA-512 integrity hash, so installs are reproducible despite the flexible range. This satisfies the "pin the patched version and commit the lockfile" constraint (C-002 in Section 2.6).
+- **Compatibility.** Express 5 raises the runtime floor to Node.js `>= 18`; this is the origin of the language constraint documented in Section 3.1.3 and the "Node.js 18+" statement in `README.md`.
+- **Supporting libraries.** There are **no additional directly-declared libraries** — `package.json` has a single `dependencies` entry and no `devDependencies`. The project ships no utility, logging, validation, templating, or middleware libraries of its own; any such functionality present in the tree arrives transitively through Express (see Section 3.3).
 
-| Consideration | With Framework | Without Framework (Current) |
-|---------------|----------------|----------------------------|
-| Dependencies | Multiple transitive packages | Zero external packages |
-| Test Variability | Framework version changes affect results | Consistent across all test runs |
-| Analysis Scope | Framework code included in analysis | Only application code analyzed |
-| Behavior Predictability | Framework abstractions may vary | Direct Node.js behavior |
-| Maintenance Burden | Security updates required | No maintenance needed |
+### 3.2.4 Framework Selection Justification
 
-### 3.3.2 Built-in Module Usage
+Express was introduced during the re-platforming of an earlier zero-dependency native-`http` server, as recorded in `blitzy/documentation/Project Guide.md`. The justification observable from the repository and the already-written specification is:
 
-The project relies exclusively on the Node.js built-in `http` module:
+- **Endpoint growth ergonomics** — the change set added a second route (`GET /good-evening`) and needed a routing abstraction that scales cleanly to additional paths; Express's router replaces hand-rolled `req.url` branching (requirements R1–R4 in the Project Guide).
+- **Batteries-included but minimal** — Express provides the response helpers (`res.type`, `res.send`) and header controls used for the security posture, without requiring the team to add further libraries.
+- **Mature, permissively licensed, well-supported** — Express is MIT-licensed with a large maintenance base, aligning with the project's permissive-licensing profile (Section 3.3) and low-maintenance goals.
 
-## Node.js `http` Module
+The trade-off is explicitly acknowledged in Section 2.4: adopting Express replaced a zero-dependency baseline with a 67-package transitive tree, accepting a supply-chain surface (risk S1) in exchange for routing ergonomics — a surface the team mitigates by committing the lockfile and running `npm audit` (0 vulnerabilities).
 
-| Attribute | Value |
-|-----------|-------|
-| Module Name | `http` |
-| Type | Node.js built-in (core module) |
-| Import Method | `const http = require('http');` |
-| Version | Tied to Node.js runtime version |
-| External Dependency | None (ships with Node.js) |
+## 3.3 Open Source Dependencies
 
-#### Module Capabilities Used
+Although the project declares only one direct dependency, that dependency (Express 5.2.1) transitively pulls in a full HTTP-middleware ecosystem. This sub-section enumerates the complete open-source footprint that ships in `node_modules/` and is pinned by `package-lock.json`.
 
-| Capability | Method | Usage in Project |
-|------------|--------|------------------|
-| Server Creation | `http.createServer()` | Creates HTTP server instance |
-| Request Handling | Callback function | Processes all incoming requests |
-| Response Writing | `res.statusCode`, `res.setHeader()`, `res.end()` | Sends HTTP response |
-| Server Binding | `server.listen()` | Binds to localhost:3000 |
+### 3.3.1 Dependency Tree Overview
 
-### 3.3.3 Excluded Libraries
+| Metric | Value | Evidence |
+|--------|-------|----------|
+| Direct dependencies | 1 (`express`) | `package.json` → `dependencies` |
+| Packages installed under `node_modules/` | 67 | `package-lock.json` (67 `node_modules/*` records) |
+| Total lockfile `packages` entries (incl. root project) | 68 | `package-lock.json` |
+| Distinct package name@version combinations | 66 | `content-type@2.0.0` is installed twice (see 3.3.2) |
+| Lockfile format | `lockfileVersion: 3` | `package-lock.json` (npm ≥ 7) |
+| Source registry | `registry.npmjs.org` (all 67) | `resolved` URLs in `package-lock.json` |
+| Integrity coverage | 67 / 67 packages carry SHA-512 `integrity` hashes | `package-lock.json` |
 
-The following common Node.js libraries are **explicitly not used**:
+The lockfile is committed to source control, so every install resolves to the exact same versions and content hashes — this reproducibility is a stated constraint of the system (C-002 in Section 2.6).
 
-| Library Category | Common Options | Reason for Exclusion |
-|------------------|----------------|---------------------|
-| Web Frameworks | Express, Fastify, Koa, Hapi | Zero-dependency requirement |
-| HTTP Utilities | Axios, node-fetch, got | No external requests needed |
-| Logging | Winston, Pino, Morgan | Console.log sufficient |
-| Testing | Jest, Mocha, Chai | No test implementation |
-| Validation | Joi, Yup, Zod | No input processing |
-| Configuration | dotenv, config | Hardcoded values by design |
+### 3.3.2 Direct versus Transitive Dependencies
 
----
+Exactly one package is direct; the remaining 66 are transitive, arriving through Express's dependency graph. The functionally significant transitive packages — the ones that implement Express's routing, request/response handling, and content negotiation — are highlighted below.
 
-## 3.4 Open Source Dependencies
+| Package | Version | Role in the Express stack |
+|---------|---------|---------------------------|
+| `express` | 5.2.1 | **Direct dependency** — web framework and routing layer |
+| `router` | 2.2.0 | Express 5 routing engine |
+| `path-to-regexp` | 8.4.2 | Route-path pattern compilation |
+| `body-parser` | 2.3.0 | Request-body parsing middleware |
+| `finalhandler` | 2.1.1 | Terminal request handler / error responder |
+| `send` | 1.2.1 | Byte-stream response primitive |
+| `serve-static` | 2.2.1 | Static-file serving middleware |
+| `type-is` / `accepts` / `negotiator` | 2.1.0 / 2.0.0 / 1.0.0 | Content-type detection and negotiation |
+| `mime-types` / `mime-db` | 3.0.2 / 1.54.0 | MIME-type lookup tables |
+| `qs` | 6.15.3 | Query-string parsing |
+| `http-errors` / `statuses` | 2.0.1 / 2.0.2 | HTTP error objects and status metadata |
+| `cookie` / `cookie-signature` | 0.7.2 / 1.2.2 | Cookie parsing / signing |
+| `debug` / `ms` | 4.4.3 / 2.1.3 | Diagnostic logging utilities |
 
-### 3.4.1 Dependency Status: Zero
+**Duplicate-version note:** `content-type` resolves to two versions in the tree — `1.0.5` hoisted at `node_modules/content-type`, plus `2.0.0` nested under both `body-parser` and `type-is`. npm preserved all three physical installs (two of them the same `2.0.0`), which is why the 67 installed packages span 66 distinct name@version pairs.
 
-The project maintains **zero external dependencies** as a core architectural constraint (C-002).
+### 3.3.3 Complete Dependency Inventory
 
-## Package.json Dependencies
+The full set of packages resolved in `package-lock.json` (alphabetical; `content-type@2.0.0` is installed in two locations):
 
-```
-Production Dependencies:     0
-Development Dependencies:    0
-Peer Dependencies:          0
-Optional Dependencies:      0
-─────────────────────────────
-Total External Packages:    0
-```
+| Package | Version | License |
+|---------|---------|---------|
+| `accepts` | 2.0.0 | MIT |
+| `body-parser` | 2.3.0 | MIT |
+| `bytes` | 3.1.2 | MIT |
+| `call-bind-apply-helpers` | 1.0.2 | MIT |
+| `call-bound` | 1.0.4 | MIT |
+| `content-disposition` | 1.1.0 | MIT |
+| `content-type` | 1.0.5 | MIT |
+| `content-type` | 2.0.0 | MIT |
+| `cookie` | 0.7.2 | MIT |
+| `cookie-signature` | 1.2.2 | MIT |
+| `debug` | 4.4.3 | MIT |
+| `depd` | 2.0.0 | MIT |
+| `dunder-proto` | 1.0.1 | MIT |
+| `ee-first` | 1.1.1 | MIT |
+| `encodeurl` | 2.0.0 | MIT |
+| `es-define-property` | 1.0.1 | MIT |
+| `es-errors` | 1.3.0 | MIT |
+| `es-object-atoms` | 1.1.2 | MIT |
+| `escape-html` | 1.0.3 | MIT |
+| `etag` | 1.8.1 | MIT |
+| `express` | 5.2.1 | MIT |
+| `finalhandler` | 2.1.1 | MIT |
+| `forwarded` | 0.2.0 | MIT |
+| `fresh` | 2.0.0 | MIT |
+| `function-bind` | 1.1.2 | MIT |
+| `get-intrinsic` | 1.3.0 | MIT |
+| `get-proto` | 1.0.1 | MIT |
+| `gopd` | 1.2.0 | MIT |
+| `has-symbols` | 1.1.0 | MIT |
+| `hasown` | 2.0.4 | MIT |
+| `http-errors` | 2.0.1 | MIT |
+| `iconv-lite` | 0.7.3 | MIT |
+| `inherits` | 2.0.4 | ISC |
+| `ipaddr.js` | 1.9.1 | MIT |
+| `is-promise` | 4.0.0 | MIT |
+| `math-intrinsics` | 1.1.0 | MIT |
+| `media-typer` | 1.1.0 | MIT |
+| `merge-descriptors` | 2.0.0 | MIT |
+| `mime-db` | 1.54.0 | MIT |
+| `mime-types` | 3.0.2 | MIT |
+| `ms` | 2.1.3 | MIT |
+| `negotiator` | 1.0.0 | MIT |
+| `object-inspect` | 1.13.4 | MIT |
+| `on-finished` | 2.4.1 | MIT |
+| `once` | 1.4.0 | ISC |
+| `parseurl` | 1.3.3 | MIT |
+| `path-to-regexp` | 8.4.2 | MIT |
+| `proxy-addr` | 2.0.7 | MIT |
+| `qs` | 6.15.3 | BSD-3-Clause |
+| `range-parser` | 1.3.0 | MIT |
+| `raw-body` | 3.0.2 | MIT |
+| `router` | 2.2.0 | MIT |
+| `safer-buffer` | 2.1.2 | MIT |
+| `send` | 1.2.1 | MIT |
+| `serve-static` | 2.2.1 | MIT |
+| `setprototypeof` | 1.2.0 | ISC |
+| `side-channel` | 1.1.1 | MIT |
+| `side-channel-list` | 1.0.1 | MIT |
+| `side-channel-map` | 1.0.1 | MIT |
+| `side-channel-weakmap` | 1.0.2 | MIT |
+| `statuses` | 2.0.2 | MIT |
+| `toidentifier` | 1.0.1 | MIT |
+| `type-is` | 2.1.0 | MIT |
+| `unpipe` | 1.0.0 | MIT |
+| `vary` | 1.1.2 | MIT |
+| `wrappy` | 1.0.2 | ISC |
 
-#### Evidence from Configuration Files
+### 3.3.4 License Composition
 
-**package.json** confirms no dependencies are declared:
+Every resolved package uses a permissive, OSI-approved license; there is **no copyleft (GPL/LGPL/AGPL) exposure** anywhere in the tree.
 
-| Field | Value | Notes |
-|-------|-------|-------|
-| `name` | `hello_world` | Package identifier |
-| `version` | `1.0.0` | Semantic version |
-| `description` | `Hello world in Node.js` | Package description |
-| `main` | `index.js` | Entry point (note: actual file is `server.js`) |
-| `author` | `hxu` | Package author |
-| `license` | `MIT` | Open source license |
-| `dependencies` | *Not present* | No production dependencies |
-| `devDependencies` | *Not present* | No development dependencies |
+| License | Count | Packages |
+|---------|-------|----------|
+| MIT | 62 | Majority of the tree (Express and most middleware) |
+| ISC | 4 | `inherits`, `once`, `setprototypeof`, `wrappy` |
+| BSD-3-Clause | 1 | `qs` |
 
-**package-lock.json** confirms empty dependency tree:
+This uniformly permissive profile means the dependency tree imposes only attribution-style obligations and is compatible with the project's own MIT license (declared in `package.json`).
 
-| Field | Value |
-|-------|-------|
-| `name` | `hello_world` |
-| `version` | `1.0.0` |
-| `lockfileVersion` | 3 |
-| `requires` | `true` |
-| `packages` | Single entry (root package only) |
+### 3.3.5 Registry, Integrity, and Security Posture
 
-### 3.4.2 Dependency Philosophy
+- **Single registry.** All 67 packages resolve from the public npm registry (`registry.npmjs.org`); there is no private registry, scoped package, or `.npmrc` override in the repository.
+- **Cryptographic integrity.** Every lockfile entry carries a `sha512-` `integrity` hash, so `npm ci`/`npm install` verifies package content against the committed hashes.
+- **Vulnerability status.** The re-platforming validation recorded in `blitzy/documentation/Project Guide.md` and reflected in Section 1.2 reports **`npm audit` = 0 vulnerabilities** across this tree.
+- **Supply-chain consideration.** As noted in Section 2.4 (risk S1), moving from a zero-dependency baseline to a 67-package transitive tree enlarges the supply-chain surface; the committed lockfile with integrity hashes and the clean audit result are the observable mitigations. Keeping the direct-dependency count at exactly one (constraint C-006) bounds how much of this tree the project itself introduces.
 
-#### Benefits of Zero Dependencies
+## 3.4 Third-Party Services
 
-| Benefit | Description |
-|---------|-------------|
-| **Test Predictability** | No external code changes can affect test outcomes |
-| **Security Posture** | No supply chain vulnerabilities possible |
-| **Installation Speed** | No `node_modules` to download |
-| **Reproducibility** | Identical behavior guaranteed across environments |
-| **Analysis Clarity** | Backprop analyzes only application code |
+This system integrates with **no third-party runtime services of any kind**. Documenting this absence is architecturally significant: it defines the system's trust boundary, its (nil) external attack surface, and its zero-configuration deployment model. The only external system involved anywhere in the lifecycle is the npm registry, and that involvement is strictly build-time.
 
-#### Constraint Documentation
+### 3.4.1 External Service Posture
 
-| Constraint ID | Description | Impact |
-|---------------|-------------|--------|
-| C-002 | No external dependencies | Ensures test predictability |
+The runtime is fully self-contained. `server.js` performs no outbound network calls, reads no configuration from the environment, and requires no credentials to start. This is consistent with the loopback-only, no-authentication scope constraint (C-003 in Section 2.6) and the "no external dependencies at runtime" characterization in Section 1.2. Direct inspection of `server.js` finds no `process.env` reads, no API keys or secrets, and no external URLs — the only `http://` strings present are the loopback address (`http://127.0.0.1:3000/`) printed to the console on startup and on error.
 
-### 3.4.3 Package Registry Configuration
+### 3.4.2 Absence by Service Category
 
-| Attribute | Value |
-|-----------|-------|
-| Registry | npm (npmjs.org) - default |
-| Lock File Version | 3 (npm v7+ format) |
-| Package Manager | npm |
-| Private | Not specified (defaults to public) |
+The table below records each candidate integration category from the default technology stack and the evidence that it is not present.
 
----
+| Service category | Status | Evidence |
+|------------------|--------|----------|
+| Cloud platform (AWS / Azure / GCP) | Not used | No cloud SDK in the dependency tree; no IaC (`terraform`) or cloud config in the repository |
+| Authentication / identity (Auth0, Okta, JWT, Passport) | Not used | No auth SDK in the tree; endpoints are unauthenticated (C-003) |
+| Monitoring / observability (Datadog, Sentry, Prometheus, New Relic) | Not used | No APM/telemetry SDK in the tree; logging is `console.log`/`console.error` only |
+| External APIs / third-party integrations | Not used | No HTTP client (`axios`, `node-fetch`, `got`, `request`) in the tree; no outbound calls in `server.js` |
+| Database / cache as-a-service | Not used | No DB or cache driver in the tree (see Section 3.5) |
+| CDN / API gateway / load balancer | Not used | Single process binds `127.0.0.1:3000` directly; no proxy or gateway configuration |
+| Managed message queue / event bus | Not used | No broker client in the tree; no async messaging in `server.js` |
 
-## 3.5 Third-Party Services
+A scan of the 67-package dependency tree for common cloud, authentication, monitoring, HTTP-client, database, and cache SDKs returned **no matches** — every package present is part of Express's HTTP-middleware closure (Section 3.3).
 
-### 3.5.1 External Service Status: None
+### 3.4.3 Build-Time External Touchpoint
 
-The project operates as a **completely standalone application** with no external service integrations.
+The system has exactly one external dependency across its entire lifecycle, and it is not a runtime service:
 
-#### Excluded Service Categories
+| Touchpoint | Phase | Purpose | Evidence |
+|-----------|-------|---------|----------|
+| npm registry (`registry.npmjs.org`) | Build / install time only | Source for Express and its 66 transitive packages during `npm install` / `npm ci` | `resolved` URLs in `package-lock.json` |
 
-| Service Category | Common Examples | Status | Exclusion Rationale |
-|------------------|-----------------|--------|---------------------|
-| Cloud Platforms | AWS, Azure, GCP | ❌ Not used | Localhost isolation requirement |
-| Authentication | Auth0, Okta, Firebase Auth | ❌ Not used | No security requirements |
-| Monitoring | Datadog, New Relic, Prometheus | ❌ Not used | Console output sufficient |
-| Logging Services | Splunk, Loggly, ELK Stack | ❌ Not used | Test scope limitation |
-| CDN | CloudFront, Cloudflare, Fastly | ❌ Not used | No static asset delivery |
-| API Gateways | Kong, AWS API Gateway | ❌ Not used | Direct localhost access |
-| Message Queues | RabbitMQ, SQS, Kafka | ❌ Not used | No async processing |
-| Email Services | SendGrid, SES, Mailgun | ❌ Not used | No notification requirements |
-| Payment Processing | Stripe, PayPal | ❌ Not used | Not applicable |
-| Analytics | Google Analytics, Mixpanel | ❌ Not used | Test project scope |
+No secrets, API keys, tokens, or credentials are required to build, install, or run the service — there are no `.env` files, no configuration files, and no secret-management integration anywhere in the repository.
 
-### 3.5.2 Integration Points
+## 3.5 Databases and Storage
 
-```mermaid
-flowchart LR
-    subgraph Project["hao-backprop-test"]
-        Server["HTTP Server<br/>localhost:3000"]
-    end
-    
-    subgraph External["External Services"]
-        None["None Integrated"]
-    end
-    
-    Backprop["Backprop Tool<br/>(Analysis Only)"] -.->|"Code Analysis"| Project
-    
-    style External fill:#f5f5f5,stroke:#bdbdbd
-    style None fill:#eeeeee,stroke:#bdbdbd
-```
+The system has **no database, cache, or storage layer of any kind**. It is a fully stateless HTTP service whose responses are compile-time string literals; it performs no reads or writes to any datastore, filesystem, or network resource at request time.
 
-The only external interaction point is the **Backprop tool**, which performs code analysis on the repository but does not require runtime integration.
+### 3.5.1 Data Persistence Posture
 
-### 3.5.3 Network Isolation
+Both endpoints return fixed, in-memory string literals. There is no application state that survives a request, and no state shared between requests — restarting the process loses nothing because nothing is persisted. Direct inspection of `server.js` confirms the handlers perform **no filesystem, database, or network I/O**: there is no `require('fs')`, no file reads, and no datastore client. The response bodies are the literals `'Hello, World!\n'` (`GET /`) and `'Good evening'` (`GET /good-evening`), written directly via `res.send(...)`.
 
-| Aspect | Configuration | Security Impact |
-|--------|---------------|-----------------|
-| Binding Address | 127.0.0.1 (localhost only) | Prevents external network access |
-| Port | 3000 (hardcoded) | Single, known endpoint |
-| Protocol | HTTP (no TLS) | Acceptable for localhost |
-| External Calls | None | No egress traffic |
-
----
-
-## 3.6 Databases & Storage
-
-### 3.6.1 Database Status: None
-
-The project implements **no data persistence** mechanisms. This is an intentional design decision aligned with the project's purpose as a stateless test server.
-
-#### Excluded Database Technologies
-
-| Database Type | Common Options | Status | Exclusion Rationale |
-|---------------|----------------|--------|---------------------|
-| Relational (SQL) | PostgreSQL, MySQL, SQLite | ❌ Not used | No data persistence needed |
-| Document (NoSQL) | MongoDB, CouchDB | ❌ Not used | No data storage requirements |
-| Key-Value | Redis, Memcached | ❌ Not used | No caching requirements |
-| Graph | Neo4j, ArangoDB | ❌ Not used | No relationship modeling |
-| Time-Series | InfluxDB, TimescaleDB | ❌ Not used | No metrics collection |
-| Search | Elasticsearch, Algolia | ❌ Not used | No search functionality |
-
-### 3.6.2 Static Data Assets
-
-The repository contains one static data file that is **not programmatically consumed** by the server:
-
-## industry.csv
-
-| Attribute | Value |
-|-----------|-------|
-| File Path | `industry.csv` |
-| Format | CSV (Comma-Separated Values) |
-| Structure | Single column |
-| Record Count | 44 entries |
-| Header | `industries` |
-| Status | Static, read-only |
-| Runtime Usage | None (not loaded by server) |
-| Purpose | Available for Backprop analysis testing |
-
-#### Sample Data Categories
-
-The file contains industry classification labels such as:
-- Technology sectors
-- Healthcare categories  
-- Financial services
-- Manufacturing segments
-- Professional services
-
-### 3.6.3 Data Persistence Architecture
-
-```mermaid
-flowchart TB
-    subgraph DataLayer["Data Layer (Not Implemented)"]
-        direction TB
-        NoData["No Data Persistence"]
-        StaticFile["Static File Only<br/>industry.csv"]
-    end
-    
-    subgraph Server["HTTP Server"]
-        Handler["Request Handler"]
-    end
-    
-    Handler -->|"Does not access"| DataLayer
-    
-    style DataLayer fill:#f5f5f5,stroke:#bdbdbd
-    style NoData fill:#ffebee
+```javascript
+// Responses are in-memory literals — no datastore is consulted
+res.set('X-Content-Type-Options', 'nosniff').type('text/plain').send('Hello, World!\n');
 ```
 
-| Storage Aspect | Implementation |
-|----------------|----------------|
-| Session Storage | None (stateless) |
-| User Data | None |
-| Configuration | Hardcoded in source |
-| Logs | Console output only |
-| Cache | None |
-| File System | Read-only static assets |
+### 3.5.2 Absence by Storage Category
 
----
+| Storage category | Status | Evidence |
+|------------------|--------|----------|
+| Relational database (PostgreSQL, MySQL, SQLite) | Not used | No SQL driver in the dependency tree; no connection string or migration files |
+| NoSQL / document store (MongoDB, DynamoDB) | Not used | No document-store driver (`mongodb`, `mongoose`) in the tree |
+| Key-value / cache (Redis, Memcached) | Not used | No cache client in the tree; responses are static literals |
+| ORM / query builder (Sequelize, TypeORM, Prisma, Knex) | Not used | No ORM package in the tree |
+| Object / blob storage (S3, MinIO, GCS) | Not used | No storage SDK in the tree; no upload/download paths in `server.js` |
+| Local file / embedded persistence | Not used | No `fs` usage in `server.js`; nothing is written to disk at runtime |
 
-## 3.7 Development & Deployment
+A targeted scan of the 67-package dependency tree for database, cache, ORM, and object-storage drivers returned **no matches**, consistent with the "no persistence layer" characterization in Sections 1.2 and 2.4.
 
-### 3.7.1 Development Tools
+### 3.5.3 Static Data Artifacts (Non-Runtime)
 
-#### Package Management
+The repository contains data files that are **not part of the runtime data path** and are never opened by the service. They are catalogued here so they are not mistaken for a storage layer.
 
-| Tool | Version | Purpose | Evidence |
-|------|---------|---------|----------|
-| npm | v7+ (compatible) | Package metadata management | `package-lock.json` lockfileVersion: 3 |
+| Artifact | Description | Runtime role | Evidence |
+|----------|-------------|--------------|----------|
+| `industry.csv` | 44-line CSV: an `Industry` header row followed by 43 industry-category values (`Accounting/Finance` … `Transportation/Logistics`, `Other`) | None — not referenced by `server.js`; orphan static data | `industry.csv`; no `.csv`/`fs` reference in `server.js` |
+| `100Pages.pdf`, `demo.jpg`, `sample.doc` | Binary document/image artifacts | None — inert repository files, not served or read | Repository root listing; not referenced in `server.js` |
 
-The lockfileVersion 3 format in `package-lock.json` indicates compatibility with npm v7 and later versions.
+These files are leftovers of a mixed-artifact "test ground" repository (see Section 3.1.4) and impose no storage, driver, or persistence requirement on the system.
 
-#### Runtime Environment
+## 3.6 Development and Deployment
 
-| Component | Specification | Source |
-|-----------|---------------|--------|
-| Runtime | Node.js | `server.js` uses `http` module |
-| Minimum Version | v20.19.6 compatible | Technical specification |
-| Module System | CommonJS | `require()` syntax |
+The development and deployment toolchain is intentionally minimal. There is **no build step, no containerization, no infrastructure-as-code, and no CI/CD pipeline**; the project is developed, validated, and run with stock npm and Node.js commands. This minimalism is a deliberate constraint (C-006 in Section 2.6: no linter or build tooling; C-005: no test framework).
 
-### 3.7.2 Build System
+### 3.6.1 Build System
 
-#### Build Status: None Required
+The "build" is npm-script-driven and involves no compilation, bundling, or transpilation — Node.js executes `server.js` directly.
 
-The project requires **no build process**:
+| npm script | Command | Purpose |
+|------------|---------|---------|
+| `start` | `node server.js` | Launches the HTTP service |
+| `test` | `echo "Error: no test specified" && exit 1` | Placeholder — deliberately fails; there is no test suite (C-005) |
 
-| Build Aspect | Status | Rationale |
-|--------------|--------|-----------|
-| Transpilation | Not needed | Plain JavaScript (no TypeScript) |
-| Bundling | Not needed | Single-file application |
-| Minification | Not needed | Development/test use only |
-| Compilation | Not needed | Interpreted language |
-| Asset Processing | Not needed | No frontend assets |
+Observations from `package.json`: there are **no `devDependencies`**, no bundler/transpiler configuration (`tsconfig.json`, `webpack.config.js`, `babel.config.js` are all absent), and the `main` field points at `index.js` even though the actual entry point is `server.js` (a documented metadata discrepancy — the runtime is invoked explicitly as `node server.js`, so the stale `main` field does not affect execution).
 
-#### Execution Model
+### 3.6.2 Development and Validation Tooling
+
+Validation relies on Node's built-in syntax checker and standard npm/CLI utilities rather than a dedicated test or lint stack. The following tools are the observed development-and-validation surface (drawn from `blitzy/documentation/Project Guide.md` and the repository):
+
+| Tool | Role |
+|------|------|
+| `node --check server.js` | Syntax gate — verifies the source parses before running |
+| `npm install` / `npm ci` | Installs the dependency tree from the committed lockfile |
+| `npm ls` | Inspects the resolved dependency tree |
+| `npm audit` | Vulnerability scan of the dependency tree (reported clean — 0 vulnerabilities) |
+| `curl` | Manual endpoint verification against `http://127.0.0.1:3000/` |
+| `git` | Version control; `.gitignore` excludes `node_modules/` |
+
+### 3.6.3 Absent Tooling (Intentional)
+
+The absence of the following is confirmed by direct inspection of the repository and is a defining characteristic of the system's operational profile:
+
+| Category | Typical artifacts | Status |
+|----------|-------------------|--------|
+| Containerization | `Dockerfile`, `docker-compose.yml`, `.dockerignore` | Absent |
+| Infrastructure as Code | `terraform` / `main.tf` | Absent |
+| CI/CD pipelines | `.github/workflows/`, `.circleci/`, `.gitlab-ci.yml`, `Jenkinsfile`, `.travis.yml` | Absent |
+| Linter / formatter | `.eslintrc*`, `.prettierrc` | Absent |
+| Test framework | `jest.config.js`, `.mocharc.json` (test script is a placeholder) | Absent |
+| Runtime-version pins | `.nvmrc`, `.node-version`, `.npmrc` | Absent |
+
+### 3.6.4 Deployment Model
+
+Deployment is **manual and local**. An operator installs dependencies and starts the process directly on a host; there is no orchestration, no reverse proxy, and no remote target. The service binds the loopback interface `127.0.0.1:3000` (both hardcoded in `server.js`), so it is reachable only from the local machine, and it uses a **fail-fast startup**: the `server.on('error')` handler surfaces bind failures such as `EADDRINUSE` to `stderr` and sets `process.exitCode = 1`, while a `server.listening` guard ensures the success log is only emitted once the socket is truly bound.
 
 ```mermaid
 flowchart LR
-    Source["server.js<br/>(Source Code)"] -->|"Direct Execution"| NodeJS["Node.js Runtime"]
-    NodeJS --> Server["HTTP Server<br/>Running"]
-    
-    style Source fill:#e3f2fd
-    style NodeJS fill:#fff3e0
-    style Server fill:#e8f5e9
+    Dev["Developer workstation"] --> Install["npm install fetches express plus 66 deps"]
+    Install --> Check["node check syntax gate on server.js"]
+    Check --> Run["npm start runs node server.js"]
+    Run --> Bind{"Bind loopback port 3000?"}
+    Bind -->|success| Ready["Log ready and serve the two GET endpoints"]
+    Bind -->|port in use| Fail["Log error to stderr and set exit code 1"]
 ```
 
-The application runs directly via:
-```
-node server.js
-```
+This model aligns with the loopback-only, single-process scope described in Sections 1.2 and 2.6 (C-001, C-003): the deployment target is a developer or CI workstation running the process for local use, not a networked or production-grade environment.
 
-### 3.7.3 Containerization
+## 3.7 References
 
-#### Container Status: None
+The following repository files, folders, and specification sections were inspected as the evidentiary basis for this Technology Stack section.
 
-The project does **not include containerization**:
+**Repository files**
 
-| Container Artifact | Status |
-|--------------------|--------|
-| Dockerfile | Not present |
-| docker-compose.yml | Not present |
-| .dockerignore | Not present |
-| Container registry config | Not present |
+- `server.js` - Established the sole runtime language (JavaScript/CommonJS), Express usage (routing, `res.type`/`res.send`/`res.set`, `app.disable('x-powered-by')`, `app.listen`), the hardcoded `127.0.0.1:3000` bind, fail-fast error handling, the two static string-literal responses, and the absence of any env-var reads, external calls, or datastore/filesystem I/O.
+- `package.json` - Established the single direct dependency (`express ^5.2.1`), the npm `start`/`test` scripts, the MIT project license, the absence of `devDependencies`, and the `main: index.js` metadata discrepancy.
+- `package-lock.json` - Established `lockfileVersion: 3`, the 67 installed packages / 68 total entries, exact resolved versions, per-package licenses, the `registry.npmjs.org` origin, SHA-512 integrity hashes, and the `content-type` dual-version resolution.
+- `README.md` - Established the "Node.js 18+" requirement, the Express-based framing, the loopback URL, and the two endpoints' plain-text behavior.
+- `node_modules/express/package.json` - Established Express's resolved version `5.2.1`, its MIT license, its `engines: { node: ">= 18" }` requirement, and its Open Collective funding metadata.
+- `.gitignore` - Established that `node_modules/` is the only ignored path.
+- `LoginTest.java` - Established a non-runtime, non-compilable Java placeholder artifact (`package com.blitzyTest`).
+- `test.py.txt`, `test.txt.txt` - Established zero-byte, non-runtime placeholder artifacts.
+- `industry.csv` - Established a 44-line static dataset (an `Industry` header plus 43 category rows) that is not read at runtime.
+- `100Pages.pdf`, `demo.jpg`, `sample.doc` - Established inert binary artifacts with no runtime storage role.
 
-#### Rationale for No Containerization
+**Repository folders**
 
-| Consideration | Assessment |
-|---------------|------------|
-| Deployment Target | Local development only |
-| Isolation Need | Localhost binding provides isolation |
-| Dependency Management | Zero dependencies eliminates need |
-| Environment Consistency | Minimal runtime requirements |
+- `node_modules/` - Contained the full installed dependency tree (67 packages) forming Express's transitive closure.
+- `blitzy/documentation/` - Contained the project documentation subtree.
+- `blitzy/documentation/Project Guide.md` - Established the current Express 5 re-platforming state, requirements R1–R4, the validated runtime (Node.js v22.23.1), the `npm audit` = 0 result, and the development/validation tooling.
+- `blitzy/documentation/Technical Specifications.md` - Identified as documenting the **superseded** zero-dependency native-`http` baseline; used only to confirm which state is historical (not current).
 
-### 3.7.4 CI/CD Configuration
+**Internal specification cross-references**
 
-#### CI/CD Status: None Configured
-
-The project has **no continuous integration or deployment configuration**:
-
-| CI/CD Component | Status | Evidence |
-|-----------------|--------|----------|
-| GitHub Actions | Not configured | No `.github/workflows` directory |
-| Jenkins | Not configured | No `Jenkinsfile` |
-| CircleCI | Not configured | No `.circleci` directory |
-| Travis CI | Not configured | No `.travis.yml` |
-| GitLab CI | Not configured | No `.gitlab-ci.yml` |
-
-## Package.json Scripts
-
-| Script | Command | Purpose |
-|--------|---------|---------|
-| `test` | `echo "Error: no test specified" && exit 1` | Placeholder (non-functional) |
-
-The test script is a placeholder that returns an error, indicating no automated testing is implemented.
-
-### 3.7.5 Development Workflow
-
-```mermaid
-flowchart TB
-    subgraph DevWorkflow["Development Workflow"]
-        Clone["Clone Repository"]
-        Edit["Edit Source<br/>(if permitted)"]
-        Run["node server.js"]
-        Test["Access localhost:3000"]
-        Analyze["Backprop Analysis"]
-    end
-    
-    Clone --> Edit
-    Edit --> Run
-    Run --> Test
-    Test --> Analyze
-    
-    Warning["⚠️ Repository marked<br/>'Do not touch!'"]
-    Warning -.-> Edit
-    
-    style Warning fill:#fff3e0,stroke:#ff9800
-```
-
-#### Minimal Development Requirements
-
-| Requirement | Specification |
-|-------------|---------------|
-| Node.js | v20.19.6 or compatible |
-| npm | v7+ (for lockfile compatibility) |
-| Text Editor | Any |
-| Terminal | Any shell |
-| Port Availability | 3000 must be free |
-
----
-
-## 3.8 Technology Stack Constraints
-
-### 3.8.1 Architectural Constraints
-
-| Constraint ID | Constraint | Technology Impact |
-|---------------|------------|-------------------|
-| C-001 | Localhost binding only | No cloud/remote deployment |
-| C-002 | No external dependencies | Zero npm packages |
-| C-003 | Hardcoded configuration | No environment variables |
-| C-004 | Static response content | No templating engines |
-| C-005 | Repository immutability | Technology stack frozen |
-
-### 3.8.2 Technology Assumptions
-
-| Assumption ID | Assumption | Technology Dependency |
-|---------------|------------|----------------------|
-| A-001 | Node.js runtime available | Required on test system |
-| A-002 | Port 3000 available | No port configuration |
-| A-003 | Backprop tool compatible | Node.js analysis support |
-
-### 3.8.3 Security Implications
-
-| Security Aspect | Technology Choice | Risk Assessment |
-|-----------------|-------------------|-----------------|
-| Supply Chain | Zero dependencies | No risk |
-| Network Exposure | Localhost only | Minimal risk |
-| Authentication | None implemented | Acceptable (test scope) |
-| Encryption | Plain HTTP | Acceptable (localhost) |
-| Input Validation | None | Low risk (static response) |
-
----
-
-## 3.9 Configuration Discrepancy
-
-### 3.9.1 Entry Point Mismatch
-
-A configuration discrepancy exists between `package.json` and the actual implementation:
-
-| Attribute | package.json Value | Actual Value |
-|-----------|-------------------|--------------|
-| Entry Point | `index.js` | `server.js` |
-
-#### Impact Assessment
-
-| Scenario | Impact |
-|----------|--------|
-| Direct Execution (`node server.js`) | None - works correctly |
-| npm Start Script (if added) | Would fail without correction |
-| Backprop Analysis | May note discrepancy |
-| Module Import | Not applicable (not a library) |
-
-#### Resolution Status
-
-Per implementation considerations, the discrepancy is **intentionally maintained** to preserve test baseline stability.
-
----
-
-## 3.10 References
-
-#### Files Examined
-
-- `server.js` - Primary HTTP server implementation (14 lines)
-- `package.json` - npm package metadata and configuration
-- `package-lock.json` - Dependency lock file (confirms zero dependencies)
-- `README.md` - Project documentation and "Do not touch!" warning
-- `LoginTest.java` - Java placeholder file (non-functional)
-- `test.py.txt` - Python placeholder file (empty)
-- `industry.csv` - Static data asset (44 industry categories)
-
-#### Technical Specification Sections Referenced
-
-- Section 1.1 Executive Summary - Project overview and business context
-- Section 1.2 System Overview - Technical characteristics and component inventory
-- Section 1.3 Scope - In-scope and out-of-scope elements
-- Section 2.4 Implementation Considerations - Technical constraints and requirements
-- Section 2.6 Assumptions and Constraints - Documented constraints (C-001 through C-005)
+- Section 1.2 System Overview - Corroborated the Express 5.2.1 current state, the 67-transitive / 68-lockfile dependency counts, `npm audit` = 0, and the two-endpoint behavior.
+- Section 2.4 Implementation Considerations - Corroborated the security posture (nosniff, `X-Powered-By` disabled) and the supply-chain consideration (risk S1).
+- Section 2.6 Assumptions and Constraints - Corroborated constraints C-001 (convention preservation), C-002 (version pin + lockfile), C-003 (loopback-only, no auth/TLS), C-005 (no test framework), and C-006 (exactly one direct dependency, no linter/build tooling).
 
 # 4. Process Flowchart
 
-## 4.1 Overview
+## 4.1 System Workflows
 
-### 4.1.1 Process Architecture Summary
+This section documents the operational workflows of the service defined in `server.js` — a single-file Express 5 HTTP application. Because the system is a stateless single-process monolith that binds the loopback interface `127.0.0.1:3000` and serves two greeting routes from in-memory string literals, its workflows are deliberately compact: a build-time dependency-installation flow, a fail-fast startup flow, and a per-request routing flow. Every workflow below is grounded in the actual control flow of `server.js` and corroborated by first-hand runtime execution. Where a workflow category enumerated by the section prompt (external API integration, event processing, batch sequences) has no corresponding implementation, that absence is stated explicitly rather than fabricated.
 
-The hao-backprop-test repository implements a deliberately minimal process architecture designed to serve as a predictable test harness for Backprop integration testing. The system's workflow simplicity is an intentional design choice that eliminates variables that could interfere with code analysis validation.
+### 4.1.1 System Context, Actors, and Boundaries
 
-#### Process Characteristics
+The service participates in three interaction contexts, each crossing a distinct boundary. There is **no application-level authentication, authorization, session, or persistence boundary** — the process accepts any TCP client that can reach the loopback interface and responds directly from code.
 
-| Characteristic | Implementation | Design Rationale |
-|----------------|----------------|------------------|
-| Process Complexity | Minimal | Unambiguous analysis baseline |
-| Decision Points | None at runtime | Deterministic behavior |
-| State Management | Stateless | No persistence requirements |
-| Error Handling | Implicit (Node.js defaults) | Test simplicity prioritization |
-| Transaction Boundaries | Single atomic operation | Request-response isolation |
+| Actor / External System | Role | Boundary Crossed | When Active |
+|---|---|---|---|
+| Developer / Operator | Runs `npm install` and `npm start` (or `node server.js`); reads console output | Shell / process boundary | Build-time and startup |
+| npm registry (`registry.npmjs.org`) | Supplies `express` 5.2.1 and its 67 transitive dependencies | Network egress (build-time only) | `npm install` |
+| HTTP Client (curl, browser, automated test) | Issues `GET /` and `GET /good-evening` over TCP | Loopback HTTP boundary `127.0.0.1:3000` | Runtime |
+| Node.js runtime (`net` / `http` stack) | Hosts the process, manages the listening socket and connection lifecycle | Host runtime boundary | Startup and runtime |
+| Console streams (stdout / stderr) | Receive the startup success line and startup failure diagnostics | Process I/O boundary | Startup |
 
-#### System Actors
+The system boundary is narrow: the process listens **only** on `127.0.0.1`, so it is unreachable from other hosts by design; the sole outbound network interaction (the npm registry) occurs before the process ever runs. The following context diagram places the actors relative to the runtime boundary.
 
-| Actor | Role | Interactions |
-|-------|------|--------------|
-| Developer/User | Process initiator | Starts server, makes HTTP requests |
-| Node.js Runtime | Execution environment | Runs `server.js`, manages HTTP module |
-| HTTP Server | Request handler | Receives requests, generates responses |
-| Backprop Tool | Code analyzer | Analyzes repository files and running server |
-| Console | Output destination | Receives startup logging |
-| Client (Browser/curl) | Request originator | Sends HTTP requests to endpoint |
+```mermaid
+flowchart LR
+    Dev["Developer / Operator"]
+    Client["HTTP Client<br/>curl, browser, test"]
+    Registry["npm registry<br/>registry.npmjs.org"]
+
+    subgraph Host["Host boundary — Node.js &gt;= 18 runtime, loopback only"]
+        direction TB
+        Proc["server.js process<br/>Express 5 app @ 127.0.0.1:3000"]
+    end
+
+    Dev -->|"1 - npm install (build-time)"| Registry
+    Registry -->|"express 5.2.1 + 67 deps into node_modules/"| Proc
+    Dev -->|"2 - npm start / node server.js"| Proc
+    Client -->|"GET / , GET /good-evening (HTTP over TCP)"| Proc
+    Proc -->|"stdout success / stderr failure"| Dev
+```
 
 ### 4.1.2 High-Level System Workflow
 
-The following diagram illustrates the complete end-to-end system workflow from server initialization through Backprop analysis:
+The end-to-end lifecycle proceeds through three sequential phases: a **build-time** phase that populates `node_modules/`, a **startup** phase that constructs the Express application and attempts a single socket bind, and a **request-serving** phase that repeats for every inbound HTTP request while the process remains alive. The startup phase is fail-fast: a bind error terminates the readiness path and marks the process for a non-zero exit rather than retrying (feature F-005). The request-serving phase contains the primary routing decision that dispatches to one of two greeting handlers or to the Express default 404.
 
 ```mermaid
 flowchart TB
-    subgraph Initialization["Server Initialization Phase"]
-        Start([Start: Developer Action])
-        Cmd["Execute: node server.js"]
-        Load["Load http Module"]
-        Config["Set Configuration<br/>hostname: 127.0.0.1<br/>port: 3000"]
-        Create["Create Server Instance<br/>with Request Handler"]
-        Bind["Bind to localhost:3000"]
-        Log["Log: Server running at<br/>http://127.0.0.1:3000/"]
+    subgraph BuildTime["Build-time — Developer / Operator"]
+        direction TB
+        B1["npm install"] --> B2["node_modules/ populated<br/>express 5.2.1 + 67 transitive deps"]
     end
-    
-    subgraph Runtime["Server Runtime Phase"]
-        Ready([Server Ready])
-        Wait["Await HTTP Requests"]
-        Receive["Receive HTTP Request"]
-        Process["Execute Request Handler"]
-        Response["Generate Response<br/>Status: 200<br/>Content-Type: text/plain<br/>Body: Hello, World!"]
-        Send["Send Response to Client"]
+
+    subgraph Startup["Startup — server.js process (fail-fast, F-005)"]
+        direction TB
+        S1["require('express') and create app"] --> S2["app.disable('x-powered-by') (F-004)"]
+        S2 --> S3["register GET / and GET /good-evening (F-001)"]
+        S3 --> S4["app.listen(3000, '127.0.0.1')"]
+        S4 --> S5{"server.listening true<br/>on the listen callback?"}
+        S5 -->|"yes"| S6["stdout: 'Server running at http://127.0.0.1:3000/'<br/>ready to accept connections"]
+        S5 -->|"error event, e.g. EADDRINUSE"| S7["stderr: 'Failed to start server...'<br/>process.exitCode = 1"]
     end
-    
-    subgraph Analysis["Backprop Integration Phase"]
-        Analyze["Backprop Analyzes<br/>Repository Files"]
-        Results["Analysis Results<br/>Generated"]
-        Complete([Analysis Complete])
+
+    subgraph Serving["Request-serving — per HTTP request (repeats)"]
+        direction TB
+        R1["Inbound HTTP request on 127.0.0.1:3000"] --> R2{"method and path<br/>match a registered route?"}
+        R2 -->|"GET /"| R3["200 OK, text/plain, nosniff<br/>body 'Hello, World!' + LF (14 bytes)"]
+        R2 -->|"GET /good-evening"| R4["200 OK, text/plain, nosniff<br/>body 'Good evening' (12 bytes, no LF)"]
+        R2 -->|"no match (path or method)"| R5["Express default 404<br/>text/html, CSP, nosniff"]
     end
-    
-    Start --> Cmd
-    Cmd --> Load
-    Load --> Config
-    Config --> Create
-    Create --> Bind
-    Bind --> Log
-    Log --> Ready
-    
-    Ready --> Wait
-    Wait --> Receive
-    Receive --> Process
-    Process --> Response
-    Response --> Send
-    Send --> Wait
-    
-    Ready -.->|Parallel| Analyze
-    Analyze --> Results
-    Results --> Complete
+
+    B2 --> S1
+    S6 --> R1
+    S7 --> Exit["Process exits non-zero<br/>no requests served"]
 ```
 
----
+### 4.1.3 Core Business Process: End-to-End HTTP Request Lifecycle
 
-## 4.2 Core Business Processes
-
-### 4.2.1 Server Initialization Process
-
-The server initialization process represents the critical startup sequence that establishes the HTTP server instance. This process must complete successfully before the server can accept requests.
-
-#### Process Flow Diagram
+The core business process of the running service is servicing a single HTTP request. There is exactly one meaningful decision point in the request path — whether the incoming method-and-path tuple matches one of the two registered `GET` routes — and its two branches are a matched greeting handler or the framework's default 404 finalizer. Each greeting handler applies the same security hardening (the `X-Content-Type-Options: nosniff` header, feature F-004) and writes a fixed-length plain-text body with no I/O, no downstream calls, and no shared mutable state. Responses are therefore served synchronously from string literals; the only observable timing constant is the Node.js default `Keep-Alive: timeout=5` on the connection, and **no numeric latency or throughput SLA is defined anywhere in the repository.**
 
 ```mermaid
-flowchart TD
-    subgraph InitProcess["Server Initialization Process"]
-        Init_Start([Start: node server.js])
-        Init_Import["const http = require('http')"]
-        Init_Hostname["const hostname = '127.0.0.1'"]
-        Init_Port["const port = 3000"]
-        Init_Create["http.createServer(callback)"]
-        Init_Callback["Define Request Handler:<br/>- Set statusCode: 200<br/>- Set header: text/plain<br/>- Write: Hello, World!<br/>- End response"]
-        Init_Listen["server.listen(port, hostname, callback)"]
-        Init_Log["console.log(`Server running at...`)"]
-        Init_Ready([Server Ready State])
+sequenceDiagram
+    autonumber
+    actor Client as HTTP Client
+    participant Net as Node HTTP listener
+    participant App as Express app and router
+    participant H as Greeting route handler
+    Client->>Net: HTTP request to 127.0.0.1:3000 (method, path)
+    Net->>App: hand off parsed request
+    alt method and path match GET / or GET /good-evening
+        App->>H: invoke handler(req, res)
+        H->>H: res.set('X-Content-Type-Options','nosniff')
+        H->>H: res.type('text/plain')
+        H-->>Client: 200 OK, fixed body, ETag, no X-Powered-By
+    else no matching route
+        App-->>Client: 404 Not Found via finalhandler, text/html + CSP + nosniff
     end
-    
-    Init_Start --> Init_Import
-    Init_Import --> Init_Hostname
-    Init_Hostname --> Init_Port
-    Init_Port --> Init_Create
-    Init_Create --> Init_Callback
-    Init_Callback --> Init_Listen
-    Init_Listen --> Init_Log
-    Init_Log --> Init_Ready
+    Net-->>Client: keep-alive (timeout 5s) or close
 ```
 
-#### Process Step Details
+#### 4.1.3.1 Decision Points and Branch Outcomes
 
-| Step | Action | Technical Implementation | Timing |
-|------|--------|--------------------------|--------|
-| 1 | Import HTTP Module | `const http = require('http')` | < 10ms |
-| 2 | Define Hostname | `const hostname = '127.0.0.1'` | Immediate |
-| 3 | Define Port | `const port = 3000` | Immediate |
-| 4 | Create Server | `http.createServer(callback)` | < 5ms |
-| 5 | Register Handler | Callback function defined inline | Immediate |
-| 6 | Bind to Port | `server.listen(port, hostname, callback)` | < 50ms |
-| 7 | Log Startup | `console.log(...)` | Immediate |
+The request lifecycle contains a single routing decision that resolves to one of three terminal outcomes, all verified by direct execution:
 
-#### Validation Rules
+| Decision Point | Condition Evaluated | Branch Outcome | Verified Response |
+|---|---|---|---|
+| Route match | `GET /` | Root greeting handler (F-002) | `200 OK`, `text/plain; charset=utf-8`, `Content-Length: 14`, body `Hello, World!` + LF |
+| Route match | `GET /good-evening` | Evening greeting handler (F-003) | `200 OK`, `text/plain; charset=utf-8`, `Content-Length: 12`, body `Good evening` (no LF) |
+| Route match | Unknown path (e.g. `GET /nope`) | Express default 404 (F-001) | `404 Not Found`, `text/html; charset=utf-8`, `Content-Length: 143`, body `Cannot GET /nope` |
+| Route match | Known path, wrong method (e.g. `POST /`) | Express default 404 (F-001) | `404 Not Found`, `text/html; charset=utf-8`, `Content-Length: 140`, body `Cannot POST /` |
 
-| Rule ID | Rule Type | Validation | Enforcement Point |
-|---------|-----------|------------|-------------------|
-| VR-001 | Business Rule | Configuration values hardcoded | Compile-time |
-| VR-002 | Data Validation | Port must be numeric (3000) | Runtime |
-| VR-003 | Security | Localhost binding only (127.0.0.1) | Runtime |
-| VR-004 | Compliance | MIT license compliance | Design-time |
+Two behaviors on the 404 branch are emergent framework defaults rather than route code: Express's `finalhandler` emits the response as `text/html` and attaches `Content-Security-Policy: default-src 'none'` alongside `X-Content-Type-Options: nosniff`. The greeting handlers, by contrast, set `nosniff` explicitly and never emit a `Content-Security-Policy` header. The user touchpoint in all branches is the HTTP client; there is no interactive UI, form, or multi-step user journey beyond the single request/response exchange.
 
-### 4.2.2 HTTP Request Processing Flow
+### 4.1.4 Integration Workflows
 
-The request processing flow demonstrates the end-to-end user journey from HTTP request initiation through response delivery. This flow represents the primary functional capability of the system.
+The service has exactly **one** integration workflow — the build-time supply-chain flow that resolves and installs dependencies from the npm registry. At runtime the process performs **no outbound integration of any kind**: there are no third-party API calls, no database or cache connections, no message-broker or event-stream producers/consumers, and no scheduled or batch jobs. This is confirmed by the source (`server.js` contains a single `require('express')` and no network-client, queue, or scheduler code) and matches the integration inventory established in the specification.
 
-#### Detailed Request-Response Flow
+#### 4.1.4.1 Build-Time Supply-Chain Workflow
+
+`npm install` reads the manifest (`package.json`) and the lockfile (`package-lock.json`, `lockfileVersion 3`, 68 entries = the root project plus 67 dependency records), resolves the pinned `express ^5.2.1`, downloads the tarballs, verifies each package's `integrity` (SHA-512) hash, and materializes the dependency tree under `node_modules/`. This is the only workflow in which the system communicates with an external network endpoint, and it completes before the server process starts (feature F-006).
 
 ```mermaid
-flowchart TD
-    subgraph Client["Client Layer"]
-        Client_Start([Client Initiates Request])
-        Client_Send["Send HTTP Request<br/>to localhost:3000"]
-        Client_Receive["Receive HTTP Response"]
-        Client_End([Request Complete])
-    end
-    
-    subgraph Server["Server Layer"]
-        Server_Listen["Server Listening<br/>on localhost:3000"]
-        Server_Accept["Accept TCP Connection"]
-        Server_Parse["Node.js Parses<br/>HTTP Request"]
-        Server_Handler["Execute Request Handler<br/>(req, res) => {...}"]
-        Server_Status["res.statusCode = 200"]
-        Server_Header["res.setHeader(<br/>'Content-Type', 'text/plain')"]
-        Server_Body["res.end('Hello, World!\\n')"]
-    end
-    
-    subgraph Response["Response Generation"]
-        Resp_Format["Format HTTP Response"]
-        Resp_Send["Transmit to Client"]
-    end
-    
-    Client_Start --> Client_Send
-    Client_Send --> Server_Listen
-    Server_Listen --> Server_Accept
-    Server_Accept --> Server_Parse
-    Server_Parse --> Server_Handler
-    Server_Handler --> Server_Status
-    Server_Status --> Server_Header
-    Server_Header --> Server_Body
-    Server_Body --> Resp_Format
-    Resp_Format --> Resp_Send
-    Resp_Send --> Client_Receive
-    Client_Receive --> Client_End
+sequenceDiagram
+    autonumber
+    actor Dev as Developer and Operator
+    participant CLI as npm CLI
+    participant Manifest as package.json and package-lock.json
+    participant Reg as npm registry
+    participant FS as node_modules on disk
+    Dev->>CLI: npm install
+    CLI->>Manifest: read declared and locked versions
+    Manifest-->>CLI: express ^5.2.1 (68 locked entries)
+    CLI->>Reg: request resolved package tarballs
+    Reg-->>CLI: tarballs + integrity (SHA-512) metadata
+    CLI->>CLI: verify integrity hashes
+    CLI->>FS: extract express 5.2.1 + 67 deps
+    FS-->>Dev: dependency tree ready for node server.js
 ```
 
-#### Request Processing Specifications
+#### 4.1.4.2 Runtime Integration Surface
 
-| Specification | Value | Evidence |
-|---------------|-------|----------|
-| Supported Methods | All (GET, POST, PUT, DELETE, etc.) | No method differentiation in `server.js` |
-| Path Handling | All paths return identical response | No routing implementation |
-| Query Parameters | Ignored | No query parsing |
-| Request Body | Ignored | No body parsing |
-| Response Status | 200 OK (constant) | `res.statusCode = 200` |
-| Content-Type | text/plain | `res.setHeader('Content-Type', 'text/plain')` |
-| Response Body | "Hello, World!\n" | `res.end('Hello, World!\n')` |
+At runtime the only integration surfaces are inbound loopback HTTP and outbound console logging. The table below enumerates every integration point of the system and its direction, consolidating the integration inventory of the specification with the observed runtime behavior.
 
-#### User Touchpoints
+| Integration Point | Direction | Lifecycle Phase | Notes |
+|---|---|---|---|
+| npm registry (`registry.npmjs.org`) | Outbound (network) | Build-time only | Supplies `express` 5.2.1 + 67 deps; never contacted at runtime |
+| Loopback HTTP `127.0.0.1:3000` | Inbound | Runtime | Only channel for serving requests; not exposed off-host |
+| Console streams (stdout / stderr) | Outbound (process I/O) | Startup | Startup success on stdout; bind failure diagnostics on stderr (F-005) |
+| Node.js `net` / `http` stack | Host runtime | Startup and runtime | Provides the listening socket and connection lifecycle |
+| Git / `.gitignore` | Local (dev-time) | Development | Excludes `node_modules/` from version control (hygiene, H1) |
 
-| Touchpoint | Actor | Action | System Response |
-|------------|-------|--------|-----------------|
-| Server Start | Developer | Execute `node server.js` | Console log: "Server running at..." |
-| HTTP Request | Client | Send request to localhost:3000 | Return "Hello, World!\n" |
-| Response Receipt | Client | Receive HTTP response | 200 OK with text/plain content |
+#### 4.1.4.3 Non-Applicable Integration Categories
 
-### 4.2.3 End-to-End User Journey
+The section prompt enumerates several integration categories that do not apply to this system. To prevent ambiguity, each is documented explicitly as absent, with the supporting evidence:
 
-The complete user journey encompasses all interactions from initial repository setup through Backprop analysis completion.
+- **Data flow between systems (runtime):** None. Each response is derived solely from a hardcoded string literal inside `server.js`; no request data is read, transformed, or forwarded to another system.
+- **Third-party / external API interactions:** None. The process opens no outbound sockets after startup and imports no HTTP/SDK client.
+- **Event processing flows:** None. There is no message broker, queue, publisher, subscriber, or event stream beyond the Node.js request/response cycle; the only event handler registered is `server.on('error', ...)` for the bind failure path.
+- **Batch processing sequences:** None. There is no scheduler, cron entry, worker, or bulk-processing routine; the static dataset `industry.csv` (feature F-007) is present on disk but never opened or read by the runtime.
 
-```mermaid
-flowchart LR
-    subgraph Journey["Complete User Journey"]
-        J1([Developer<br/>Starts])
-        J2["Clone or Access<br/>Repository"]
-        J3["Navigate to<br/>Repository Root"]
-        J4["Execute<br/>node server.js"]
-        J5["Verify Console<br/>Output"]
-        J6["Access<br/>localhost:3000"]
-        J7["Confirm<br/>Hello World Response"]
-        J8["Run Backprop<br/>Analysis"]
-        J9["Review<br/>Analysis Results"]
-        J10([Journey<br/>Complete])
-    end
-    
-    J1 --> J2
-    J2 --> J3
-    J3 --> J4
-    J4 --> J5
-    J5 --> J6
-    J6 --> J7
-    J7 --> J8
-    J8 --> J9
-    J9 --> J10
-```
+## 4.2 Detailed Process Flows by Feature
 
-#### Journey Step Details
+This section decomposes each runtime feature of `server.js` into a detailed flow: the fail-fast startup/bind sequence (F-005), the two greeting endpoints (F-002 and F-003), and the framework-default unmatched-route handler (F-001). Every step, decision, and terminal state below is taken directly from the 63-line source and confirmed by first-hand execution. Because responses are produced synchronously from in-memory string literals with no I/O, there are no intermediate persistence, queueing, or downstream-call steps in any flow; the only timing element present anywhere is the connection-level `Keep-Alive: timeout=5` applied by the Node.js HTTP layer.
 
-| Step | User Action | Expected Outcome | Success Criteria |
-|------|-------------|------------------|------------------|
-| 1 | Access repository | Files available locally | All 8 files present |
-| 2 | Navigate to root | Terminal at repository root | `server.js` accessible |
-| 3 | Start server | Server initializes | No startup errors |
-| 4 | Verify startup | Console shows URL | Log matches expected format |
-| 5 | Access endpoint | HTTP request sent | Connection established |
-| 6 | Confirm response | "Hello, World!" received | Exact string match |
-| 7 | Run Backprop | Analysis executes | Tool processes repository |
-| 8 | Review results | Analysis completes | No analysis errors |
+### 4.2.1 Server Startup and Fail-Fast Bind Sequence (F-005)
 
----
-
-## 4.3 Integration Workflows
-
-### 4.3.1 Backprop Integration Flow
-
-The Backprop integration workflow illustrates how the test repository interfaces with the Backprop code analysis tool. This workflow represents the primary purpose of the repository's existence.
+Startup constructs the app, disables `X-Powered-By`, registers both routes, then calls `app.listen(port, hostname, callback)` on `127.0.0.1:3000`. The sequence is deliberately fail-fast and makes a **single bind attempt with no retry or backoff**. Two subtleties drive the design: in Express 5 the listen callback fires **even when the bind fails** (with `server.listening === false`), and a separate `'error'` event carries the real failure. The success log is therefore guarded on `server.listening` (so a failed bind never prints a misleading "Server running" line), and a dedicated `server.on('error', ...)` handler reports the failure to **stderr** and sets `process.exitCode = 1` (verified: a second instance on a busy port produced empty stdout, exit code 1, and an `EADDRINUSE` message on stderr).
 
 ```mermaid
 flowchart TB
-    subgraph Repository["Repository Layer"]
-        Repo_Files["Repository Files<br/>- server.js (14 lines)<br/>- package.json<br/>- package-lock.json<br/>- README.md<br/>- industry.csv<br/>- LoginTest.java<br/>- test.py.txt<br/>- test.txt.txt"]
-        Repo_Server["HTTP Server<br/>(Optional: Running)"]
-    end
-    
-    subgraph Backprop["Backprop Analysis Layer"]
-        BP_Init["Initialize Analysis"]
-        BP_Scan["Scan Repository<br/>Structure"]
-        BP_Parse["Parse Source Files"]
-        BP_Analyze["Perform Code<br/>Analysis"]
-        BP_Results["Generate Analysis<br/>Results"]
-    end
-    
-    subgraph Output["Output Layer"]
-        Out_Report["Analysis Report"]
-        Out_Insights["Code Insights"]
-    end
-    
-    Repo_Files --> BP_Init
-    Repo_Server -.->|Optional| BP_Init
-    BP_Init --> BP_Scan
-    BP_Scan --> BP_Parse
-    BP_Parse --> BP_Analyze
-    BP_Analyze --> BP_Results
-    BP_Results --> Out_Report
-    BP_Results --> Out_Insights
+    Start(["node server.js"]) --> A1["require('express'); create app"]
+    A1 --> A2["app.disable('x-powered-by')"]
+    A2 --> A3["register GET / and GET /good-evening"]
+    A3 --> A4["app.listen(3000, '127.0.0.1', callback)"]
+    A4 --> A5["single bind attempt (no retry / no backoff)"]
+
+    A5 --> CB{"listen callback fires:<br/>server.listening === true?"}
+    CB -->|"true (socket bound)"| OK["console.log 'Server running at http://127.0.0.1:3000/'<br/>-> stdout"]
+    CB -->|"false (bind failed)"| Suppress["success log suppressed<br/>(no false-success line)"]
+
+    A5 -.->|"'error' event, e.g. EADDRINUSE"| ERR["server.on('error'):<br/>console.error 'Failed to start server...' -> stderr<br/>process.exitCode = 1"]
+
+    OK --> Ready(["Process stays alive,<br/>accepting connections"])
+    Suppress --> ERR
+    ERR --> Dead(["Event loop unwinds,<br/>process exits non-zero"])
 ```
 
-#### Integration Points
+Start point: the `node server.js` invocation (or `npm start`). End points: a long-lived listening process (success) or a clean non-zero exit (failure). The only decision diamond is the `server.listening` guard inside the listen callback; the error path is triggered by the asynchronous `'error'` event rather than by a synchronous branch. `process.exitCode` is set instead of calling `process.exit`, allowing pending output to flush and the event loop to unwind cleanly.
 
-| Integration Point | Source | Target | Data Flow | Protocol |
-|-------------------|--------|--------|-----------|----------|
-| File System Access | Backprop | Repository | Read files | File I/O |
-| HTTP Endpoint | Backprop | Server | Test connectivity | HTTP/1.1 |
-| Console Output | Server | System | Startup verification | stdout |
+### 4.2.2 Root Greeting Endpoint — GET / (F-002, R3)
 
-#### Data Flow Between Systems
-
-| Flow ID | Source System | Target System | Data Type | Frequency |
-|---------|---------------|---------------|-----------|-----------|
-| DF-001 | Repository | Backprop | Source code files | Per analysis |
-| DF-002 | Server | Client | HTTP response | Per request |
-| DF-003 | Server | Console | Log messages | Per startup |
-| DF-004 | Backprop | User | Analysis results | Per analysis |
-
-### 4.3.2 Development Workflow
-
-The development workflow documents the process for working with the repository while respecting the "Do not touch!" directive that marks this as a protected test asset.
+The root handler preserves the original service's greeting byte-for-byte. It chains `res.set('X-Content-Type-Options', 'nosniff')` (F-004 hardening) into `res.type('text/plain')` and `send('Hello, World!\n')`. The body is exactly 14 bytes including the single trailing newline, yielding `200 OK` with `Content-Type: text/plain; charset=utf-8`, `Content-Length: 14`, a weak `ETag`, and no `X-Powered-By` header (verified by execution).
 
 ```mermaid
 flowchart TB
-    subgraph DevFlow["Development Workflow"]
-        Dev_Start([Developer Begins])
-        Dev_Clone["Clone Repository<br/>or Access Local Copy"]
-        Dev_Verify["Verify File Structure<br/>(8 files expected)"]
-        Dev_Decision{Modification<br/>Required?}
-        Dev_Warning["⚠️ WARNING<br/>Repository marked<br/>'Do not touch!'"]
-        Dev_Run["Execute:<br/>node server.js"]
-        Dev_Test["Test Server<br/>Access localhost:3000"]
-        Dev_Analyze["Run Backprop<br/>Analysis"]
-        Dev_Review["Review Results"]
-        Dev_Complete([Workflow Complete])
-    end
-    
-    Dev_Start --> Dev_Clone
-    Dev_Clone --> Dev_Verify
-    Dev_Verify --> Dev_Decision
-    Dev_Decision -->|Yes| Dev_Warning
-    Dev_Warning --> Dev_Decision
-    Dev_Decision -->|No| Dev_Run
-    Dev_Run --> Dev_Test
-    Dev_Test --> Dev_Analyze
-    Dev_Analyze --> Dev_Review
-    Dev_Review --> Dev_Complete
+    In(["GET / received on 127.0.0.1:3000"]) --> D{"router: path '/' with method GET?"}
+    D -->|"yes"| H1["res.set('X-Content-Type-Options','nosniff')"]
+    H1 --> H2["res.type('text/plain')"]
+    H2 --> H3["res.send('Hello, World!\\n') — 14 bytes"]
+    H3 --> Out(["200 OK<br/>text/plain; charset=utf-8, Content-Length 14, ETag<br/>no X-Powered-By"])
+    D -->|"no"| NF["falls through to default 404 (see 4.2.4)"]
 ```
 
-#### Development Prerequisites
+Start point: an inbound `GET /`. End point: a `200 OK` plain-text response. There is no data validation, authentication, or persistence step — the handler neither reads request input nor touches external state. The single decision is the router's path/method match; a non-match falls through to the default 404 flow documented in 4.2.4.
 
-| Requirement | Specification | Validation |
-|-------------|---------------|------------|
-| Node.js Runtime | v20.19.6 or compatible | `node --version` |
-| npm | v7+ (lockfile compatibility) | `npm --version` |
-| Port Availability | Port 3000 must be free | `lsof -i :3000` (Linux/Mac) |
-| File Access | Read permissions on repository | File system check |
+### 4.2.3 Evening Greeting Endpoint — GET /good-evening (F-003, R4)
 
----
+The evening handler mirrors the root handler's structure but returns `'Good evening'` **without** a trailing newline — a 12-byte body. It applies the same `nosniff` header and `text/plain` type, producing `200 OK` with `Content-Length: 12` and a distinct weak `ETag` (verified by execution). The deliberate absence of the trailing newline is the only material difference from the root route.
 
-## 4.4 State Management
+```mermaid
+flowchart TB
+    In(["GET /good-evening received on 127.0.0.1:3000"]) --> D{"router: path '/good-evening' with method GET?"}
+    D -->|"yes"| H1["res.set('X-Content-Type-Options','nosniff')"]
+    H1 --> H2["res.type('text/plain')"]
+    H2 --> H3["res.send('Good evening') — 12 bytes, no trailing newline"]
+    H3 --> Out(["200 OK<br/>text/plain; charset=utf-8, Content-Length 12, ETag<br/>no X-Powered-By"])
+    D -->|"no"| NF["falls through to default 404 (see 4.2.4)"]
+```
 
-### 4.4.1 State Architecture
+Start point: an inbound `GET /good-evening`. End point: a `200 OK` plain-text response. As with the root route there are no validation, authorization, or persistence steps, and the sole decision is the router's path/method match.
 
-The hao-backprop-test system implements a **completely stateless architecture**. This design choice ensures deterministic behavior and eliminates variables that could affect Backprop analysis reproducibility.
+### 4.2.4 Unmatched Route and Default 404 Flow (F-001)
 
-#### State Transition Diagram
+The application registers **no** catch-all route, error middleware, or custom 404 handler. Any request whose method-and-path tuple does not match `GET /` or `GET /good-evening` — whether an unknown path or a wrong method on a known path — falls through to Express's built-in `finalhandler`, which produces a `404 Not Found`. This response is `text/html; charset=utf-8` and, notably, carries `Content-Security-Policy: default-src 'none'` together with `X-Content-Type-Options: nosniff` — headers added by the framework's finalizer, not by any route code. Verified bodies: `Cannot GET /nope` (143 bytes) for an unknown path and `Cannot POST /` (140 bytes) for a wrong method on the root path.
+
+```mermaid
+flowchart TB
+    In(["HTTP request on 127.0.0.1:3000"]) --> M{"matches a registered route?<br/>GET / or GET /good-evening"}
+    M -->|"yes"| Handled["dispatched to greeting handler<br/>(see 4.2.2 / 4.2.3)"]
+    M -->|"no — unknown path"| FH["Express finalhandler"]
+    M -->|"no — wrong method on known path"| FH
+    FH --> R404(["404 Not Found<br/>text/html; charset=utf-8<br/>Content-Security-Policy: default-src 'none'<br/>X-Content-Type-Options: nosniff"])
+    FH -.->|"unknown path"| B1["body 'Cannot GET /nope' — 143 bytes"]
+    FH -.->|"wrong method"| B2["body 'Cannot POST /' — 140 bytes"]
+```
+
+Start point: any inbound request. End point: a framework-generated `404 Not Found`. The decision diamond is the router's overall match test with two distinct no-match causes (unknown path, wrong method), both converging on the same finalizer. This flow is the system's only implicit error state on the request path; it requires no recovery action from the client beyond issuing a supported request.
+
+## 4.3 Validation Rules, Authorization, and Compliance Checkpoints
+
+This section documents the business rules, data-validation posture, authorization checkpoints, and regulatory-compliance checks that apply along the workflows in 4.1 and 4.2. The dominant finding is that the service enforces a small set of **routing and output-hardening rules** and performs **no application-level input validation, authentication, authorization, or regulatory-compliance processing**. Rather than omit the absent categories, each is documented explicitly with its supporting evidence so the enforcement surface is unambiguous.
+
+### 4.3.1 Business Rules Enforced at Each Step
+
+The rules below are the complete set enforced by `server.js`. They are structural (route shape and response shape) and security-posture rules; none are data-content or identity rules.
+
+| Workflow Step | Business Rule | Evidence (`server.js`) |
+|---|---|---|
+| Route registration | Only `GET /` and `GET /good-evening` are served; every other method/path is unmatched | `app.get('/')`, `app.get('/good-evening')` — no other routes, no `app.use` middleware |
+| Root response body | Body must be the byte-exact greeting `Hello, World!` + trailing newline (14 bytes) for backward compatibility (R3) | `send('Hello, World!\n')` with explicit `type('text/plain')` |
+| Evening response body | Body must be `Good evening` with **no** trailing newline (12 bytes) (R4) | `send('Good evening')` with explicit `type('text/plain')` |
+| All responses | The framework must not be advertised — no `X-Powered-By` header on any response (F-004, CWE-200) | `app.disable('x-powered-by')` |
+| 200 responses | Successful greeting responses carry `X-Content-Type-Options: nosniff` and `text/plain` (F-004) | `res.set('X-Content-Type-Options','nosniff').type('text/plain')` in both handlers |
+| Startup announcement | A success line is emitted only once the socket is actually bound; a failed bind must not report success (F-005) | `if (server.listening)` guard around `console.log` |
+| Startup failure | Bind/startup errors must surface to stderr and force a non-zero exit | `server.on('error', ...)` -> `console.error(...)` + `process.exitCode = 1` |
+
+### 4.3.2 Data Validation Posture
+
+The service performs **no request-data validation** because it consumes no request data. Neither handler reads `req.body`, `req.query`, `req.params`, headers, or any other request-derived value; each responds with a fixed literal. Consequently there is no schema validation, type coercion, sanitization, length check, or content-negotiation logic in the application. The only input that influences behavior is the request line itself (method and path), and the sole gate applied to it is Express's exact-match routing: a request either matches one of the two registered `GET` routes or falls through to the default `404` (see 4.2.4). There is no request-body size limit, no parser (e.g. `express.json`) mounted, and therefore no payload-validation step to document.
+
+### 4.3.3 Authorization and Access Checkpoints
+
+There are **no application-level authentication or authorization checkpoints**. The code registers no authentication middleware, checks no credentials, tokens, API keys, cookies, or session state, and evaluates no roles, scopes, or permissions before invoking a handler. Likewise there is no rate-limiting, quota, or IP-allowlist logic in the application.
+
+The single access control present is a **network-boundary** one and is implicit rather than coded as a checkpoint: the server binds only the loopback address `127.0.0.1`, so it is reachable only by clients on the same host and is unreachable from other machines by design. Any client that can open a TCP connection to `127.0.0.1:3000` is served without further gating. The following diagram shows the complete set of gates a request actually passes through.
+
+```mermaid
+flowchart TB
+    C(["HTTP client"]) --> G1{"reachable?<br/>bound to 127.0.0.1 only (loopback)"}
+    G1 -->|"off-host client"| Block(["connection cannot be established<br/>(implicit network boundary)"])
+    G1 -->|"same-host client"| G2{"routing gate:<br/>matches GET / or GET /good-evening?"}
+    G2 -->|"yes"| Serve(["handler runs — no auth,<br/>no authz, no input validation"])
+    G2 -->|"no"| NF(["default 404"])
+    Serve --> Done(["200 OK response"])
+```
+
+### 4.3.4 Regulatory Compliance Checkpoints
+
+There are **no regulatory-compliance checkpoints** in the codebase, and none are required by the observed behavior. The service collects, stores, transmits, and logs **no personal, financial, or health data**: request payloads are never read, responses are static non-personal greetings, and the only console output is an operational startup line (stdout) or a bind-failure diagnostic (stderr) — neither contains user data. There is accordingly no GDPR/CCPA consent flow, no PCI-DSS cardholder-data handling, no HIPAA PHI handling, no audit-logging requirement, and no data-retention or data-subject-access logic present anywhere in `server.js` or its configuration. This absence is a property of the system's minimal, stateless scope rather than a gap to be remediated within the documented feature set.
+
+## 4.4 State Management and Transaction Boundaries
+
+State management in this system is confined almost entirely to the **process lifecycle**. There is no application data state: request handling is stateless, no data is persisted, no cache is maintained by the application, and no transactions are opened. The only stateful object in the code is the `server` returned by `app.listen`, whose `listening` flag gates the startup log (see 4.2.1).
+
+### 4.4.1 Process Lifecycle State Transitions
+
+The process moves through a short, linear lifecycle from invocation to either a long-lived listening state or a failed exit. The transitions below are taken directly from `server.js`: construction and `x-powered-by` disable, route registration, the `app.listen` bind, the `server.listening` guard, and the `'error'` handler.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Uninitialized: node command issued
-    Uninitialized --> Initializing: Begin server creation
-    Initializing --> Binding: Server created
-    Binding --> Ready: Port bound successfully
-    Ready --> Processing: Request received
-    Processing --> Ready: Response sent
-    Ready --> Terminated: Process killed
-    Terminated --> [*]
-    
-    note right of Uninitialized: No state persistence
-    note right of Ready: Awaiting requests
-    note right of Processing: Stateless processing
+    [*] --> Constructing: node server.js
+    Constructing --> Registering: express() app created, x-powered-by disabled
+    Registering --> Binding: GET / and GET /good-evening registered, app.listen called
+    Binding --> Listening: bind succeeds (server.listening === true), success line to stdout
+    Binding --> Failed: 'error' event (e.g. EADDRINUSE)
+    Listening --> Listening: serve request (no persisted state change)
+    Listening --> [*]: external signal / shutdown
+    Failed --> [*]: console.error to stderr, process.exitCode = 1, event loop unwinds
 ```
 
-#### Server States
+The `Listening` self-transition captures the key architectural fact that serving a request does not alter process state: the handlers read nothing and write nothing beyond the response socket. The only branch is at `Binding`, which resolves to either `Listening` (success) or `Failed` (bind error); there is no intermediate retry state.
 
-| State | Description | Transitions To | Trigger |
-|-------|-------------|----------------|---------|
-| Uninitialized | Process not started | Initializing | `node server.js` |
-| Initializing | Loading modules, setting config | Binding | `http.createServer()` |
-| Binding | Attaching to port 3000 | Ready | `server.listen()` |
-| Ready | Awaiting HTTP requests | Processing | Incoming request |
-| Processing | Handling current request | Ready | Response sent |
-| Terminated | Process ended | (none) | SIGINT/SIGTERM |
+### 4.4.2 Per-Request State and Data Persistence Points
 
-### 4.4.2 Data Persistence Points
+Request handling is **stateless and share-nothing**. Each handler computes its response from a hard-coded string literal, holds no module-level mutable variables that accumulate across requests, and shares no state between concurrent requests. There is no session, no in-memory user/store object, and no request-scoped context beyond the `req`/`res` pair that Node.js creates and discards per connection.
 
-| Persistence Point | Implementation | Purpose |
-|-------------------|----------------|---------|
-| Configuration | Hardcoded in `server.js` | No runtime persistence |
-| Request Data | Not stored | Immediate processing only |
-| Response Data | Not stored | Generated per request |
-| Session Data | None | Stateless design |
-| Application State | None | No state maintained between requests |
+There are **no data-persistence points** anywhere in the flow. `server.js` performs no database access, opens no file handles for writing, and imports no persistence client (its only `require` is `express`). The repository's static `industry.csv` is not read at runtime, and the placeholder artifacts are never loaded. The only durable side effects of the process are its console streams — the startup line on stdout and any failure diagnostic on stderr — which are operational, not data, outputs.
 
-### 4.4.3 Configuration State
+### 4.4.3 Caching Posture
 
-All configuration is immutable and hardcoded within `server.js`:
+The application defines **no caching layer and sets no `Cache-Control` header**; it maintains no in-memory or external cache of any kind. Two cache-adjacent artifacts observed on responses originate from the framework and transport layers rather than application code:
 
-| Configuration | Value | Storage | Mutability |
-|---------------|-------|---------|------------|
-| hostname | '127.0.0.1' | `server.js` line 3 | Immutable |
-| port | 3000 | `server.js` line 4 | Immutable |
-| statusCode | 200 | `server.js` line 7 | Immutable |
-| contentType | 'text/plain' | `server.js` line 8 | Immutable |
-| responseBody | 'Hello, World!\n' | `server.js` line 9 | Immutable |
+| Artifact | Origin | Observed value |
+|---|---|---|
+| Weak `ETag` | Auto-generated by Express `res.send` from the response body | `W/"e-..."` on `GET /`, distinct `W/"c-..."` on `GET /good-evening` |
+| Connection reuse | Node.js HTTP keep-alive defaults | `Connection: keep-alive`, `Keep-Alive: timeout=5` |
 
-### 4.4.4 Caching Requirements
+Because bodies are fixed literals, the auto-generated `ETag` values are stable across restarts for a given route, which would permit conditional-request (`304`) handling by the framework; however, the application itself implements no explicit cache-validation logic. The `Keep-Alive: timeout=5` value is the only timing constant present anywhere in the runtime and is a connection-level setting, not an application cache TTL.
 
-| Caching Aspect | Implementation | Rationale |
-|----------------|----------------|-----------|
-| Server-side Caching | None | Static response, no benefit |
-| Client-side Caching | Not controlled | No cache headers set |
-| Request Caching | None | Each request processed independently |
-| Response Caching | None | Response generated per request |
+### 4.4.4 Transaction Boundaries
 
-### 4.4.5 Transaction Boundaries
+There are **no transaction boundaries** in the system. With no database, message broker, or multi-resource write, there is nothing to commit, roll back, or coordinate. Each request is handled within a single synchronous pass through one route handler that emits an in-memory literal with zero I/O, so the "unit of work" begins and ends entirely within that handler and cannot partially fail in a way that would require compensation. Startup is similarly atomic from the operator's perspective: the bind either succeeds (process enters `Listening`) or fails (process exits non-zero), with no partially-initialized intermediate state to reconcile.
 
-Given the system's stateless nature, each HTTP request represents a complete, isolated transaction:
+## 4.5 Error Handling and Recovery Flows
 
-```mermaid
-flowchart LR
-    subgraph Transaction["Single Request Transaction Boundary"]
-        T1["Request<br/>Received"]
-        T2["Handler<br/>Executed"]
-        T3["Response<br/>Generated"]
-        T4["Response<br/>Sent"]
-    end
-    
-    T1 --> T2 --> T3 --> T4
-```
+The service has a deliberately narrow error surface. Only two error conditions can arise, and they occur on different planes: a **startup/bind failure** on the process-lifecycle plane, and an **unmatched-route `404`** on the request plane. There is no application-level error middleware and no `try/catch`; because both handlers emit static string literals with no I/O, no runtime exception path (and therefore no `5xx`) is reachable during normal operation. The subsections below give the taxonomy, the detection-and-notification flow, and the retry/fallback/recovery posture — all grounded in `server.js` and confirmed by first-hand execution.
 
-| Transaction Property | Value | Notes |
-|----------------------|-------|-------|
-| Atomicity | Yes | Single operation, no partial state |
-| Consistency | Yes | Same input always produces same output |
-| Isolation | Yes | No shared state between requests |
-| Durability | N/A | No persistent data |
+### 4.5.1 Error Taxonomy
 
----
+| Error | Plane | Trigger | Detection | Notification | Terminal state |
+|---|---|---|---|---|---|
+| Startup bind failure | Process lifecycle | Port `3000` unavailable (e.g. `EADDRINUSE`) or other `net` bind error | `server.on('error', ...)` receives the `'error'` event; startup log is suppressed because `server.listening === false` | `console.error('Failed to start server at http://127.0.0.1:3000/: <message>')` to **stderr**; `process.exitCode = 1` | Process exits non-zero |
+| Unmatched route / method | Request | Request method+path is neither `GET /` nor `GET /good-evening` | Express router finds no match | HTTP `404 Not Found` to the client (`text/html`, `Content-Security-Policy: default-src 'none'`, `X-Content-Type-Options: nosniff`); no server-side log | Response sent; process stays healthy |
+| Handler exception / `5xx` | Request | (not reachable) | — | — | Not exercised: handlers emit static literals and cannot throw |
 
-## 4.5 Error Handling
+The third row is included for completeness: the application registers no custom error-handling middleware, so an unexpected handler exception would fall to Express 5's built-in error handler and yield a `500`, but no code path in the current handlers can raise one.
 
-### 4.5.1 Error Handling Architecture
+### 4.5.2 Error Handling and Notification Flow
 
-The hao-backprop-test system implements **minimal error handling** as a deliberate design choice to maintain simplicity for test purposes. Error scenarios are largely delegated to the Node.js runtime defaults.
-
-#### Current Error Handling Status
-
-| Error Category | Handling Implementation | Status |
-|----------------|------------------------|--------|
-| Startup Errors | Node.js defaults | Not explicitly handled |
-| Runtime Errors | Node.js defaults | Not explicitly handled |
-| Request Errors | HTTP module defaults | Not explicitly handled |
-| Network Errors | Node.js defaults | Not explicitly handled |
-
-### 4.5.2 Error Scenario Flow (Theoretical)
-
-The following diagram illustrates theoretical error paths that could occur but are not explicitly handled by the application:
-
-```mermaid
-flowchart TD
-    subgraph NormalFlow["Normal Execution Path"]
-        Start([node server.js])
-        Load["Load http Module"]
-        Create["Create Server"]
-        Bind["Bind to Port 3000"]
-        Ready["Server Ready"]
-    end
-    
-    subgraph StartupErrors["Potential Startup Errors"]
-        ModuleError["Module Load<br/>Failure"]
-        PortError["Port 3000<br/>Already in Use"]
-        PermError["Permission<br/>Denied"]
-    end
-    
-    subgraph ErrorOutcomes["Error Outcomes (Unhandled)"]
-        Crash["Process Crash<br/>with Stack Trace"]
-        Exit["Non-Zero<br/>Exit Code"]
-    end
-    
-    Start --> Load
-    Load -->|Success| Create
-    Load -->|Failure| ModuleError
-    Create --> Bind
-    Bind -->|Success| Ready
-    Bind -->|EADDRINUSE| PortError
-    Bind -->|EACCES| PermError
-    
-    ModuleError --> Crash
-    PortError --> Crash
-    PermError --> Crash
-    Crash --> Exit
-```
-
-### 4.5.3 Error Types and Expected Behaviors
-
-| Error Type | Error Code | Trigger Condition | Current Behavior | Recovery Path |
-|------------|------------|-------------------|------------------|---------------|
-| Port In Use | EADDRINUSE | Port 3000 occupied | Process crash | Free port, restart |
-| Permission Denied | EACCES | Insufficient privileges | Process crash | Run with elevated permissions |
-| Module Not Found | MODULE_NOT_FOUND | Corrupted Node.js | Process crash | Reinstall Node.js |
-| Network Error | ENETDOWN | Network unavailable | Process crash | Restore network, restart |
-| Memory Exhaustion | ENOMEM | Insufficient memory | Process crash | Free memory, restart |
-
-### 4.5.4 Retry Mechanisms
-
-| Mechanism | Implementation | Notes |
-|-----------|----------------|-------|
-| Automatic Retry | None | Not implemented |
-| Exponential Backoff | None | Not implemented |
-| Circuit Breaker | None | Not implemented |
-| Fallback Processes | None | Not implemented |
-
-### 4.5.5 Error Notification Flows
-
-```mermaid
-flowchart LR
-    subgraph ErrorNotification["Error Notification (Default Node.js Behavior)"]
-        Error([Error Occurs])
-        Stack["Generate<br/>Stack Trace"]
-        Console["Write to<br/>stderr"]
-        Exit["Process Exit<br/>Code: 1"]
-    end
-    
-    Error --> Stack --> Console --> Exit
-```
-
-#### Error Output Destinations
-
-| Error Type | Output Destination | Format |
-|------------|-------------------|--------|
-| Startup Errors | stderr | Stack trace |
-| Runtime Exceptions | stderr | Stack trace |
-| Uncaught Rejections | stderr | Stack trace (Node.js 15+) |
-
-### 4.5.6 Recovery Procedures
-
-Since the application implements no explicit error recovery, all recovery is manual:
-
-| Scenario | Recovery Procedure |
-|----------|-------------------|
-| Port conflict | 1. Identify process using port 3000<br/>2. Terminate conflicting process<br/>3. Restart server with `node server.js` |
-| Server crash | 1. Review error message in stderr<br/>2. Address root cause<br/>3. Restart server with `node server.js` |
-| Node.js unavailable | 1. Install Node.js v20.19.6 or compatible<br/>2. Verify installation with `node --version`<br/>3. Start server with `node server.js` |
-
----
-
-## 4.6 Validation Rules and Business Logic
-
-### 4.6.1 Request Processing Rules
-
-The following business rules govern request processing:
-
-| Rule ID | Rule Category | Rule Description | Enforcement |
-|---------|---------------|------------------|-------------|
-| BR-001 | Path Handling | All URL paths return identical response | Implicit (no routing) |
-| BR-002 | Method Handling | All HTTP methods treated equally | Implicit (no differentiation) |
-| BR-003 | Response Content | Response body is exactly "Hello, World!\n" | Hardcoded |
-| BR-004 | Response Format | Content-Type is always text/plain | Hardcoded |
-| BR-005 | Status Code | HTTP status is always 200 | Hardcoded |
-
-### 4.6.2 Data Validation Requirements
+The following swim-lane flowchart separates the two planes. The startup lane shows the `server.listening` guard and the `'error'` handler; the request lane shows the routing decision converging on either a handler or the default `404`. Notification channels differ by plane: stdout/stderr for startup, and the HTTP response itself for the request path.
 
 ```mermaid
 flowchart TB
-    subgraph ValidationFlow["Validation Flow (Minimal)"]
-        Input([HTTP Request])
-        NodeValidation["Node.js HTTP Module<br/>Protocol Validation"]
-        Pass{Valid HTTP<br/>Protocol?}
-        Process["Process Request"]
-        Reject["Connection Reset/<br/>Bad Request"]
-        Output([HTTP Response])
+    subgraph Startup["Startup path — process lifecycle"]
+        S0(["node server.js"]) --> S1["app.listen(3000, '127.0.0.1')"]
+        S1 --> S2{"bind result?"}
+        S2 -->|"success (server.listening true)"| S3["console.log success line -> stdout"]
+        S2 -->|"failure: 'error' event, e.g. EADDRINUSE"| S4["server.on('error'): console.error -> stderr"]
+        S4 --> S5["process.exitCode = 1"]
+        S3 --> S6(["Listening — healthy"])
+        S5 --> S7(["Process exits non-zero"])
     end
-    
-    Input --> NodeValidation
-    NodeValidation --> Pass
-    Pass -->|Yes| Process
-    Pass -->|No| Reject
-    Process --> Output
-```
-
-| Validation Type | Implementation | Scope |
-|-----------------|----------------|-------|
-| HTTP Protocol | Node.js http module | Automatic |
-| Request Headers | Node.js http module | Automatic |
-| Input Sanitization | None | Not required (no input processing) |
-| Business Logic | None | No conditional logic |
-
-### 4.6.3 Authorization Checkpoints
-
-| Checkpoint | Implementation | Notes |
-|------------|----------------|-------|
-| Authentication | None | Not implemented |
-| Authorization | None | Not implemented |
-| Rate Limiting | None | Not implemented |
-| IP Filtering | Implicit (localhost only) | Hardcoded binding |
-
-### 4.6.4 Security Validation Points
-
-```mermaid
-flowchart LR
-    subgraph Security["Security Boundary"]
-        External["External<br/>Network"]
-        Boundary["Network Binding<br/>127.0.0.1:3000"]
-        Server["HTTP Server"]
+    subgraph Request["Request path — per request"]
+        R0(["HTTP request on 127.0.0.1:3000"]) --> R1{"matches GET / or GET /good-evening?"}
+        R1 -->|"yes"| R2["handler emits static literal"]
+        R2 --> R3(["200 OK — text/plain + nosniff"])
+        R1 -->|"no"| R4["Express finalhandler"]
+        R4 --> R5(["404 Not Found — text/html, CSP, nosniff"])
     end
-    
-    External -->|Blocked| Boundary
-    Boundary -->|Localhost Only| Server
 ```
 
-| Security Control | Implementation | Risk Level |
-|------------------|----------------|------------|
-| Network Isolation | Localhost binding (127.0.0.1) | Low |
-| Access Control | None beyond localhost binding | Acceptable for test scope |
-| Input Validation | None (static response) | Low |
-| Output Encoding | Plain text (no injection risk) | Low |
+The two lanes never cross: a startup failure prevents the process from ever reaching the request lane, and a request-path `404` is a normal, self-contained client outcome that leaves the process healthy for subsequent requests.
 
----
+### 4.5.3 Retry, Fallback, and Recovery Procedures
 
-## 4.7 Performance and Timing Considerations
+**Retry / backoff.** There is none. Startup makes a **single bind attempt** with no retry loop, no exponential backoff, and no alternate-port fallback; a failed bind goes straight to the error handler and a non-zero exit. On the request path there is likewise no retry — an unmatched request receives one `404` and the exchange ends.
 
-### 4.7.1 Timing Constraints
+**Fallback processes.** There is no degraded mode, no secondary listener, and no cached/last-known-good response. The port and host are hard-coded (`127.0.0.1:3000`), so the process cannot self-select an alternate endpoint.
 
-| Metric | Target | Rationale | Evidence |
-|--------|--------|-----------|----------|
-| Server Startup | < 100ms | Rapid test initialization | Section 2.4 requirements |
-| Response Latency | < 10ms | Efficient test execution | Section 2.4 requirements |
-| Memory Footprint | Minimal | Single-purpose operation | Zero dependencies |
-| CPU Usage | Negligible | Static response generation | No computation |
+**Notification.** Failures are machine-observable through two channels only: the **stderr** diagnostic line and the **non-zero exit code**. Success is announced on **stdout**. No email, webhook, alerting, or log-aggregation integration exists in the code.
 
-### 4.7.2 Process Timing Diagram
-
-```mermaid
-gantt
-    dateFormat  S
-    title Server Lifecycle Timing
-    
-    section Initialization
-    Module Load           :a1, 0, 10
-    Configuration Setup   :a2, after a1, 1
-    Server Creation       :a3, after a2, 5
-    Port Binding          :a4, after a3, 50
-    Startup Log           :a5, after a4, 1
-    
-    section Request Processing
-    Request Receipt       :b1, 70, 1
-    Handler Execution     :b2, after b1, 5
-    Response Generation   :b3, after b2, 2
-    Response Transmission :b4, after b3, 2
-```
-
-### 4.7.3 SLA Considerations
-
-| SLA Metric | Target | Applicability |
-|------------|--------|---------------|
-| Availability | 100% when running | Local development only |
-| Response Time | < 10ms | Test environment |
-| Throughput | Not specified | Not designed for load |
-| Error Rate | 0% | Deterministic responses |
-
-**Note:** This is a test project with no formal SLA requirements. The metrics above represent design expectations rather than contractual obligations.
-
----
-
-## 4.8 Integration Sequence Diagrams
-
-### 4.8.1 HTTP Request-Response Sequence
-
-```mermaid
-sequenceDiagram
-    participant C as Client (Browser/curl)
-    participant N as Node.js Runtime
-    participant S as HTTP Server
-    participant H as Request Handler
-    
-    C->>N: HTTP Request to localhost:3000
-    N->>S: Incoming Connection
-    S->>H: Execute Callback(req, res)
-    H->>H: Set statusCode = 200
-    H->>H: Set Content-Type: text/plain
-    H->>H: Write "Hello, World!\n"
-    H->>S: End Response
-    S->>N: Response Ready
-    N->>C: HTTP 200 OK<br/>"Hello, World!\n"
-```
-
-### 4.8.2 Server Initialization Sequence
-
-```mermaid
-sequenceDiagram
-    participant D as Developer
-    participant T as Terminal
-    participant N as Node.js Runtime
-    participant H as http Module
-    participant S as Server Instance
-    
-    D->>T: node server.js
-    T->>N: Execute server.js
-    N->>H: require('http')
-    H-->>N: http module loaded
-    N->>N: Define hostname, port
-    N->>H: createServer(callback)
-    H-->>N: Server instance
-    N->>S: listen(port, hostname, callback)
-    S-->>N: Binding complete
-    N->>T: console.log("Server running...")
-    T-->>D: Display startup message
-```
-
-### 4.8.3 Backprop Integration Sequence
-
-```mermaid
-sequenceDiagram
-    participant D as Developer
-    participant R as Repository
-    participant B as Backprop Tool
-    participant S as HTTP Server (Optional)
-    
-    D->>R: Access repository
-    D->>B: Initiate analysis
-    B->>R: Read server.js
-    B->>R: Read package.json
-    B->>R: Read other files
-    B->>B: Parse source code
-    B->>B: Perform analysis
-    opt Server Running
-        B->>S: Test HTTP endpoint
-        S-->>B: "Hello, World!\n"
-    end
-    B->>B: Generate results
-    B-->>D: Analysis complete
-```
-
----
-
-## 4.9 Decision Points Analysis
-
-### 4.9.1 Runtime Decision Points
-
-The system implements **zero explicit decision points** at runtime. This is a deliberate design choice that ensures deterministic behavior for test purposes.
-
-```mermaid
-flowchart TD
-    subgraph NoDecisions["Runtime Flow (No Decision Points)"]
-        R1([Request Received])
-        R2["Set Status: 200"]
-        R3["Set Header: text/plain"]
-        R4["Write Body: Hello, World!"]
-        R5["End Response"]
-        R6([Response Sent])
-    end
-    
-    R1 --> R2 --> R3 --> R4 --> R5 --> R6
-```
-
-### 4.9.2 Implicit Decision Points
-
-While the application has no explicit branching logic, the Node.js runtime makes implicit decisions:
-
-| Decision Point | Decision Maker | Possible Outcomes |
-|----------------|----------------|-------------------|
-| HTTP Protocol Validity | Node.js http module | Accept request / Reject connection |
-| Port Availability | Operating System | Bind successfully / EADDRINUSE error |
-| Memory Allocation | Node.js runtime | Allocate / Throw OOM error |
-| TCP Connection | Network stack | Establish / Timeout |
-
-### 4.9.3 Design Decision Flow
-
-The following represents decisions made at design time that eliminate runtime decisions:
+**Recovery.** Recovery is entirely **operator-driven and manual** — the code contains no supervisor, watchdog, or automated restart, and the repository's runtime files declare only a `start` script (`node server.js`). The typical recovery loop for the dominant failure (`EADDRINUSE`) is to free port `3000` and re-run the process, as shown below.
 
 ```mermaid
 flowchart TB
-    subgraph DesignDecisions["Design-Time Decisions"]
-        D1{"Path-Based<br/>Routing?"}
-        D2{"Method-Based<br/>Handling?"}
-        D3{"Dynamic<br/>Configuration?"}
-        D4{"Error<br/>Handling?"}
-        D5{"State<br/>Management?"}
-    end
-    
-    subgraph Outcomes["Design Outcomes"]
-        O1["All paths: same response"]
-        O2["All methods: same response"]
-        O3["Hardcoded values"]
-        O4["Node.js defaults"]
-        O5["Stateless design"]
-    end
-    
-    D1 -->|No| O1
-    D2 -->|No| O2
-    D3 -->|No| O3
-    D4 -->|Minimal| O4
-    D5 -->|No| O5
+    E(["Startup failed: bind error on 127.0.0.1:3000<br/>stderr diagnostic + exit code 1"]) --> D{"operator triage"}
+    D -->|"port 3000 already in use"| A1["stop the conflicting process to free port 3000"]
+    D -->|"other / unclear"| A2["inspect stderr message and host state"]
+    A1 --> RR["manual restart: node server.js"]
+    A2 --> RR
+    RR --> C{"bind succeeds now?"}
+    C -->|"yes"| OK(["Listening — recovered"])
+    C -->|"no"| E
 ```
 
----
+Because the failure is signalled cleanly (empty stdout, exit code `1`, explicit stderr message), an external process manager could automate this loop, but such supervision is outside the scope of what `server.js` itself implements.
 
-## 4.10 Process Summary
+## 4.6 References
 
-### 4.10.1 Process Inventory
+The process flows, decision points, timing notes, and error/recovery behavior documented in this section were derived directly from the repository source and corroborated by first-hand execution of the service. The evidence base is enumerated below.
 
-| Process ID | Process Name | Type | Complexity | Status |
-|------------|--------------|------|------------|--------|
-| P-001 | Server Initialization | Core | Low | Implemented |
-| P-002 | HTTP Request Processing | Core | Low | Implemented |
-| P-003 | Response Generation | Core | Low | Implemented |
-| P-004 | Startup Logging | Support | Low | Implemented |
-| P-005 | Error Handling | Support | Minimal | Node.js defaults |
-| P-006 | Backprop Integration | Integration | Low | Supported |
-| P-007 | Development Workflow | Operational | Low | Documented |
+**Repository files examined**
 
-### 4.10.2 Process Complexity Assessment
+- `server.js` - the entire runtime; established the app construction, `app.disable('x-powered-by')`, the two `GET` route handlers and their byte-exact bodies (`Hello, World!\n` = 14 bytes; `Good evening` = 12 bytes), the `nosniff`/`text/plain` header chain, the `app.listen` bind, the `server.listening` startup-log guard, and the `server.on('error')` handler that writes to stderr and sets `process.exitCode = 1`
+- `package.json` - the `start` script (`node server.js`), the `express: ^5.2.1` dependency, and the `main: index.js` manifest discrepancy noted in the workflow narrative
+- `package-lock.json` - deterministic dependency resolution (lockfileVersion 3) underpinning the install-time supply-chain integration flow
+- `README.md` - documented endpoints, Node.js `>= 18` runtime expectation, and the trailing-newline distinction between the two greetings
+- `.gitignore` - exclusion of `node_modules/`, referenced in the install-time/dev-time integration surface
+- `industry.csv` - static dataset confirmed **not** read at runtime (no persistence/data-flow step in any workflow)
+- `LoginTest.java`, `test.py.txt`, `test.txt.txt`, `100Pages.pdf`, `demo.jpg`, `sample.doc` - inert placeholder/fixture artifacts confirmed absent from every runtime flow
 
-| Metric | Value | Assessment |
-|--------|-------|------------|
-| Total Processes | 7 | Minimal |
-| Decision Points | 0 (runtime) | Simplest possible |
-| State Transitions | 6 | Linear progression |
-| Error Paths | 5 (unhandled) | Delegated to runtime |
-| Integration Points | 3 | Limited scope |
+**Repository folders examined**
 
-### 4.10.3 Key Findings
+- `blitzy/documentation/` - project documentation folder consulted for context during orientation; not part of any runtime flow
 
-1. **Deliberate Simplicity**: The process architecture is intentionally minimal to serve as an unambiguous test baseline for Backprop integration testing.
+**Cross-referenced Technical Specification sections** (retrieved via the section-retrieval tool)
 
-2. **Stateless Design**: No state is maintained between requests, ensuring deterministic behavior across all test executions.
+- `1.2 System Overview` - system context, the "Minimal Monolith" characterization, and the major-components diagram reused for naming consistency
+- `2.1 Feature Catalog` - feature identifiers F-001 through F-008 referenced throughout the flows
+- `2.2 Functional Requirements` - requirement identifiers (R1-R4, F-XXX-RQ-YYY), the 404 content-type/size facts, and the "single bind attempt with no retry or backoff" statement
+- `2.3 Feature Relationships` - integration points and the feature-dependency map reused for consistency
 
-3. **No Decision Points**: The absence of runtime branching eliminates test variability and simplifies analysis.
+**Verification basis**
 
-4. **Implicit Error Handling**: Error scenarios rely on Node.js defaults rather than explicit application-level handling.
-
-5. **Linear Workflows**: All processes follow linear, non-branching flows from start to completion.
-
----
-
-## 4.11 References
-
-### 4.11.1 Source Files Referenced
-
-| File Path | Relevance to Section |
-|-----------|---------------------|
-| `server.js` | Primary process implementation (14 lines), request handler, server initialization |
-| `package.json` | NPM metadata, scripts configuration, entry point specification |
-| `package-lock.json` | Dependency verification (zero dependencies), npm version compatibility |
-| `README.md` | "Do not touch!" directive affecting development workflow |
-| `industry.csv` | Static data asset included in Backprop analysis scope |
-| `LoginTest.java` | Multi-language placeholder in analysis scope |
-
-### 4.11.2 Technical Specification Sections Referenced
-
-| Section | Information Used |
-|---------|-----------------|
-| 1.2 System Overview | High-level architecture, component inventory, success criteria |
-| 1.3 Scope | Primary user workflow, in-scope/out-scope elements |
-| 2.1 Feature Catalog | Feature definitions (F-001 through F-004) |
-| 2.2 Functional Requirements Tables | Detailed requirements and acceptance criteria |
-| 2.3 Feature Relationships | Dependency map, integration points |
-| 2.4 Implementation Considerations | Technical constraints, performance requirements |
-| 2.6 Assumptions and Constraints | System assumptions, design constraints |
-| 3.7 Development & Deployment | Development workflow, execution model |
-| 3.8 Technology Stack Constraints | Architectural constraints |
-| 3.9 Configuration Discrepancy | Entry point mismatch documentation |
-| Node.js `http` Module | Module capabilities used |
-| Package.json Scripts | Development workflow scripts |
-
-### 4.11.3 Related Technical Requirements
-
-| Requirement ID | Requirement Description | Process Impact |
-|----------------|------------------------|----------------|
-| F-001-RQ-001 | Server Initialization | Defines P-001 |
-| F-001-RQ-002 | Request Handling | Defines P-002 |
-| F-001-RQ-003 | Response Generation | Defines P-003 |
-| F-001-RQ-004 | Startup Logging | Defines P-004 |
-| F-002-RQ-001 | Repository Accessibility | Defines P-006 |
-| F-002-RQ-002 | Codebase Stability | Constrains P-007 |
+- First-hand runtime execution of `server.js` (Node.js v22.23.1, express 5.2.1) established the observed response headers (`X-Content-Type-Options: nosniff`, `Content-Type`, `Content-Length`, weak `ETag`, `Connection: keep-alive`, `Keep-Alive: timeout=5`, absence of `X-Powered-By`), the `404` bodies (`Cannot GET /nope` = 143 bytes; `Cannot POST /` = 140 bytes), and the failed-bind behavior (empty stdout, exit code `1`, `EADDRINUSE` diagnostic on stderr)
+- No external web sources were used in the preparation of this section
 
 # 5. System Architecture
 
 ## 5.1 High-Level Architecture
 
-### 5.1.1 System Overview
+This section documents the architecture of the `hao-backprop-test` service (npm package `hello_world`, version `1.0.0`) as it exists in the current codebase. All runtime behavior resides in a single file, `server.js` — a self-starting Express 5 HTTP application bound to the loopback interface `127.0.0.1:3000`. Every architectural statement below is grounded in `server.js`, the project manifests (`package.json`, `package-lock.json`, `.gitignore`), `README.md`, and first-hand runtime execution, and is consistent with the system framing established in Sections 1.2, 4.1, and 4.5. The system is intentionally minimal; where the section prompt enumerates an architectural concern that this system does not exhibit, that absence is stated explicitly rather than invented.
 
-The hao-backprop-test system implements a **zero-dependency, single-file, stateless HTTP server architecture** specifically designed to serve as a controlled test environment for Backprop integration testing. This architectural approach prioritizes predictability, reproducibility, and isolation over scalability or feature richness.
+### 5.1.1 System Overview
 
 #### Architectural Style and Rationale
 
-The system follows a **Minimal Monolith** architectural pattern—a deliberately constrained architecture that consolidates all functionality within a single entry point while eliminating external dependencies. This style was selected for the following reasons:
+The service is a **single-process, single-file monolithic HTTP microservice** built on the Express 5.2.1 web framework, written in CommonJS, and bound to the loopback interface only. It represents the smallest viable form of a layered web application: a **runtime/transport layer** (the Node.js `net`/`http` stack that owns the listening socket), a **framework/routing layer** (the Express application and its router), and a **handler layer** (two route callbacks that emit fixed responses). There is no service decomposition, no multi-tier separation, no worker pool, and no process beyond the single Node.js process launched by `node server.js`.
 
-| Design Decision | Rationale | Trade-off |
-|-----------------|-----------|-----------|
-| Single-file implementation | Complete system visibility in 14 lines of code | Limited functionality scope |
-| Zero external dependencies | Eliminates supply chain risk and test variables | No framework conveniences |
-| Localhost-only binding | Prevents unintended external access | No remote accessibility |
-| Hardcoded configuration | Guarantees identical behavior across runs | No runtime flexibility |
+The rationale for this style is recorded in the project's evolution and cross-referenced documentation. The service is a controlled, minimal integration-test target that was deliberately **re-platformed from a native Node.js `http`-module baseline onto Express** (git commit `ec987aa`) to gain path-based routing — enabling multiple differentiated endpoints — while preserving the original root greeting byte-for-byte for backward compatibility. Express was adopted for its idiomatic routing surface and future endpoint growth (feature F-001), and the implementation was kept to a single file to minimize the change surface and keep the delivery reviewable.
 
-#### Key Architectural Principles
+#### Key Architectural Principles and Patterns
 
-1. **Determinism**: Every execution produces identical results under identical conditions
-2. **Isolation**: Network binding restricted to 127.0.0.1 prevents external interference
-3. **Transparency**: Entire system behavior visible in a single 14-line file
-4. **Immutability**: Configuration values hardcoded to prevent runtime modification
-5. **Statelessness**: No data persistence between requests ensures test independence
+The following principles are directly observable in `server.js` and the manifests:
+
+- **Framework-based routing** — an `express()` application registers explicit `GET` routes; requests matching no route fall through to Express's built-in default `404` finalhandler.
+- **Stateless request/response** — each response is derived solely from an in-memory string literal; there is no shared mutable state, session, or persistence, so any request is served independently of every other.
+- **Fail-fast, observable startup** — the success log is emitted only when `server.listening` is true, and a dedicated `server.on('error', …)` handler surfaces bind failures to stderr and sets `process.exitCode = 1` (feature F-005).
+- **Defense-in-depth response hardening** — the framework-advertising `X-Powered-By` header is disabled application-wide via `app.disable('x-powered-by')`, and `X-Content-Type-Options: nosniff` is set on each success route (feature F-004).
+- **Deterministic dependency management** — exactly one direct dependency (`express ^5.2.1`) is declared and pinned by a committed `package-lock.json` (feature F-006).
+- **Convention preservation** — CommonJS module loading and hardcoded host/port constants are retained; no environment variables are consulted.
 
 #### System Boundaries and Major Interfaces
 
+The system boundary is deliberately narrow. The process listens **only** on `127.0.0.1`, so it is unreachable from other hosts by design, and it holds no authentication, session, or persistence boundary — any TCP client that can reach the loopback interface receives a direct code-generated response.
+
+- **Inbound (runtime):** HTTP/1.1 over TCP on `127.0.0.1:3000` — the only channel that serves requests.
+- **Outbound (process I/O):** console `stdout` (startup success line) and `stderr` (bind-failure diagnostics).
+- **Build-time only:** the npm registry, which supplies Express and its transitive packages during `npm install`; it is never contacted at runtime.
+- **Host runtime:** the Node.js ≥ 18 `net`/`http` stack, which provides the listening socket and connection lifecycle.
+
+The layered runtime boundary and the build-time supply chain are shown below.
+
 ```mermaid
 flowchart TB
-    subgraph External[External Environment]
-        Backprop[Backprop Analysis Tool]
-        Developer[Developer/Tester]
-        Browser[HTTP Client/Browser]
+    Client["HTTP client<br/>curl / browser / automated test"]
+
+    subgraph Supply["Build-time supply chain (runs before the process starts)"]
+        direction TB
+        Registry["npm registry"]
+        Mods["node_modules/<br/>express 5.2.1 + 67 packages"]
+        Registry -->|"HTTPS tarballs + SHA-512"| Mods
     end
-    
-    subgraph SystemBoundary[System Boundary: hao-backprop-test]
-        subgraph CoreApp[Core Application]
-            Server[server.js<br/>HTTP Server]
+
+    subgraph Boundary["Loopback boundary — 127.0.0.1:3000 (not reachable off-host)"]
+        direction TB
+        subgraph Proc["Node.js &gt;= 18 process — server.js"]
+            direction TB
+            Net["Node net/http listener<br/>owns the TCP socket"]
+            App["Express 5 application<br/>x-powered-by disabled"]
+            Router["Router + default finalhandler"]
+            H1["GET / handler"]
+            H2["GET /good-evening handler"]
+            Life["Startup and error lifecycle<br/>listening guard + error handler"]
+            Net --> App
+            App --> Router
+            Router --> H1
+            Router --> H2
         end
-        
-        subgraph Config[Configuration Layer]
-            Package[package.json<br/>NPM Metadata]
-            Lock[package-lock.json<br/>Dependency Lock]
-        end
-        
-        subgraph StaticAssets[Static Assets]
-            CSV[industry.csv<br/>Data File]
-            Readme[README.md<br/>Documentation]
-        end
-        
-        subgraph Placeholders[Test Placeholders]
-            Java[LoginTest.java]
-            PyTest[test.py.txt]
-            TxtTest[test.txt.txt]
-        end
+        Console["Console sink<br/>stdout / stderr"]
     end
-    
-    Developer -->|node server.js| Server
-    Browser -->|HTTP Request| Server
-    Server -->|HTTP Response| Browser
-    Server -->|stdout| Developer
-    Backprop -->|File System Read| SystemBoundary
+
+    Client -->|"HTTP/1.1 request"| Net
+    H1 -->|"200 text/plain"| Client
+    H2 -->|"200 text/plain"| Client
+    Router -->|"404 text/html + CSP"| Client
+    Life -->|"success / failure lines"| Console
+    Mods -.->|"required at startup"| App
 ```
 
-The system boundary encompasses all repository files, with the HTTP server (`server.js`) serving as the single active runtime component. External actors interact with the system through file system access (Backprop analysis) or HTTP protocol (runtime testing).
+### 5.1.2 Core Components
 
-### 5.1.2 Core Components Table
+The running service comprises a small set of logical components, all resident in the single `server.js` process except the manifests and installed modules that support it. Because tables are capped at four columns, the core-component attributes are presented as a four-column table followed by per-component **critical considerations**.
 
-| Component Name | Primary Responsibility | Key Dependencies | Integration Points | Critical Considerations |
-|----------------|------------------------|------------------|-------------------|------------------------|
-| HTTP Server (`server.js`) | Handle HTTP requests and generate responses | Node.js `http` module (built-in) | TCP port 3000, stdout | Single point of execution; 14 lines of code |
-| Package Manifest (`package.json`) | Define npm package metadata and project identity | npm v7+ | npm ecosystem, Backprop metadata analysis | Entry point mismatch with actual implementation |
-| Dependency Lock (`package-lock.json`) | Lock dependency versions (empty dependencies) | npm lockfileVersion 3 | npm install operations | Confirms zero external dependencies |
-| Documentation (`README.md`) | Identify project purpose and restrictions | None | Developer reference | Contains "Do not touch!" warning |
-| Industry Data (`industry.csv`) | Provide static test data for potential analysis | None | Backprop data analysis | 44 industry categories; read-only |
-| Java Placeholder (`LoginTest.java`) | Reserve space for future Java testing | None | Multi-language analysis | Non-functional stub (empty main method) |
-| Python Placeholder (`test.py.txt`) | Reserve space for future Python testing | None | Multi-language analysis | Empty file (0 bytes) |
-| Text Placeholder (`test.txt.txt`) | General test placeholder | None | Future expansion | Empty file (0 bytes) |
+| Component | Primary Responsibility | Key Dependencies |
+|-----------|------------------------|------------------|
+| Application Runtime (`server.js` process) | Bootstraps the process, creates the Express `app`, holds the host/port constants, and initiates the single socket bind | Express 5.2.1; Node.js ≥ 18 `net`/`http` |
+| Express Application and Router | Path/method-based routing; app-level header policy (`x-powered-by` disabled); default `404` finalhandler for unmatched requests | Express 5.2.1 |
+| Greeting Route Handlers (`GET /`, `GET /good-evening`) | Emit byte-exact `text/plain` bodies with the `nosniff` header | Express response API (`res.set`/`res.type`/`res.send`) |
+| Startup and Error Lifecycle Controller | Guards the success log on `server.listening`; handles the server `'error'` event; sets the process exit code | Node `net`/`http` server events; `process`; `console` |
+| Dependency and Configuration Manifests (`package.json`, `package-lock.json`, `.gitignore`) | Declare and pin the dependency graph, exclude `node_modules/`, and define the `start` script | npm (lockfileVersion 3); Git |
+
+Integration points and critical considerations, per component:
+
+- **Application Runtime (`server.js`)** — integrates with the Node runtime, the loopback socket, and the console. *Critical considerations:* it is the single point of execution; there is no clustering, worker pool, or multi-process model (one event loop), and no graceful-shutdown handler is registered.
+- **Express Application and Router** — integrates the Node HTTP listener with the route handlers. *Critical considerations:* the unmatched-request branch emits Express framework defaults (`text/html` plus `Content-Security-Policy: default-src 'none'`) that differ from the route code; no custom error-handling middleware is registered.
+- **Greeting Route Handlers** — integrate with inbound HTTP clients. *Critical considerations:* the response bodies are byte-significant (`GET /` = 14 bytes with a trailing newline; `GET /good-evening` = 12 bytes with none); no request data is parsed, validated, or consumed.
+- **Startup and Error Lifecycle Controller** — integrates with `stdout`/`stderr`. *Critical considerations:* a single bind attempt with no retry or backoff; it uses `process.exitCode` (not `process.exit()`) so pending output can flush and the event loop can unwind cleanly.
+- **Dependency and Configuration Manifests** — integrate with the npm registry at build time and with Git. *Critical considerations:* the `main` field (`index.js`) diverges from the real entry point (`server.js`) — an intentional, harmless discrepancy — and `node_modules/` is intentionally excluded from version control.
 
 ### 5.1.3 Data Flow Description
 
-#### Primary Request-Response Data Flow
+**Primary data flows.** At runtime there is exactly one data flow: an inbound HTTP request arrives on the loopback socket, the Node `http` listener parses it and hands it to the Express application, the router evaluates the method-and-path tuple, and one of three outcomes is produced. A match on `GET /` or `GET /good-evening` invokes the corresponding handler, which sets `X-Content-Type-Options: nosniff` and `text/plain` and sends a fixed string literal; any other method or path falls through to Express's default `404` finalhandler. **No request payload, header, or query parameter is read, stored, transformed, or forwarded** — the response depends solely on route identity, not on request content. The build-time flow is separate: `npm install` reads `package.json`/`package-lock.json`, downloads verified tarballs from the npm registry, and materializes the dependency tree under `node_modules/` before the process ever runs.
 
-The system implements a simple, unidirectional request-response data flow with no intermediate transformations or storage:
+**Integration patterns and protocols.** The runtime pattern is synchronous request/response over HTTP/1.1 on TCP, confined to the loopback interface, with connection reuse governed by Node's default `Keep-Alive: timeout=5`. The build-time pattern is package retrieval over HTTPS with per-package SHA-512 integrity verification. Logging is a fire-and-forget, line-oriented text pattern to `stdout`/`stderr`. There is no request/reply messaging, publish/subscribe, streaming, or polling of any external system at runtime.
 
-1. **Request Ingress**: HTTP requests arrive at the server listening on `127.0.0.1:3000`
-2. **Handler Invocation**: Node.js `http` module invokes the registered callback function
-3. **Response Generation**: Handler sets status code (200), content-type header (`text/plain`), and response body (`Hello, World!\n`)
-4. **Response Egress**: Formatted HTTP response transmitted back to the requesting client
+**Data transformation points.** Transformations are minimal and entirely framework-applied. On a matched route, Express derives the response metadata from the body: `Content-Type: text/plain; charset=utf-8`, an explicit `Content-Length`, and a weak `ETag` (observed `W/"e-…"` on `GET /`). On the unmatched branch, the `finalhandler` renders an HTML error document and attaches a `Content-Security-Policy`. There is no application-level serialization, deserialization, encoding conversion, or parsing of inbound data.
 
-#### Integration Patterns and Protocols
-
-| Pattern | Implementation | Protocol | Data Format |
-|---------|----------------|----------|-------------|
-| Synchronous Request-Response | HTTP server callback | HTTP/1.1 | Plain text |
-| File System Access | Direct read by Backprop | OS-native I/O | Multiple formats |
-| Console Logging | stdout stream | Standard output | Plain text |
-
-#### Data Transformation Points
-
-The system performs **no data transformations**. The response body `Hello, World!\n` is a static string literal with no dynamic content generation, templating, or data processing.
-
-#### Key Data Stores and Caches
-
-| Store Type | Implementation | Purpose |
-|------------|----------------|---------|
-| Persistent Storage | None | Stateless by design |
-| In-Memory Cache | None | Static response requires no caching |
-| Session Store | None | No session management |
-| Configuration Store | Hardcoded in source | Immutable runtime configuration |
+**Key data stores and caches.** There are **none**. The service uses no database, no cache, no session store, and performs no file reads at runtime; the response bodies exist only as in-memory string literals compiled into `server.js`. The only cache-adjacent mechanisms present are HTTP-level emergent defaults — the weak `ETag` that enables conditional GETs and Node keep-alive connection reuse — neither of which is application-managed caching. The static `industry.csv` file exists on disk but is never opened or served by the running process (feature F-007).
 
 ### 5.1.4 External Integration Points
 
-| System Name | Integration Type | Data Exchange Pattern | Protocol/Format | SLA Requirements |
-|-------------|------------------|----------------------|-----------------|------------------|
-| Backprop Analysis Tool | File System | Read-only access to repository files | File I/O / Multiple formats | No formal SLA (test environment) |
-| HTTP Client/Browser | Request-Response | Synchronous HTTP request/response | HTTP/1.1 / Plain text | Response < 10ms |
-| Node.js Runtime | Process Execution | Command-line invocation | OS process / JavaScript | Startup < 100ms |
-| Console/Terminal | Log Output | Unidirectional stdout stream | stdout / Plain text | Immediate output |
+The system's external surface is deliberately narrow. At runtime the only inbound channel is loopback HTTP and the only outbound channel is console logging; the sole networked dependency (the npm registry) is contacted only at build/install time, consistent with Sections 3.4 and 4.1.4. The table below enumerates every integration touchpoint. Because tables are capped at four columns, the requested "data exchange pattern" attribute is described in the prose that follows.
 
----
+| System / Touchpoint | Integration Type and Direction | Protocol / Format | SLA Requirements |
+|---------------------|--------------------------------|-------------------|------------------|
+| npm registry (`registry.npmjs.org`) | Build-time supply chain; outbound | HTTPS; package tarballs with SHA-512 integrity; JSON manifest/lock | None defined in the repository |
+| HTTP clients (`curl` / browser / automated test) | Runtime request/response; inbound | HTTP/1.1 over TCP (loopback); `text/plain` on `200`, `text/html` on `404` | None defined in the repository |
+| Console streams (`stdout` / `stderr`) | Startup/runtime logging; outbound (process I/O) | Line-oriented UTF-8 text | None defined in the repository |
+| Node.js runtime (`net`/`http` stack) | Host runtime; bidirectional (in-process) | Node API over a TCP listening socket | Not applicable (host runtime) |
+
+The **data exchange pattern** at runtime is a single synchronous request/response exchange per inbound connection; there are no webhooks, callbacks, long-polling, streaming, message queues, event buses, or batch feeds. The build-time exchange is a one-shot pull of pinned packages during `npm install`/`npm ci`. Two facts are architecturally significant and are stated explicitly: **no SLA — latency, throughput, or uptime — is defined anywhere in the repository**, and the only observable timing constant is Node's default keep-alive timeout of five seconds; and the runtime uses **no third-party services, credentials, secrets, or environment-based configuration** of any kind (Section 3.4).
 
 ## 5.2 Component Details
 
-### 5.2.1 HTTP Server Component (server.js)
+This section details each major component of the service. Given the single-file design, the "components" are the logical responsibilities co-located inside `server.js` plus the manifests that provision and configure it. Each component is described by its purpose and responsibilities, the technologies and frameworks it uses, its key interfaces and APIs, its data-persistence requirements, and its scaling considerations. The required component-interaction, state-transition, and sequence diagrams follow in Section 5.2.4.
 
-#### Purpose and Responsibilities
+### 5.2.1 Application Server Component (`server.js`)
 
-The `server.js` file serves as the sole runtime component of the system, implementing the complete HTTP server functionality in 14 lines of JavaScript code. Its responsibilities include:
+- **Purpose and responsibilities:** This component *is* the runtime. It bootstraps the process, constructs the Express application, declares the hardcoded `hostname` (`127.0.0.1`) and `port` (`3000`) constants, applies the application-level header policy, registers the routes, initiates the single socket bind, and owns the startup/error lifecycle. It is self-starting and exports nothing — it is executed directly, not imported as a module.
+- **Technologies and frameworks:** Node.js ≥ 18 (the engine constraint inherited from Express 5), the Express 5.2.1 framework, and the CommonJS module system (`const express = require('express')`).
+- **Key interfaces and APIs:** `express()` to create the app; `app.disable('x-powered-by')` for the header policy; `app.get()` to register routes; `app.listen(port, hostname, callback)` to bind; the server `'error'` event via `server.on('error', …)`; and `console.log`/`console.error` plus `process.exitCode` for observable startup. A representative binding pattern:
 
-- Loading the Node.js native `http` module
-- Defining network binding configuration (hostname and port)
-- Creating the HTTP server instance with request handler
-- Binding the server to the specified network address
-- Logging successful startup to the console
-
-#### Technologies and Frameworks Used
-
-| Technology | Version | Usage |
-|------------|---------|-------|
-| Node.js | v20.19.6 compatible | JavaScript runtime environment |
-| Node.js `http` module | Built-in (tied to runtime) | HTTP server creation and request handling |
-| JavaScript (ES6+) | ECMAScript 2015+ | `const` declarations, template literals |
-
-#### Key Interfaces and APIs
-
-| Interface | Method/API | Signature | Purpose |
-|-----------|------------|-----------|---------|
-| Module Import | `require()` | `const http = require('http')` | Load native HTTP module |
-| Server Creation | `http.createServer()` | `http.createServer((req, res) => {...})` | Instantiate server with handler |
-| Response Control | `res.statusCode` | Assignment: `res.statusCode = 200` | Set HTTP status code |
-| Header Setting | `res.setHeader()` | `res.setHeader('Content-Type', 'text/plain')` | Set response headers |
-| Response Completion | `res.end()` | `res.end('Hello, World!\n')` | Send body and complete response |
-| Server Binding | `server.listen()` | `server.listen(port, hostname, callback)` | Bind to network address |
-
-#### Data Persistence Requirements
-
-**None.** The server component maintains no persistent state. Each request is processed independently with no data retention between requests or across server restarts.
-
-#### Scaling Considerations
-
-| Aspect | Current Design | Scaling Impact |
-|--------|----------------|----------------|
-| Concurrency Model | Node.js event loop (single-threaded) | Limited by single process |
-| Horizontal Scaling | Not supported | Localhost binding prevents distribution |
-| Vertical Scaling | Limited by Node.js memory constraints | Not applicable for test scope |
-| Load Balancing | Not applicable | Single instance design |
-
-### 5.2.2 Package Management Component (package.json)
-
-#### Purpose and Responsibilities
-
-The `package.json` file provides npm package metadata, enabling the project to be recognized as a valid Node.js package while deliberately declaring zero external dependencies.
-
-#### Configuration Details
-
-| Field | Value | Purpose |
-|-------|-------|---------|
-| `name` | `hello_world` | npm package identifier |
-| `version` | `1.0.0` | Semantic version |
-| `description` | (empty) | Package description |
-| `main` | `index.js` | Entry point declaration (**mismatch with actual `server.js`**) |
-| `author` | `hxu` | Package author |
-| `license` | `MIT` | Open source license |
-| `dependencies` | `{}` | Zero external dependencies |
-
-#### Configuration Discrepancy
-
-A known discrepancy exists between the declared entry point (`index.js`) and the actual implementation file (`server.js`):
-
-| Impact Scenario | Behavior |
-|-----------------|----------|
-| Direct execution (`node server.js`) | Works correctly |
-| npm start script (if added) | Would fail without correction |
-| Module import | Not applicable (not a library) |
-| Backprop analysis | May detect discrepancy |
-
-This discrepancy is **intentionally maintained** to preserve test baseline stability.
-
-### 5.2.3 Component Interaction Diagram
-
-```mermaid
-flowchart TD
-    subgraph RuntimeExecution[Runtime Execution Flow]
-        NodeProcess[Node.js Process]
-        HTTPModule[http Module]
-        ServerInstance[Server Instance]
-        RequestHandler[Request Handler Callback]
-        ResponseWriter[Response Writer]
-    end
-    
-    subgraph StaticFiles[Static Configuration]
-        PackageJSON[package.json]
-        PackageLock[package-lock.json]
-    end
-    
-    subgraph AnalysisTargets[Analysis Target Files]
-        ServerJS[server.js]
-        IndustryCSV[industry.csv]
-        LoginJava[LoginTest.java]
-    end
-    
-    NodeProcess -->|require| HTTPModule
-    HTTPModule -->|createServer| ServerInstance
-    ServerInstance -->|register| RequestHandler
-    RequestHandler -->|write| ResponseWriter
-    
-    PackageJSON -.->|metadata| NodeProcess
-    PackageLock -.->|validates| PackageJSON
-    
-    ServerJS -->|executed by| NodeProcess
+```javascript
+const server = app.listen(port, hostname, () => {
+  if (server.listening) { console.log(`Server running at http://${hostname}:${port}/`); }
+});
 ```
 
-### 5.2.4 Server State Transition Diagram
+- **Data persistence requirements:** None. The component is fully stateless — it opens no database, cache, session store, or file at runtime and reads no environment variables.
+- **Scaling considerations:** The service runs as a single process on a single Node.js event loop; there is no clustering, worker pool, or multi-process supervisor in the code. Concurrency is handled cooperatively by Node's asynchronous I/O within that one event loop. Because host and port are hardcoded and the bind is loopback-only, the component cannot be horizontally scaled behind a load balancer or bound to a non-local interface without code changes; scaling is therefore effectively vertical and constrained by design to a single local instance.
+
+### 5.2.2 Routing and Request-Handling Subsystem
+
+- **Purpose and responsibilities:** This subsystem maps each inbound method-and-path tuple to a handler and produces the response. It owns the two greeting routes and, by delegation to Express, the default handling of every unmatched request.
+- **Technologies and frameworks:** The Express 5 router (which uses `path-to-regexp` for path matching) and the Express `finalhandler` that produces the default `404`.
+- **Key interfaces and APIs:** `app.get('/', handler)` and `app.get('/good-evening', handler)`; within each handler the chained response API `res.set('X-Content-Type-Options', 'nosniff').type('text/plain').send(body)`. The `res.set()` call returns `res`, so the `nosniff` header chains ahead of `res.type().send()`. Unmatched requests are finalized by Express with no application code involved.
+- **Data persistence requirements:** None. Both response bodies are in-memory string literals — `Hello, World!\n` (14 bytes, trailing newline) for `GET /` and `Good evening` (12 bytes, no trailing newline) for `GET /good-evening`. No request data is read or stored.
+- **Scaling considerations:** Routing cost is proportional to the two registered routes and is negligible; handlers perform no I/O and cannot block the event loop. There is no route-level caching, rate limiting, or connection pooling. The `404` branch is an emergent framework default that returns `text/html; charset=utf-8` with `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` — distinct from the explicitly hardened success responses.
+
+### 5.2.3 Dependency and Configuration Subsystem
+
+- **Purpose and responsibilities:** This subsystem declares, pins, and installs the dependency graph, excludes installed modules from version control, documents install/run steps, and defines the npm scripts. It provisions the runtime rather than participating in request handling.
+- **Technologies and frameworks:** npm (the committed `package-lock.json` uses `lockfileVersion 3`, implying npm ≥ 7) and Git (for `.gitignore` semantics).
+- **Key interfaces and APIs:** `package.json` declares the single direct dependency `express ^5.2.1`, the `start` script (`node server.js`), and a placeholder `test` script that deliberately fails; `package-lock.json` pins the exact resolved graph (68 package entries: the root project plus 67 dependency records); `.gitignore` excludes `node_modules/`. The `main` field points at `index.js`, an intentional discrepancy since the runtime entry is `server.js`.
+- **Data persistence requirements:** The only persisted artifact is the resolved dependency graph recorded in `package-lock.json` (a build-time artifact); there is no runtime data persistence.
+- **Scaling considerations:** A committed lockfile yields deterministic, reproducible installs across environments; with a single direct dependency and a clean `npm audit` (0 vulnerabilities per the delivery record), the supply-chain surface is small and predictable.
+
+### 5.2.4 Component Interaction, State, and Sequence Diagrams
+
+**Component interaction diagram.** The following diagram shows how the logical components inside `server.js` collaborate with each other and with the external actors (HTTP client, npm registry) and host facilities (Node `net`/`http` stack, console).
+
+```mermaid
+flowchart LR
+    subgraph External["External actors"]
+        direction TB
+        Client["HTTP client"]
+        NPM["npm registry<br/>(build-time)"]
+    end
+
+    subgraph ServerJS["server.js process"]
+        direction TB
+        Boot["Bootstrap<br/>require express, create app, constants"]
+        AppComp["Express application<br/>x-powered-by disabled"]
+        RouterComp["Express router"]
+        RootH["GET / handler"]
+        EveH["GET /good-evening handler"]
+        Listener["app.listen on 127.0.0.1:3000"]
+        ErrH["server error handler"]
+    end
+
+    NodeHttp["Node net/http stack"]
+    Log["console stdout / stderr"]
+
+    Boot --> AppComp
+    AppComp --> RouterComp
+    RouterComp --> RootH
+    RouterComp --> EveH
+    Boot --> Listener
+    Listener --> NodeHttp
+    Listener -. registers .-> ErrH
+    Client -->|"request"| NodeHttp
+    NodeHttp --> RouterComp
+    RootH -->|"res.send"| NodeHttp
+    EveH -->|"res.send"| NodeHttp
+    NodeHttp -->|"response"| Client
+    Listener -->|"success line"| Log
+    ErrH -->|"failure line"| Log
+    NPM -. installs .-> AppComp
+```
+
+**State transition diagram.** The process moves through a compact lifecycle: an initialization phase, a single bind attempt, and then either a long-lived listening state that serves requests statelessly or a terminal failure state. Request serving is a self-transition on the listening state because no request changes process state.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Uninitialized: node command issued
-    
-    Uninitialized --> Initializing: Begin module loading
-    Initializing --> ServerCreated: http.createServer() completes
-    ServerCreated --> Binding: server.listen() called
-    Binding --> Ready: Port 3000 bound successfully
-    Ready --> Processing: HTTP request received
-    Processing --> Ready: Response sent
-    Ready --> Terminated: SIGINT/SIGTERM received
-    
-    Binding --> BindError: Port unavailable
-    BindError --> Terminated: Process exits with error
-    
-    Terminated --> [*]
-    
-    note right of Ready: Stateless - no data<br/>persists between requests
-    note right of Processing: ~10ms per request
+    [*] --> Initializing
+    Initializing --> Binding : app.listen called
+    Binding --> Listening : server.listening is true
+    Binding --> BindFailed : error event / EADDRINUSE
+    Listening --> Listening : serve request (2 routes or 404)
+    BindFailed --> Exited : set exit code 1
+    Listening --> Exited : operator stops process
+    Exited --> [*]
+
+    note right of Initializing
+        require express; create app;
+        disable x-powered-by;
+        register GET / and GET /good-evening
+    end note
+    note right of Listening
+        stateless; each request served
+        from an in-memory string literal
+    end note
 ```
 
-### 5.2.5 Request Processing Sequence Diagram
+**Sequence diagram for the key flow.** The dominant runtime flow is servicing a matched `GET /` request. The diagram emphasizes the internal component collaboration and the response metadata Express derives from the body.
 
 ```mermaid
 sequenceDiagram
-    participant Client as HTTP Client
-    participant NodeJS as Node.js Runtime
-    participant HTTP as http Module
-    participant Handler as Request Handler
-    participant Response as Response Object
-    
-    Client->>NodeJS: HTTP Request to localhost:3000
-    NodeJS->>HTTP: Route to server instance
-    HTTP->>Handler: Invoke callback(req, res)
-    Handler->>Response: res.statusCode = 200
-    Handler->>Response: res.setHeader('Content-Type', 'text/plain')
-    Handler->>Response: res.end('Hello, World!\n')
-    Response->>HTTP: Response complete
-    HTTP->>NodeJS: Format HTTP response
-    NodeJS->>Client: HTTP 200 OK + "Hello, World!\n"
-    
-    Note over Client,Response: Total latency target: <10ms
+    autonumber
+    actor Client as HTTP Client
+    participant Node as Node net/http listener
+    participant App as Express app + router
+    participant H as GET / handler
+    Client->>Node: GET / over HTTP/1.1 (loopback)
+    Node->>App: dispatch parsed request
+    App->>App: match method and path to a route
+    App->>H: invoke handler(req, res)
+    H->>H: set nosniff header
+    H->>H: set text/plain content type
+    H->>App: send root greeting (14 bytes)
+    App->>App: derive Content-Type, Content-Length, ETag
+    App-->>Node: finalize 200 (no X-Powered-By)
+    Node-->>Client: 200 OK, keep-alive
 ```
-
----
 
 ## 5.3 Technical Decisions
 
-### 5.3.1 Architecture Style Decisions and Trade-offs
+This section records the architectural decisions evidenced by the current codebase and its commit history, together with their rationale and tradeoffs. The decisions are reconstructed from `server.js`, the manifests, and the Git history — the re-platforming commit `ec987aa` (native `http` → Express), the hardening commit `3ba1489` (disable `X-Powered-By`, add `nosniff`), and the reliability commit `55f5b91` (fail-fast on listen error; decline host validation). Decisions recorded in earlier documentation that described a zero-dependency native-`http` baseline are superseded by the current Express implementation.
 
-The following architectural decisions shape the system's design and behavior:
+### 5.3.1 Architecture Style Decision
 
-| Decision Area | Choice Made | Alternatives Considered | Rationale for Choice |
-|---------------|-------------|------------------------|---------------------|
-| Dependency Strategy | Zero external dependencies | Express.js, Fastify, Koa | Eliminates supply chain risk and ensures reproducible test conditions |
-| Server Implementation | Native `http` module | Web framework | Guaranteed availability; no installation required |
-| Configuration Approach | Hardcoded values | Environment variables, config files | Ensures identical behavior across all test executions |
-| Network Binding | Localhost only (127.0.0.1) | All interfaces (0.0.0.0) | Security isolation; prevents external access |
-| Response Pattern | Static content | Dynamic templating | Deterministic output for verification testing |
-| Error Handling | Node.js defaults | Custom error handling | Simplicity; acceptable for test scope |
+The central decision was to re-platform the service from the Node.js built-in `http` module onto the **Express 5 framework**, retained as a **single-file CommonJS monolith** with **hardcoded loopback configuration**. Express was chosen to provide path-based routing (so multiple differentiated endpoints could be added without structural rewrites) and idiomatic response hardening, while the original root greeting was preserved byte-for-byte. The single-file, hardcoded style was retained to minimize the change surface and keep the service an easily-reviewable local test target.
 
-### 5.3.2 Communication Pattern Choices
+| Decision | Chosen Approach | Rejected Alternative | Key Tradeoff |
+|----------|-----------------|----------------------|--------------|
+| HTTP foundation | Express 5.2.1 framework | Native Node.js `http` module | Gains routing, default `404`, and header APIs; costs 67 transitive packages and a required `npm install` |
+| Code structure | Single-file CommonJS (`server.js`) | Multi-module layout / ES Modules | Maximum simplicity and reviewability; limited ergonomics as the surface grows |
+| Configuration | Hardcoded `127.0.0.1:3000` constants | Environment variables / config file | Zero-configuration determinism; relocating the bind requires a code change |
 
-| Pattern | Decision | Justification |
-|---------|----------|---------------|
-| Request-Response Model | Synchronous blocking | Simplest pattern; adequate for test workload |
-| Connection Handling | HTTP/1.1 with keep-alive | Node.js default; no optimization needed |
-| Protocol Selection | Plain HTTP | Encryption unnecessary for localhost |
-| Content Negotiation | Fixed text/plain | Single response type by design |
-
-### 5.3.3 Data Storage Solution Rationale
-
-**Decision: No Data Storage**
-
-| Storage Option | Evaluation | Decision |
-|----------------|------------|----------|
-| In-memory cache | Not needed (static response) | Excluded |
-| File-based storage | Not needed (stateless design) | Excluded |
-| Database (SQL/NoSQL) | Adds complexity, dependencies | Excluded |
-| Session storage | No session management required | Excluded |
-
-The stateless architecture eliminates all storage requirements, ensuring each request is an independent, atomic transaction with no side effects.
-
-### 5.3.4 Security Mechanism Selection
-
-| Security Aspect | Decision | Rationale |
-|-----------------|----------|-----------|
-| Authentication | None implemented | Test environment; no sensitive data |
-| Authorization | None implemented | All requests receive identical response |
-| Encryption (TLS) | Not implemented | Localhost communication only |
-| Input Validation | Not implemented | No input processing required |
-| Supply Chain Security | Zero dependencies | Eliminates third-party vulnerabilities |
-
-#### Security Risk Assessment
-
-| Risk Category | Risk Level | Mitigation |
-|---------------|------------|------------|
-| Supply Chain Attack | None | No external dependencies |
-| Network Exposure | Minimal | Localhost-only binding |
-| Data Breach | None | No sensitive data stored |
-| Injection Attacks | None | No input processing |
-
-### 5.3.5 Architecture Decision Records
+The decision path that yields the current architecture is shown below.
 
 ```mermaid
-flowchart TD
-    subgraph ADR001[ADR-001: Zero Dependency Architecture]
-        ADR1_Context[Context: Test environment<br/>for Backprop integration]
-        ADR1_Decision[Decision: Use only<br/>Node.js built-in modules]
-        ADR1_Consequence[Consequence: No npm install<br/>required; guaranteed consistency]
-    end
-    
-    subgraph ADR002[ADR-002: Localhost-Only Binding]
-        ADR2_Context[Context: Security and<br/>isolation requirements]
-        ADR2_Decision[Decision: Bind to<br/>127.0.0.1 only]
-        ADR2_Consequence[Consequence: No remote<br/>access possible]
-    end
-    
-    subgraph ADR003[ADR-003: Stateless Design]
-        ADR3_Context[Context: Test reproducibility<br/>requirements]
-        ADR3_Decision[Decision: No state<br/>persistence between requests]
-        ADR3_Consequence[Consequence: Each request<br/>is independent; deterministic output]
-    end
-    
-    ADR1_Context --> ADR1_Decision --> ADR1_Consequence
-    ADR2_Context --> ADR2_Decision --> ADR2_Consequence
-    ADR3_Context --> ADR3_Decision --> ADR3_Consequence
+flowchart TB
+    Start{{"Need: minimal HTTP test<br/>target with routing"}}
+    Q1{"Multiple differentiated<br/>endpoints needed?"}
+    Q2{"Minimize change surface<br/>and footprint?"}
+    Q3{"Externally reachable<br/>or internet-facing?"}
+    Q4{"Persist or share state<br/>across requests?"}
+
+    Start --> Q1
+    Q1 -->|"yes (routing required)"| UseExpress["Adopt Express 5 router<br/>over native http"]
+    Q1 -->|"no"| NativeHttp["rejected: stay on native http"]
+    UseExpress --> Q2
+    Q2 -->|"yes"| SingleFile["Single-file CommonJS monolith<br/>one direct dependency"]
+    Q2 -->|"no"| Modular["rejected: multi-module layout"]
+    SingleFile --> Q3
+    Q3 -->|"no, loopback only"| Loopback["Bind 127.0.0.1 hardcoded;<br/>no auth, header hardening only"]
+    Q3 -->|"yes"| Public["rejected: public bind + auth/TLS"]
+    Loopback --> Q4
+    Q4 -->|"no"| Stateless["Stateless handlers;<br/>no database or cache"]
+    Q4 -->|"yes"| Stateful["rejected: add datastore/cache"]
+    Stateless --> Done{{"Current architecture"}}
 ```
 
----
+### 5.3.2 Communication, Storage, and Caching Decisions
+
+The communication, storage, and caching postures all follow from the system's scope as a stateless loopback greeting service.
+
+| Concern | Decision | Rationale |
+|---------|----------|-----------|
+| Communication pattern | Synchronous HTTP/1.1 request/response only | The single inbound channel is loopback HTTP; there are no external systems to integrate, so no asynchronous messaging, events, or queues are warranted |
+| Data storage | None (fully stateless) | Both responses are fixed string literals; there is no data domain to persist, so no database, file store, or session store is introduced |
+| Caching | No application cache tier | Responses are tiny and static; the HTTP-level `ETag` (conditional GET) and Node keep-alive are sufficient emergent defaults, so a dedicated cache would add complexity with no benefit |
+
+In prose: the runtime performs no outbound calls, opens no sockets after startup, and imports no HTTP client, database driver, cache client, or broker library (Section 3.4). Caching is not implemented at the application layer; the weak `ETag` that Express generates from the response body enables conditional requests and the `Keep-Alive: timeout=5` connection reuse are Express/Node defaults rather than deliberate caching strategy.
+
+### 5.3.3 Security Mechanism Selection
+
+Security relies primarily on **network isolation** supplemented by **response-header hardening**, with authentication and transport encryption deliberately omitted for the loopback test scope. The `nosniff` header is set explicitly on the success routes, giving success/error parity with the `nosniff` header Express already applies to its default error responses.
+
+| Mechanism | Purpose | Scope | Evidence |
+|-----------|---------|-------|----------|
+| Loopback bind (`127.0.0.1`) | Network isolation — the service is unreachable off-host | Transport | `hostname` constant in `server.js` |
+| Disable `X-Powered-By` | Reduce framework fingerprinting / information disclosure (CWE-200) | All responses | `app.disable('x-powered-by')` |
+| `X-Content-Type-Options: nosniff` | MIME-sniffing protection with success/error parity | Both success routes | `res.set(...)` in each handler |
+| No authentication/authorization; no TLS | Deliberately omitted as unnecessary for a loopback-only test target | N/A | No auth or TLS code; constraint C-003 |
+
+Two decisions are explicitly negative and are recorded for accuracy: **no authentication, authorization, or TLS** is implemented (the loopback boundary is treated as the trust boundary), and **host-header validation was explicitly declined** during the reliability hardening work (commit `55f5b91`). Supply-chain risk is managed through the committed lockfile and a clean `npm audit` (0 vulnerabilities) rather than through any runtime control.
+
+### 5.3.4 Architecture Decision Records (ADRs)
+
+The following ADRs capture the decisions above in a durable form. Each reflects the current implementation state; all are **Accepted** because they are realized in the committed code.
+
+| ADR | Decision | Status |
+|-----|----------|--------|
+| ADR-01 | Adopt Express 5 over the native `http` module | Accepted (implemented) |
+| ADR-02 | Retain a single-file CommonJS monolith | Accepted |
+| ADR-03 | Hardcode the loopback bind; no environment-based configuration | Accepted |
+| ADR-04 | Keep the service stateless with no datastore or cache | Accepted |
+| ADR-05 | Fail fast on startup with an explicit error handler | Accepted |
+| ADR-06 | Harden response headers (disable `X-Powered-By`, add `nosniff`) | Accepted |
+| ADR-07 | Omit authentication/authorization; treat loopback as the trust boundary | Accepted |
+
+- **ADR-01 — Express 5 over native `http`.** *Context:* the baseline was a single catch-all `http` handler with no routing. *Decision:* adopt Express 5.2.1 and register explicit `GET` routes. *Consequences:* enables differentiated endpoints and a default `404`, adds 67 transitive packages and a required `npm install`, and raises the minimum runtime to Node.js ≥ 18.
+- **ADR-02 — Single-file CommonJS monolith.** *Context:* the service is a minimal test target. *Decision:* keep all logic in `server.js` using `require`. *Consequences:* maximally reviewable and simple; not structured for large-scale growth, and the stale `main: index.js` field is tolerated.
+- **ADR-03 — Hardcoded loopback configuration.** *Context:* the service must never be externally reachable. *Decision:* hardcode `127.0.0.1:3000` and read no environment variables. *Consequences:* zero-configuration and deterministic; relocating or exposing the service requires a code change.
+- **ADR-04 — Stateless, no persistence or cache.** *Context:* responses are fixed literals with no data domain. *Decision:* introduce no database, file store, session, or cache. *Consequences:* trivial horizontal reasoning per request; no durability or shared-state capability exists.
+- **ADR-05 — Fail-fast startup.** *Context:* the baseline could log success and exit `0` on a failed bind. *Decision:* guard the success log on `server.listening` and add a `server.on('error', …)` handler that writes to stderr and sets `process.exitCode = 1`. *Consequences:* startup failures such as `EADDRINUSE` are observable and correctly signalled; there is a single bind attempt with no retry.
+- **ADR-06 — Response-header hardening.** *Context:* the baseline advertised the framework and set no security headers. *Decision:* `app.disable('x-powered-by')` and set `X-Content-Type-Options: nosniff` on both success routes. *Consequences:* reduced information disclosure and MIME-sniffing protection at negligible cost.
+- **ADR-07 — No authn/authz; loopback as trust boundary.** *Context:* the service is a loopback-only test asset. *Decision:* implement no authentication, authorization, or TLS, and decline host-header validation. *Consequences:* zero credential/configuration burden; the security posture depends entirely on the loopback bind remaining in place.
 
 ## 5.4 Cross-Cutting Concerns
 
-### 5.4.1 Monitoring and Observability Approach
+This section documents the cross-cutting concerns of the service. Because the system is a stateless loopback monolith with no external dependencies at runtime, several concerns that would normally require dedicated infrastructure (distributed tracing, metrics pipelines, identity providers, backup/restore) are simply not present; those absences are stated explicitly and are consistent with Sections 3.4, 4.1, and 4.5.
 
-#### Current Implementation
+### 5.4.1 Monitoring, Observability, Logging and Tracing
 
-The system implements **minimal observability** appropriate for its test purpose:
+Observability is limited to console output and the HTTP responses themselves; there is no metrics, tracing, health-check, or APM integration in the codebase (Section 3.4 confirms no telemetry SDK is present in the dependency tree).
 
-| Observability Aspect | Implementation | Tool/Method |
-|---------------------|----------------|-------------|
-| Health Monitoring | None | Server availability verified by HTTP request |
-| Metrics Collection | None | Not required for test scope |
-| Distributed Tracing | None | Single-component system |
-| Log Aggregation | None | Console output only |
+- **Logging:** two `console` sinks only — `console.log` writes the single startup success line to `stdout`, and `console.error` writes the bind-failure diagnostic to `stderr`. There is no structured (JSON) logging, no log levels, no log rotation, no log file, and no request-access logging (no `morgan` or equivalent is installed, and Express does not log requests by default).
+- **Tracing:** none. There are no correlation IDs, spans, or distributed-tracing hooks.
+- **Metrics and health checks:** none. There is no `/health`, `/metrics`, or readiness endpoint, and no counter/gauge/histogram instrumentation.
 
-#### Verification Methods
+The complete observability surface is the following four signals:
 
-| Verification Type | Method | Expected Outcome |
-|-------------------|--------|------------------|
-| Server Running | HTTP GET to localhost:3000 | 200 OK response |
-| Startup Success | Console output inspection | "Server running at..." message |
-| Process Status | OS process listing | Node.js process on port 3000 |
+| Observable Signal | Channel | Emitted When |
+|-------------------|---------|--------------|
+| Startup success line (`Server running at …`) | `stdout` | Once `server.listening` is true |
+| Bind-failure diagnostic (`Failed to start server …`) | `stderr` | On the server `'error'` event |
+| Process exit code (`0` healthy / `1` bind failure) | Process | On process exit |
+| HTTP status and response headers | HTTP response | Per request (`200` or default `404`) |
 
-### 5.4.2 Logging and Tracing Strategy
+### 5.4.2 Error Handling Patterns
 
-#### Logging Implementation
+The service has a deliberately narrow error surface handled on two independent planes, with **no error-handling middleware and no `try/catch`** anywhere in `server.js`. Because both handlers emit static string literals with no I/O, no runtime exception path (and therefore no `5xx`) is reachable during normal operation.
 
-| Log Type | Output Destination | Format | Trigger |
-|----------|-------------------|--------|---------|
-| Startup Log | stdout | Plain text template literal | Server successfully bound |
-| Error Logs | stderr | Node.js stack trace | Unhandled exceptions |
+- **Process-lifecycle plane — fail-fast:** a startup bind failure (for example `EADDRINUSE`) is caught by `server.on('error', …)`, which writes a diagnostic to stderr and sets `process.exitCode = 1`; the success log is suppressed because `server.listening` is false. There is a single bind attempt — no retry, backoff, or alternate-port fallback.
+- **Request plane — framework-default finalization:** a request that matches neither route is finalized by Express's built-in `finalhandler` as a `404` (`text/html`, `Content-Security-Policy: default-src 'none'`, `X-Content-Type-Options: nosniff`); the process stays healthy for subsequent requests and nothing is logged server-side.
 
-#### Log Output Specification
-
-```
-Server running at http://127.0.0.1:3000/
-```
-
-This single log entry confirms:
-- Server initialization completed successfully
-- Network binding successful
-- Hostname and port configuration active
-
-#### Tracing Considerations
-
-**Not Implemented.** Tracing is unnecessary for this single-component, synchronous system. Each request completes within a single thread with no external service calls.
-
-### 5.4.3 Error Handling Patterns
-
-#### Error Handling Architecture
-
-The system delegates all error handling to Node.js runtime defaults, implementing no custom error management:
-
-| Error Category | Handling Approach | Behavior |
-|----------------|-------------------|----------|
-| Startup Errors | Node.js default | Stack trace to stderr; process exit |
-| Runtime Exceptions | Uncaught exception handler | Stack trace; process termination |
-| Request Processing Errors | None possible | Static response guarantees no errors |
-
-#### Error Handling Flow Diagram
+The two planes never cross: a startup failure prevents the process from reaching the request plane, and a request-plane `404` is a normal, self-contained client outcome. The following diagram captures both flows and their distinct notification channels.
 
 ```mermaid
-flowchart TD
-    subgraph NormalPath[Normal Execution Path]
-        Start([node server.js])
-        LoadModule[Load http Module]
-        CreateServer[Create Server Instance]
-        BindPort[Bind to Port 3000]
-        ServerReady[Server Ready]
+flowchart TB
+    subgraph Lifecycle["Process-lifecycle plane"]
+        direction TB
+        L0["app.listen on 127.0.0.1:3000"] --> L1{"bind succeeded?<br/>(server.listening)"}
+        L1 -->|"yes"| L2["stdout: Server running<br/>state: Listening / healthy"]
+        L1 -->|"no: error event"| L3["stderr: Failed to start<br/>process.exitCode = 1"]
+        L3 --> L4["terminal: process exits non-zero"]
     end
-    
-    subgraph ErrorPath[Error Scenarios]
-        ModuleError[MODULE_NOT_FOUND<br/>Node.js Corrupted]
-        PortError[EADDRINUSE<br/>Port 3000 Occupied]
-        PermError[EACCES<br/>Permission Denied]
+    subgraph RequestPlane["Request plane (per request)"]
+        direction TB
+        R0["inbound HTTP request"] --> R1{"route match?"}
+        R1 -->|"GET / or /good-evening"| R2["200 text/plain + nosniff"]
+        R1 -->|"no match"| R3["Express finalhandler<br/>404 text/html + CSP + nosniff"]
+        R2 --> R4["process stays healthy"]
+        R3 --> R4
     end
-    
-    subgraph ErrorOutcome[Error Outcome]
-        StackTrace[Generate Stack Trace]
-        WriteStderr[Write to stderr]
-        ProcessExit[Process Exit Code 1]
-    end
-    
-    Start --> LoadModule
-    LoadModule -->|Success| CreateServer
-    LoadModule -->|Failure| ModuleError
-    CreateServer --> BindPort
-    BindPort -->|Success| ServerReady
-    BindPort -->|Port Busy| PortError
-    BindPort -->|No Permission| PermError
-    
-    ModuleError --> StackTrace
-    PortError --> StackTrace
-    PermError --> StackTrace
-    StackTrace --> WriteStderr
-    WriteStderr --> ProcessExit
 ```
 
-#### Error Recovery Procedures
+### 5.4.3 Authentication and Authorization
 
-| Error Scenario | Recovery Steps |
-|----------------|---------------|
-| Port 3000 in use | 1. Identify process: `lsof -i :3000`<br/>2. Terminate conflicting process<br/>3. Restart: `node server.js` |
-| Permission denied | 1. Verify user permissions<br/>2. Run with appropriate privileges<br/>3. Restart: `node server.js` |
-| Node.js unavailable | 1. Install Node.js v20.19.6+<br/>2. Verify: `node --version`<br/>3. Start: `node server.js` |
+There is **no authentication or authorization framework**, by design. `server.js` registers no auth middleware, reads no credentials, issues no tokens or sessions, and configures no CORS policy; every endpoint is fully open to any client that can reach the loopback socket (constraint C-003; Section 3.4). The **trust boundary is the loopback bind itself** — because the process listens only on `127.0.0.1`, it is unreachable from other hosts, and this network isolation substitutes for application-level access control. No identity provider, API key, or role model exists anywhere in the repository.
 
-### 5.4.4 Authentication and Authorization Framework
+### 5.4.4 Performance, Scalability, and SLAs
 
-**Not Applicable.** The system implements no authentication or authorization mechanisms. This is an intentional design decision based on:
+**No performance SLA — latency, throughput, or uptime — is defined anywhere in the repository**, and no benchmark, load-test, or performance-configuration artifact exists; this is consistent with the KPIs in Section 1.2.3 and the workflow notes in Section 4.1, which intentionally omit numeric targets. The observed performance characteristics below are structural facts, not commitments.
 
-- Test environment scope (no production data)
-- Localhost-only binding (no external access)
-- Static response content (no access control needed)
-- Single-user execution model assumed
+| Aspect | Observed Characteristic | Evidence |
+|--------|-------------------------|----------|
+| Latency / throughput SLA | None defined; no measured values exist | Sections 1.2.3, 4.1 |
+| Concurrency model | Single Node.js event loop; no clustering or worker pool | `server.js` |
+| Horizontal scaling | Not possible without code change (hardcoded loopback host/port) | `server.js` |
+| Response handling | Synchronous, zero-I/O emission of 14-byte and 12-byte literals; keep-alive `timeout=5` | Runtime observation |
 
-### 5.4.5 Performance Requirements and SLAs
+Scalability is therefore effectively vertical and bounded to a single local instance. The handlers perform no blocking work, so a single event loop is sufficient for the intended local test workload, but the design provides no mechanism for multi-instance scale-out, load balancing, or non-local exposure.
 
-#### Performance Targets
+### 5.4.5 Disaster Recovery
 
-| Metric | Target | Measurement Method | Current Status |
-|--------|--------|-------------------|----------------|
-| Server Startup Time | < 100ms | Time from `node server.js` to ready state | Achieved |
-| Response Latency | < 10ms | Time from request receipt to response completion | Achieved |
-| Memory Footprint | Minimal | Node.js process memory | ~20-50MB (Node.js baseline) |
-| CPU Utilization | Negligible | Process CPU usage | Near-zero when idle |
-| Availability | 100% when running | HTTP endpoint accessibility | Design target |
-| Error Rate | 0% | Failed requests / total requests | Deterministic response guarantees this |
+Recovery is **entirely operator-driven and manual**. `server.js` registers no supervisor, watchdog, or automated-restart logic, and the repository declares only a `start` script (`node server.js`).
 
-#### SLA Considerations
+- **Backups:** none are required or present — the service is stateless and stores no data, so there is nothing to back up or restore.
+- **High availability / failover:** none — there is a single process, no replicas, and no standby; the hardcoded host and port preclude the process from self-selecting an alternate endpoint.
+- **Recovery procedure:** for the dominant failure (`EADDRINUSE`), the operator frees port `3000` (or resolves the reported error) and re-runs the process; the clean failure signalling (empty `stdout`, exit code `1`, explicit `stderr` message) means an external process manager *could* automate this loop, though no such supervision exists in `server.js`.
+- **Reproducibility:** the committed `package-lock.json` allows the exact runtime to be rebuilt deterministically from source plus `npm install`, so recovery of a lost environment is a matter of reinstalling dependencies and restarting the process.
 
-**Note:** This is a test project with no formal SLA requirements. The metrics above represent design expectations for test environment operation rather than contractual service level agreements.
+## 5.5 References
 
-| SLA Metric | Target | Applicability |
-|------------|--------|---------------|
-| Availability | 100% when running | Local development only |
-| Response Time | < 10ms | Test environment |
-| Throughput | Unspecified | Not designed for load testing |
-| Error Rate | 0% | Deterministic static response |
+The following repository files, folders, cross-referenced specification sections, and version-control evidence were examined directly to produce Section 5.
 
-### 5.4.6 Disaster Recovery Procedures
+**Repository files**
 
-#### Recovery Strategy
+- `server.js` - The entire application; established the single-file Express 5 monolith, the two `GET` routes, the `app.disable('x-powered-by')` policy, the `nosniff` header chaining, the hardcoded `127.0.0.1:3000` bind, and the `server.listening`-guarded startup with the `server.on('error', …)` fail-fast handler.
+- `package.json` - Established the single direct dependency (`express ^5.2.1`), the `start`/`test` scripts, the MIT license, and the `main: index.js` vs. `server.js` entry-point discrepancy.
+- `package-lock.json` - Established the deterministic dependency graph (`lockfileVersion 3`, 68 package entries = root + 67 records) supporting the reproducible-install decision.
+- `README.md` - Established the Node.js ≥ 18 requirement, install/run steps, the loopback service URL, and the endpoint/trailing-newline contract.
+- `.gitignore` - Established the exclusion of `node_modules/` from version control.
+- `industry.csv` - Confirmed a static, version-controlled data file that is never opened or served at runtime.
+- `node_modules/express/package.json` - Confirmed the installed Express version resolves to `5.2.1`.
 
-Given the stateless, zero-persistence architecture, disaster recovery is straightforward:
+**Repository folders**
 
-| Failure Scenario | Recovery Procedure | RTO |
-|------------------|-------------------|-----|
-| Server Process Crash | Execute `node server.js` | < 1 second |
-| Port Conflict | Clear port; restart server | < 1 minute |
-| Repository Corruption | Re-clone from source | < 5 minutes |
-| Node.js Failure | Reinstall Node.js runtime | < 10 minutes |
+- Repository root (`/`) - Contained the source file, manifests, documentation, and non-runtime artifacts; established the absence of any `src/`, `routes/`, `config/`, or test/CI directories.
+- `node_modules/` - Contained the installed Express dependency closure (65 top-level packages; some transitive packages nested), confirming the framework-based architecture.
 
-#### Data Recovery
+**Version-control evidence**
 
-**Not Applicable.** The system maintains no persistent data. All configuration is hardcoded in source files, which are version-controlled and can be restored from the repository.
+- Git commit history - Established the architectural evolution and decision rationale: `ec987aa` (re-platform from native `http` onto Express and add `/good-evening`), `3ba1489` (disable `X-Powered-By`, add `nosniff`), and `55f5b91` (fail-fast on listen error; decline host-header validation).
 
-#### Business Continuity
+**Cross-referenced specification sections**
 
-| Aspect | Implementation |
-|--------|----------------|
-| Data Backup | Not required (no persistent data) |
-| Redundancy | Not required (test environment) |
-| Failover | Not implemented (single instance design) |
-| Geographic Distribution | Not applicable (localhost binding) |
+- 1.2 System Overview - Baseline-vs-current transition, component inventory, and success-criteria KPIs.
+- 2.1 Feature Catalog - Feature identifiers F-001 through F-008 and their provenance (R1–R4, H1–H2, C1–C2).
+- 3.4 Third-Party Services - Confirmed the absence of any third-party runtime service, credentials, or environment configuration.
+- 3.6 Development and Deployment - Confirmed the absence of build tooling, containerization, IaC, and CI/CD, and the manual/local deployment model.
+- 4.1 System Workflows - Actor/boundary inventory, build-time supply-chain flow, and the runtime integration surface.
+- 4.5 Error Handling and Recovery Flows - Error taxonomy, the two-plane error model, and the manual recovery posture.
 
----
+**External sources**
 
-## 5.5 Architectural Constraints
-
-### 5.5.1 Documented Constraints
-
-| Constraint ID | Constraint Description | Technology Impact | Enforcement |
-|---------------|------------------------|-------------------|-------------|
-| C-001 | Localhost binding only | No cloud/remote deployment possible | Hardcoded in `server.js` |
-| C-002 | No external dependencies | Zero npm packages allowed | Empty dependencies in `package.json` |
-| C-003 | Hardcoded configuration | No environment variable support | Values embedded in source code |
-| C-004 | Static response content | No templating engines or dynamic content | Response string literal |
-| C-005 | Repository immutability | Technology stack must remain frozen | "Do not touch!" policy |
-
-### 5.5.2 Documented Assumptions
-
-| Assumption ID | Assumption | Impact if Invalid |
-|---------------|------------|-------------------|
-| A-001 | Node.js runtime available on test system | Server cannot start |
-| A-002 | Port 3000 available on localhost | Binding fails with EADDRINUSE |
-| A-003 | Backprop tool compatible with Node.js analysis | Integration fails |
-| A-004 | Repository remains unchanged during testing | Inconsistent test results |
-| A-005 | Single-user test execution model | Concurrent access behavior undefined |
-
----
-
-## 5.6 References
-
-### 5.6.1 Repository Files Examined
-
-- `server.js` - Main HTTP server implementation (14 lines); core runtime component
-- `package.json` - NPM package manifest; metadata and dependency declarations
-- `package-lock.json` - Dependency lock file; confirms zero external dependencies
-- `README.md` - Project documentation; contains "Do not touch!" warning
-- `industry.csv` - Static data file; 44 industry categories for potential analysis testing
-- `LoginTest.java` - Java test placeholder; non-functional stub for multi-language testing
-- `test.py.txt` - Python test placeholder; empty file (0 bytes)
-- `test.txt.txt` - General test placeholder; empty file (0 bytes)
-
-### 5.6.2 Technical Specification Sections Referenced
-
-- Section 1.1 Executive Summary - Project overview and stakeholder context
-- Section 1.2 System Overview - High-level system description and component inventory
-- Section 1.3 Scope - In-scope and out-of-scope elements
-- Section 2.6 Assumptions and Constraints - Documented system constraints
-- Section 3.1 Overview - Technology stack overview and selection philosophy
-- Section 3.8 Technology Stack Constraints - Architectural constraints
-- Section 3.9 Configuration Discrepancy - Entry point mismatch documentation
-- Section 4.2 Core Business Processes - Server initialization and request flows
-- Section 4.3 Integration Workflows - Backprop integration and development workflows
-- Section 4.4 State Management - Stateless architecture documentation
-- Section 4.5 Error Handling - Error handling architecture and scenarios
-- Section 4.7 Performance and Timing Considerations - Performance metrics and SLAs
-- Node.js `http` Module - Module capabilities and usage documentation
+- None. No web sources were used; all claims are grounded in direct repository inspection and first-hand runtime execution.
 
 # 6. SYSTEM COMPONENTS DESIGN
 
 ## 6.1 Core Services Architecture
 
-#### SYSTEM ARCHITECTURE (Continued)
+### 6.1.1 Applicability Assessment and Architectural Context
 
-## 6.1 Core Services Architecture
+**Core Services Architecture is not applicable for this system.** The `hao-backprop-test` service (npm package `hello_world`, version `1.0.0`) is a single-process, single-file monolith: all runtime behavior is defined in one module, `server.js`, which creates exactly one Express 5.2.1 application and binds a single listening socket to the loopback interface `127.0.0.1:3000`. There is no service decomposition, no second process, no inter-service communication, and no distributed infrastructure of any kind. Consequently, the microservices and distributed-service concerns this section would normally document — service discovery, load balancing, circuit breaking, auto-scaling, and failover — have **no corresponding implementation** in the codebase. This determination is consistent with the single-process monolithic architecture recorded in Section 5.1 (High-Level Architecture), the architecture-style decision in Section 5.3 (specifically ADR-02 "Retain a single-file CommonJS monolith"), and the cross-cutting analysis in Section 5.4.
 
-### 6.1.1 Applicability Assessment
+This sub-section records the determination and its evidence. The remaining sub-sections walk through each area the section prompt enumerates — Service Components (6.1.2), Scalability Design (6.1.3), and Resilience Patterns (6.1.4) — and, for each, state precisely which mechanisms are present, which are absent, and why, so this section stands as a complete and honest reference rather than a description of infrastructure that does not exist.
 
-**Core Services Architecture is not applicable for this system.**
+#### Basis for the Determination
 
-The hao-backprop-test repository implements a deliberately minimal, single-component HTTP server designed exclusively as a test harness for Backprop integration testing. This architectural approach explicitly excludes microservices, distributed architecture, and distinct service components by design.
+The criteria below distinguish a distributed / multi-service architecture from the monolith that is actually present. Every criterion resolves to "absent," and each is grounded in direct inspection of the repository (`server.js`, `package.json`, `package-lock.json`, and the absence of any orchestration artifacts).
 
-#### Justification for Non-Applicability
+| Core-Services Criterion | Present? | Supporting Evidence (repository) |
+|-------------------------|----------|----------------------------------|
+| Multiple independently deployable services | No | The entire runtime is `server.js` launched as one process via the `start` script `node server.js` (`package.json`) |
+| Distinct service boundaries / bounded contexts | No | Both route handlers (`GET /`, `GET /good-evening`) live in the same module and share one event loop (`server.js` lines 19–33) |
+| Inter-service communication (REST/RPC/messaging) | No | `server.js` has a single `require()` — `express` (line 1); no HTTP client, message broker, or RPC library is imported or installed |
+| Service discovery / registry | No | No registry client (e.g., Consul/Eureka) exists in the dependency graph; the bind target is the hardcoded constant `127.0.0.1:3000` (`server.js` lines 11–12) |
+| Load balancer / reverse proxy | No | No proxy configuration (e.g., `nginx.conf`) and no proxy code; a single `app.listen` owns the only socket (`server.js` line 45) |
+| Container / orchestration platform | No | The repository contains no `Dockerfile`, `docker-compose`, or Kubernetes/Helm manifests |
+| Multi-process / clustering | No | `server.js` does not use the Node `cluster` module or worker threads; one event loop serves every request |
 
-| Architecture Requirement | System Status | Evidence |
-|-------------------------|---------------|----------|
-| Microservices | Not Implemented | Single-file implementation (`server.js`, 14 lines) |
-| Distributed Architecture | Not Supported | Localhost-only binding (`127.0.0.1`) prevents distribution |
-| Distinct Service Components | Not Present | All functionality consolidated in one file |
-| External Service Dependencies | Zero | Empty `dependencies` object in `package.json` |
-| Service Discovery | Not Applicable | Single instance, no service registry |
-| Inter-service Communication | Not Applicable | No services to communicate between |
+#### Sole Runtime Interaction Surface
 
-The system follows a **Minimal Monolith** architectural pattern—a deliberately constrained architecture that consolidates all functionality within a single entry point while eliminating external dependencies. This design prioritizes predictability, reproducibility, and isolation over scalability or feature richness.
-
-### 6.1.2 Project Purpose and Constraints
-
-#### Project Context
-
-The README.md explicitly identifies this as a **"test project for backprop integration"** with a directive to "Do not touch!" This classification places the repository outside the domain of production systems where Core Services Architecture would typically apply.
-
-#### Architectural Classification
-
-```mermaid
-flowchart TB
-    subgraph Classification["Architecture Classification"]
-        direction TB
-        Q1{{"Is this a<br/>distributed system?"}}
-        Q2{{"Are there multiple<br/>service components?"}}
-        Q3{{"Does it require<br/>scaling infrastructure?"}}
-        Result[["Core Services Architecture<br/>NOT APPLICABLE"]]
-    end
-    
-    Q1 -->|"No: localhost only"| Q2
-    Q2 -->|"No: single file"| Q3
-    Q3 -->|"No: test project"| Result
-```
-
-#### Documented Constraints Preventing Core Services Architecture
-
-| Constraint ID | Description | Impact on Core Services |
-|---------------|-------------|------------------------|
-| C-001 | Localhost binding only | Prevents cloud/remote deployment; no distribution possible |
-| C-002 | No external dependencies | Cannot integrate service mesh, discovery, or orchestration tools |
-| C-003 | Hardcoded configuration | No environment variable support for service configuration |
-| C-004 | Static response content | No dynamic routing or service-based content generation |
-| C-005 | Repository immutability | Technology stack frozen; cannot add service infrastructure |
-
-### 6.1.3 Actual System Architecture
-
-While Core Services Architecture is not applicable, the following documents the actual architectural implementation present in this system.
-
-#### Single-Component Architecture Overview
-
-```mermaid
-flowchart TB
-    subgraph ExternalActors["External Environment"]
-        Developer["Developer/Tester"]
-        Browser["HTTP Client/Browser"]
-        Backprop["Backprop Analysis Tool"]
-    end
-    
-    subgraph SystemBoundary["System Boundary: hao-backprop-test"]
-        subgraph CoreApplication["Core Application (Single Component)"]
-            HTTPServer["server.js<br/>HTTP Server<br/>14 lines of code"]
-        end
-        
-        subgraph Configuration["Configuration Layer"]
-            PackageJSON["package.json<br/>NPM Metadata"]
-            PackageLock["package-lock.json<br/>Dependency Lock"]
-        end
-        
-        subgraph StaticAssets["Static Assets"]
-            README["README.md"]
-            IndustryCSV["industry.csv"]
-        end
-    end
-    
-    Developer -->|"node server.js"| HTTPServer
-    Browser -->|"HTTP Request"| HTTPServer
-    HTTPServer -->|"HTTP Response"| Browser
-    HTTPServer -->|"stdout"| Developer
-    Backprop -->|"File System Read"| SystemBoundary
-```
-
-#### Component Inventory
-
-| Component | Type | Responsibility | Service Classification |
-|-----------|------|----------------|----------------------|
-| `server.js` | Runtime | HTTP request handling | Monolithic (single component) |
-| `package.json` | Configuration | NPM metadata | Not a service |
-| `package-lock.json` | Configuration | Dependency lock | Not a service |
-| `README.md` | Documentation | Project identity | Not a service |
-| `industry.csv` | Static Data | Test data asset | Not a service |
-
-### 6.1.4 Service Component Analysis
-
-#### Why Microservices Are Not Applicable
-
-The system consists of a single 14-line implementation file that handles all functionality:
-
-| Microservice Characteristic | System Implementation | Gap Analysis |
-|-----------------------------|----------------------|--------------|
-| Independent Deployment | Not supported | Single file, single deployment unit |
-| Service Boundaries | None defined | All logic in one function |
-| Polyglot Persistence | Not applicable | No data persistence |
-| Decentralized Governance | Not applicable | Single codebase |
-| Infrastructure Automation | Not implemented | Manual `node server.js` execution |
-| Design for Failure | Minimal | Process crash requires manual restart |
-
-#### Service Boundary Assessment
+Because the system is a single process, its entire runtime "service interaction" surface is one synchronous HTTP request/response exchange between an external HTTP client and the one Express application — there are no service-to-service calls to depict. The only other touchpoints are the console sink (`stdout`/`stderr`) for lifecycle logging and, at build time only, the npm registry that supplies dependencies (never contacted at runtime; see Section 5.1.4). The diagram below labels this complete interaction topology.
 
 ```mermaid
 flowchart LR
-    subgraph SingleBoundary["Single Service Boundary"]
-        AllFunctions["All Functions:<br/>• HTTP Listening<br/>• Request Handling<br/>• Response Generation<br/>• Startup Logging"]
+    Client["HTTP Client<br/>curl / browser / automated test"]
+
+    subgraph Host["Single Host — bound to loopback 127.0.0.1:3000 only"]
+        direction TB
+        subgraph Proc["Sole OS Process — node server.js (one Node.js event loop)"]
+            direction TB
+            App["Express 5.2.1 application<br/>x-powered-by disabled"]
+            Router["Express router"]
+            H1["GET / handler<br/>Hello, World! + LF (14 bytes)"]
+            H2["GET /good-evening handler<br/>Good evening (12 bytes)"]
+            FH["Default finalhandler<br/>unmatched route"]
+            Life["Startup / error lifecycle<br/>listening guard + error handler"]
+            App --> Router
+            Router --> H1
+            Router --> H2
+            Router --> FH
+        end
+        Console["Console sink<br/>stdout / stderr"]
     end
-    
-    Input["HTTP Request"] --> SingleBoundary
-    SingleBoundary --> Output["'Hello, World!'"]
+
+    Client -->|"HTTP/1.1 request"| App
+    H1 -->|"200 text/plain + nosniff"| Client
+    H2 -->|"200 text/plain + nosniff"| Client
+    FH -->|"404 text/html + CSP"| Client
+    Life -.->|"startup / bind-failure lines"| Console
 ```
 
-The entire application functionality exists within a single service boundary with no decomposition opportunities relevant to its test project purpose.
+**Figure 6.1.1 — Sole runtime interaction topology.** The complete request/response surface is a single client-to-process exchange; no inter-service edges exist because the system comprises exactly one service process. This is the "service interaction diagram" required by the section prompt, rendered faithfully for a single-service system.
 
-### 6.1.5 Scalability Assessment
+### 6.1.2 Service Components
 
-#### Horizontal Scaling
+The system exposes **one service boundary** — the single Node.js process that binds `127.0.0.1:3000`. Everything below that boundary is a set of *in-process logical components*, not independently deployable services, and everything above it is a single class of external HTTP client. Because there is only one service, the inter-service concerns the prompt enumerates (communication patterns, discovery, load balancing, circuit breaking, retry/fallback across services) are structurally absent; each is recorded explicitly below.
 
-| Aspect | Status | Technical Reason |
-|--------|--------|------------------|
-| Multi-Instance Deployment | **Not Supported** | Hardcoded `127.0.0.1` binding prevents network distribution |
-| Load Balancing | **Not Applicable** | Single instance by design |
-| Service Replication | **Not Implemented** | No orchestration infrastructure |
-| State Synchronization | **Not Required** | Stateless by design |
+#### Service Boundary and Internal Responsibilities
 
-#### Vertical Scaling
+The sole runtime boundary is the loopback process. Within it, `server.js` organizes behavior into the in-process logical components summarized below (detailed in Sections 5.1.2 and 5.2). These are functions and objects sharing one event loop and one memory space — they communicate by direct function calls, never over a network, and cannot be deployed, scaled, or failed over independently.
 
-| Aspect | Status | Technical Reason |
-|--------|--------|------------------|
-| Resource Allocation | **Not Configurable** | No configuration mechanism |
-| Memory Management | **Node.js Defaults** | Limited to Node.js process constraints |
-| CPU Utilization | **Single-Threaded** | Node.js event loop model |
+| Logical Component (in `server.js`) | Primary Responsibility | Boundary Type |
+|------------------------------------|------------------------|---------------|
+| Application runtime / bootstrap | Create the Express app, hold host/port constants, initiate the single socket bind | In-process (module top level) |
+| Express application + router | Path/method routing; app-level header policy (`x-powered-by` disabled); default `404` | In-process (Express) |
+| Greeting route handlers | Emit byte-exact `text/plain` bodies (`Hello, World!\n`, `Good evening`) with `nosniff` | In-process (function callbacks) |
+| Startup / error lifecycle controller | Guard the success log on `server.listening`; handle the server `'error'` event; set the process exit code | In-process (event listener) |
 
-#### Scaling Constraints Diagram
+#### Inter-Service Communication, Discovery, Load Balancing, and Resilience Calls
+
+The table maps each required Service Components concern to its implementation status and the code basis for that status. Because the runtime makes no outbound network calls and has no peer services, the discovery, load-balancing, circuit-breaker, and retry/fallback concerns have nothing to act upon.
+
+| Service Components Concern | Implementation Status | Basis in Repository |
+|----------------------------|-----------------------|---------------------|
+| Service boundaries and responsibilities | Single boundary = the loopback process; internal responsibilities are the in-process components above | `server.js`; Section 5.1.2 |
+| Inter-service communication patterns | None — one process; internal calls are direct function invocations, not network messages | `server.js` single `require()` (`express`); no HTTP client / broker installed |
+| Service discovery mechanisms | None — the endpoint is the fixed hardcoded constant `127.0.0.1:3000`; there is nothing to register or resolve | `server.js` lines 11–12; no registry client in the dependency graph |
+| Load balancing strategy | None — one listener on one event loop; no distribution across instances or workers | `server.js` line 45 (single `app.listen`); Section 5.4.4 |
+| Circuit breaker patterns | Not applicable — the handlers perform zero downstream I/O, so there is no dependency call to protect or trip on | `server.js` handlers (lines 19–33) emit static string literals only |
+| Retry and fallback mechanisms | None at the request level; a single startup bind attempt with no retry/backoff; unmatched routes return Express's default `404` (a client outcome, not a fallback tier) | `server.js` lines 45–63; Sections 5.4.2, 5.4.5 |
+
+#### Communication and Failure-Handling Notes
+
+- **Communication pattern.** The only communication is synchronous HTTP/1.1 request/response between an external client and the one process, confined to the loopback interface, with connection reuse governed by Node's default `Keep-Alive: timeout=5` (Section 5.1.3). There is no request/reply messaging, publish/subscribe, streaming, or polling of any external system, consistent with the "synchronous HTTP/1.1 request/response only" decision in Section 5.3.2.
+- **Circuit breakers, retries, and fallbacks are patterns for guarding calls between components across a network.** Since the two route handlers make no such calls — each derives its response solely from an in-memory string literal — there is no failure mode for a breaker to open on, no transient error for a retry to re-attempt, and no degraded path for a fallback to select. The single meaningful failure handled in code is a startup bind failure (for example `EADDRINUSE`), which is treated fail-fast with **no retry** (detailed in 6.1.4 and Section 5.4.2).
+- **Discovery and load balancing presuppose multiple endpoints.** With exactly one hardcoded endpoint and one process, neither concept has a referent in this system.
+
+### 6.1.3 Scalability Design
+
+There is **no scalability engineering** in this system beyond what a single Node.js process provides by default. Scalability is therefore effectively *vertical and bounded to one local instance*: the process runs a single event loop, and because both handlers perform zero I/O (each returns a fixed in-memory string literal), that single event loop is sufficient for the intended local integration-test workload. Horizontal scale-out, auto-scaling, resource governance, and capacity planning are **not implemented**, and several are precluded by the hardcoded loopback configuration. This analysis extends the performance/scalability facts recorded in Section 5.4.4; no performance SLA — latency, throughput, or uptime — is defined anywhere in the repository, so the characteristics below are structural facts, not commitments.
+
+#### Scaling, Auto-Scaling, Resources, and Capacity
+
+| Scalability Concern | Status in This System | Evidence |
+|---------------------|-----------------------|----------|
+| Horizontal scaling | Not implemented; precluded without a code change — the host/port are hardcoded constants, so a second instance on `:3000` collides (`EADDRINUSE`) | `server.js` lines 11–12, 45; Section 5.4.4 |
+| Vertical scaling | The effective model; bounded to one local instance. Scaling up CPU/RAM is a host operation, not configured in the app | `server.js` (single event loop); Section 5.4.4 |
+| Auto-scaling triggers and rules | None — no orchestrator, no metrics pipeline, no scaling policy, and no health/readiness endpoint to drive one | No Kubernetes/HPA artifacts; Section 5.4.1 (no `/health`, `/metrics`) |
+| Resource allocation strategy | None in code — no memory limits, pool sizing, container/cgroup limits, or environment tuning; Node.js runtime defaults apply | `server.js`; `package.json` (no config, no env vars) |
+| Performance optimization techniques | Minimal and emergent — zero-I/O static literals, Express weak `ETag` (conditional GET), keep-alive `timeout=5`; no application cache, compression, or CDN | `server.js`; Sections 5.1.3, 5.3.2 |
+| Capacity planning guidelines | None defined — no SLA, benchmark, or load-test artifact and no numeric capacity target anywhere in the repository | Section 5.4.4 |
+
+#### Concurrency Model and Data-Tier Considerations
+
+The concurrency model is a single Node.js event loop with no clustering and no worker pool (Sections 5.1.2, 5.4.4). Because the handlers never block, the process can interleave many short-lived connections on that one loop; however, the design provides **no mechanism for multi-instance scale-out, load distribution, or non-local exposure**. There is likewise no data tier to scale: the service uses no database, cache, or session store (ADR-04 in Section 5.3), so partitioning, replication, and read/write-split concerns do not arise.
+
+The two "performance optimizations" that exist are framework/runtime defaults rather than deliberate tuning: Express derives a weak `ETag` from each response body (enabling conditional GETs), and Node keep-alive reuses connections for five seconds. Neither is application-managed, and there is no compression middleware, no reverse-proxy cache, and no content-delivery layer.
+
+#### Scalability Architecture Diagram
+
+The diagram contrasts the implemented single-instance vertical model with the horizontal scale-out that the codebase does **not** provide. The right-hand cluster is labeled as absent and is shown only to make explicit which prerequisites (configurable binding, a load balancer, multiple instances) would be required and are not present.
 
 ```mermaid
 flowchart TB
-    subgraph ScalingLimitations["Scaling Limitations"]
-        LocalhostBinding["Constraint: Localhost<br/>Binding (127.0.0.1)"]
-        SingleProcess["Constraint: Single<br/>Process Model"]
-        NoDependencies["Constraint: Zero<br/>Dependencies"]
+    subgraph Current["Implemented today — single vertical instance"]
+        direction TB
+        C1["HTTP client(s)<br/>curl / browser / test"]
+        P1["node server.js<br/>one process · one event loop"]
+        B1["Bind 127.0.0.1:3000<br/>hardcoded · no env config"]
+        C1 -->|"HTTP/1.1 request"| P1
+        P1 --- B1
     end
-    
-    subgraph BlockedCapabilities["Blocked Scaling Capabilities"]
-        HorizontalScale["Horizontal Scaling<br/>BLOCKED"]
-        LoadBalancing["Load Balancing<br/>BLOCKED"]
-        AutoScaling["Auto-Scaling<br/>BLOCKED"]
-        ServiceMesh["Service Mesh<br/>BLOCKED"]
+
+    subgraph NotImpl["Not implemented — would require code + infrastructure changes"]
+        direction TB
+        Cfg["Configurable host/port<br/>(absent: constants hardcoded)"]
+        LB["Load balancer / reverse proxy<br/>(absent: no proxy config)"]
+        I1["Instance 1"]
+        I2["Instance 2"]
+        IN["Instance N"]
+        Cfg -->|"prerequisite"| LB
+        LB --> I1
+        LB --> I2
+        LB --> IN
     end
-    
-    LocalhostBinding --> HorizontalScale
-    LocalhostBinding --> LoadBalancing
-    SingleProcess --> AutoScaling
-    NoDependencies --> ServiceMesh
+
+    P1 -.->|"horizontal scale-out path not taken"| Cfg
 ```
 
-#### Auto-Scaling Assessment
+**Figure 6.1.3 — Scalability architecture.** Solid nodes on the left are the implemented single-instance, single-event-loop model; the right-hand cluster (dashed transition) enumerates the un-implemented prerequisites for horizontal scaling and is present only to document their absence.
 
-| Auto-Scaling Feature | Implementation | Reason |
-|---------------------|----------------|--------|
-| Triggers | None | No metrics collection |
-| Rules | None | No orchestration platform |
-| Thresholds | None | Not configurable |
-| Policies | None | Single instance design |
+### 6.1.4 Resilience Patterns
 
-### 6.1.6 Resilience Patterns Assessment
+The system implements **one deliberate resilience pattern — fail-fast startup** — and relies on statelessness for everything else. The distributed resilience patterns the prompt enumerates (automated failover, standby replicas, circuit breakers, graceful degradation, data redundancy) are **not present**, because a single stateless loopback process has nothing to fail over to and no data to protect. This analysis builds on the error-handling and disaster-recovery facts in Sections 5.4.2 and 5.4.5.
 
-#### Fault Tolerance Mechanisms
+#### Fault Tolerance, Recovery, Redundancy, Failover, and Degradation
 
-The system implements **no explicit fault tolerance mechanisms**. All error handling is delegated to Node.js runtime defaults:
+| Resilience Concern | Status / Mechanism | Evidence |
+|--------------------|--------------------|----------|
+| Fault tolerance mechanisms | Fail-fast startup only: a `server.listening` guard plus a `server.on('error', …)` handler that writes to `stderr` and sets `process.exitCode = 1`. Single bind attempt, **no retry/backoff**. On the request plane there is no `try/catch` or error middleware, and static literals mean no `5xx` path is reachable in normal operation | `server.js` lines 45–63, 19–33; Section 5.4.2 |
+| Disaster recovery procedures | Entirely operator-driven and manual; no supervisor, watchdog, or auto-restart. For the dominant failure (`EADDRINUSE`) the operator frees port `3000` and re-runs; the environment rebuilds deterministically from the committed `package-lock.json` | `server.js` (only a `start` script); Section 5.4.5 |
+| Data redundancy approach | None required — the service is stateless, with no database, cache, or session store; both response bodies are literals compiled into `server.js`, so there is nothing to replicate or back up | Sections 5.1.3, 5.3 (ADR-04), 5.4.5 |
+| Failover configurations | None — a single process with no replicas and no standby; the hardcoded host/port precludes the process from self-selecting an alternate endpoint | `server.js` lines 11–12; Section 5.4.5 |
+| Service degradation policies | None — no graceful shutdown handler, load shedding, rate limiting, bulkheads, or downstream timeouts; availability is binary (running / failed-to-start) | `server.js` (no shutdown handler); Sections 5.1.2, 5.4.2 |
 
-| Fault Tolerance Pattern | Implementation Status | Rationale |
-|------------------------|----------------------|-----------|
-| Circuit Breaker | Not Implemented | No external service calls to protect |
-| Retry Logic | Not Implemented | Static response guarantees no transient failures |
-| Bulkhead | Not Implemented | Single-threaded event loop |
-| Timeout Handling | Not Implemented | Synchronous response pattern |
-| Fallback | Not Implemented | Single response type only |
+#### How the Single Implemented Pattern Behaves
 
-#### Error Handling Architecture
+The fail-fast pattern operates on two independent planes that never cross (Section 5.4.2). On the **process-lifecycle plane**, a startup bind failure is surfaced deterministically — the success log is suppressed (because `server.listening` is false), a diagnostic is written to `stderr`, and the process exits non-zero. On the **request plane**, a request that matches neither route is finalized by Express's built-in `finalhandler` as a `404` and the process stays healthy for subsequent requests. Because the clean failure signalling is well defined (empty `stdout`, exit code `1`, an explicit `stderr` message), an *external* process manager could in principle automate a restart loop — but **no such supervision is configured** in the repository, and no graceful-shutdown logic is registered.
 
-```mermaid
-flowchart TD
-    subgraph NormalExecution["Normal Execution Path"]
-        Start(["node server.js"])
-        LoadModule["Load http Module"]
-        CreateServer["Create Server Instance"]
-        BindPort["Bind to Port 3000"]
-        ServerReady["Server Ready"]
-    end
-    
-    subgraph ErrorScenarios["Error Scenarios (Node.js Defaults)"]
-        PortError["EADDRINUSE<br/>Port Occupied"]
-        PermError["EACCES<br/>Permission Denied"]
-        ModuleError["MODULE_NOT_FOUND"]
-    end
-    
-    subgraph ErrorOutcome["Error Outcome"]
-        StackTrace["Stack Trace to stderr"]
-        ProcessExit["Process Exit Code 1"]
-    end
-    
-    Start --> LoadModule
-    LoadModule -->|Success| CreateServer
-    LoadModule -->|Failure| ModuleError
-    CreateServer --> BindPort
-    BindPort -->|Success| ServerReady
-    BindPort -->|Port Busy| PortError
-    BindPort -->|No Permission| PermError
-    
-    ModuleError --> StackTrace
-    PortError --> StackTrace
-    PermError --> StackTrace
-    StackTrace --> ProcessExit
-```
-
-#### Disaster Recovery Assessment
-
-Given the stateless, zero-persistence architecture, disaster recovery is trivial:
-
-| Failure Scenario | Recovery Procedure | Recovery Time Objective |
-|------------------|-------------------|------------------------|
-| Server Process Crash | Execute `node server.js` | < 1 second |
-| Port Conflict | Clear port; restart server | < 1 minute |
-| Repository Corruption | Re-clone from source | < 5 minutes |
-| Node.js Failure | Reinstall Node.js runtime | < 10 minutes |
-
-#### Data Redundancy Assessment
-
-| Redundancy Aspect | Implementation | Rationale |
-|-------------------|----------------|-----------|
-| Data Backup | Not Required | No persistent data |
-| Replication | Not Implemented | Stateless architecture |
-| Failover | Not Implemented | Single instance design |
-| Geographic Distribution | Not Applicable | Localhost binding only |
-
-### 6.1.7 Inter-Service Communication Assessment
-
-#### Communication Patterns
-
-**Not Applicable.** The system contains only one component and does not communicate with any external services:
-
-| Communication Pattern | Status | Reason |
-|----------------------|--------|--------|
-| Synchronous (REST/HTTP) | N/A | No external services |
-| Asynchronous (Message Queue) | N/A | No messaging infrastructure |
-| Event-Driven | N/A | No event bus |
-| gRPC/Protocol Buffers | N/A | No inter-service calls |
-
-#### Service Discovery
-
-**Not Applicable.** Service discovery mechanisms are unnecessary for a single-instance, localhost-bound application:
-
-| Discovery Mechanism | Implementation | Reason for Exclusion |
-|--------------------|----------------|---------------------|
-| DNS-based Discovery | Not Implemented | Single instance |
-| Service Registry | Not Implemented | No services to register |
-| Client-Side Discovery | Not Implemented | No service consumers |
-| Server-Side Discovery | Not Implemented | No load balancer |
-
-### 6.1.8 Comparison: Expected vs. Actual Architecture
+The following diagram labels the implemented single-process resilience alongside the distributed resilience mechanisms that are explicitly absent.
 
 ```mermaid
 flowchart TB
-    subgraph ExpectedCoreServices["Expected Core Services Architecture"]
-        MS1["Microservice A"]
-        MS2["Microservice B"]
-        MS3["Microservice C"]
-        LB["Load Balancer"]
-        SR["Service Registry"]
-        MQ["Message Queue"]
-        
-        LB --> MS1
-        LB --> MS2
-        LB --> MS3
-        MS1 <--> MQ
-        MS2 <--> MQ
-        MS3 <--> MQ
-        MS1 -.-> SR
-        MS2 -.-> SR
-        MS3 -.-> SR
+    subgraph Impl["Implemented resilience — single-process fail-fast"]
+        direction TB
+        S0["app.listen(127.0.0.1:3000)"]
+        S1{"bind succeeded?<br/>(server.listening)"}
+        S2["stdout: Server running<br/>process healthy"]
+        S3["stderr: Failed to start<br/>process.exitCode = 1"]
+        S0 --> S1
+        S1 -->|"yes"| S2
+        S1 -->|"no — error event"| S3
+        R0["inbound HTTP request"]
+        R1{"route match?"}
+        R2["200 text/plain + nosniff"]
+        R3["Express finalhandler<br/>404 text/html + CSP"]
+        R0 --> R1
+        R1 -->|"/ or /good-evening"| R2
+        R1 -->|"no match"| R3
     end
-    
-    subgraph ActualArchitecture["Actual System Architecture"]
-        SingleServer["server.js<br/>(14 lines)<br/>Localhost Only"]
+
+    subgraph Absent["Not implemented — distributed resilience"]
+        direction TB
+        A1["Retry / backoff on bind<br/>(single attempt only)"]
+        A2["Failover / standby replica"]
+        A3["Circuit breaker / bulkhead"]
+        A4["Graceful degradation / load shedding"]
     end
-    
-    ExpectedCoreServices ~~~ ActualArchitecture
+
+    S3 -.->|"no automated recovery configured"| A1
 ```
 
-### 6.1.9 Explicit Out-of-Scope Elements
+**Figure 6.1.4 — Resilience pattern implementations.** The `Impl` cluster is the resilience actually present: fail-fast process lifecycle (top) and self-contained request-plane `404` handling (bottom). The `Absent` cluster enumerates distributed resilience patterns that are not implemented; the dashed edge marks that a bind failure has no automated recovery path in the codebase.
 
-The following capabilities are explicitly excluded from this system and will not be implemented:
+### 6.1.5 References
 
-| Feature Category | Excluded Elements | Exclusion Rationale |
-|------------------|-------------------|---------------------|
-| Deployment | Production deployment, Container orchestration | Localhost binding; test project |
-| Security | Authentication, Authorization, HTTPS/TLS | No security requirements for test harness |
-| Data | Database connectivity, Data persistence | No data storage needed |
-| Networking | External network access, Geographic distribution | Intentionally bound to 127.0.0.1 |
-| Scaling | Load balancing, Auto-scaling, Multi-instance | Single-purpose test server |
-| Operations | Health checks, Monitoring, Log aggregation | Console output sufficient |
-| API | Request routing, API versioning, Rate limiting | Single static response by design |
+The following repository artifacts and Technical Specification sections were examined as evidence for this section. All findings are grounded in direct inspection of the current codebase; no external web sources were required.
 
-### 6.1.10 Summary and Recommendations
+**Repository files**
 
-#### Summary
+- `server.js` — the sole executable application code; established the single-process/single-file monolith, the two `GET` routes, the hardcoded `127.0.0.1:3000` bind, the single `require('express')`, and the fail-fast startup lifecycle (`listening` guard + `error` handler).
+- `package.json` — established package identity (`hello_world` 1.0.0), the single runtime dependency `express ^5.2.1`, and the `start`/`test` scripts (no orchestration or scaling config).
+- `package-lock.json` — established the pinned Express dependency graph and confirmed the absence of any microservice/distributed/RPC/broker libraries.
+- `node_modules/express/package.json` — confirmed the installed Express version `5.2.1`.
+- `README.md` — established the operational contract (Node.js ≥ 18, `npm install`, `node server.js`/`npm start`, loopback URL, two plain-text endpoints).
+- `.gitignore` — established that only `node_modules/` is excluded; no infrastructure or deployment artifacts are tracked.
 
-Core Services Architecture is definitively **not applicable** for the hao-backprop-test system due to:
+**Repository folders**
 
-1. **Architectural Simplicity**: The entire application consists of 14 lines of code in a single file
-2. **Intentional Isolation**: Localhost binding (127.0.0.1) prevents any form of distribution
-3. **Zero Dependencies**: No external packages, including service mesh or orchestration tools
-4. **Test Project Designation**: Explicitly marked as a test harness for Backprop integration
-5. **Stateless Design**: No persistent data requiring redundancy or failover
-6. **Single-Purpose Function**: Returns "Hello, World!" response with no routing or service logic
+- `node_modules/` — contained Express 5.2.1 and its transitive dependencies only; no clustering, service-mesh, discovery, load-balancer, or messaging packages.
+- Repository root (`/`) — inspected for orchestration/scaling artifacts; confirmed the absence of `Dockerfile`, `docker-compose`, Procfile, PM2/`nginx` config, and any `kubernetes`/`helm`/`.github`/`terraform`/`deploy` directories (negative evidence for horizontal scaling, auto-scaling, and failover infrastructure).
 
-#### Architectural Appropriateness
+**Cross-referenced Technical Specification sections**
 
-The minimal architecture is **appropriate and intentional** for this system's purpose. The constraints that prevent Core Services Architecture are features, not limitations:
-
-| Constraint | Benefit for Test Project |
-|------------|-------------------------|
-| Zero dependencies | Eliminates supply chain risk and test variables |
-| Localhost binding | Maintains isolation; prevents unintended external access |
-| Hardcoded configuration | Guarantees identical behavior across test runs |
-| Single-file implementation | Complete system visibility; unambiguous analysis target |
-
-#### Future Considerations
-
-If the system scope were to expand beyond its current test project purpose to require Core Services Architecture, the following would need to be implemented:
-
-| Capability | Required Changes |
-|------------|-----------------|
-| Multi-instance deployment | Remove localhost binding; add configuration management |
-| Service discovery | Add service registry (e.g., Consul, etcd) |
-| Load balancing | Add reverse proxy (e.g., NGINX, HAProxy) |
-| Inter-service communication | Add messaging infrastructure (e.g., RabbitMQ, Kafka) |
-| Resilience patterns | Implement circuit breakers, retries, and fallbacks |
-
-However, such expansion would contradict the project's stated purpose and the "Do not touch!" directive in the README.md.
-
-#### References
-
-#### Technical Specification Sections Retrieved
-
-- `5.1 High-Level Architecture` - Confirms "zero-dependency, single-file, stateless HTTP server architecture" and Minimal Monolith pattern
-- `5.2 Component Details` - Documents scaling considerations confirming horizontal/vertical scaling not supported
-- `5.4 Cross-Cutting Concerns` - Confirms no failover, redundancy, geographic distribution, or monitoring implementation
-- `5.5 Architectural Constraints` - Documents C-001 through C-005 constraints preventing Core Services Architecture
-- `1.2 System Overview` - Confirms test project purpose, minimal architecture, and zero-dependency approach
-- `1.3 Scope` - Comprehensive list of out-of-scope features including production deployment
-- `4.5 Error Handling` - Confirms no retry mechanisms, circuit breakers, or fallback processes
-
-#### Repository Files Referenced
-
-- `server.js` - Complete HTTP server implementation (14 lines); confirms monolithic single-file architecture
-- `package.json` - Confirms zero external dependencies; package metadata with empty dependencies object
-- `README.md` - Confirms test project purpose: "test project for backprop integration. Do not touch!"
+- Section 5.1 High-Level Architecture — single-process monolithic architecture, core components (5.1.2), runtime data flow (5.1.3), and external integration points (5.1.4).
+- Section 5.3 Technical Decisions — architecture-style decision and ADR-02 (single-file monolith), ADR-03 (hardcoded loopback), ADR-04 (stateless, no datastore/cache), and communication/storage/caching decisions (5.3.2).
+- Section 5.4 Cross-Cutting Concerns — observability (5.4.1), error-handling planes (5.4.2), performance/scalability/SLAs (5.4.4), and disaster recovery (5.4.5).
 
 ## 6.2 Database Design
 
 ### 6.2.1 Applicability Assessment
 
-**Database Design is not applicable to this system.**
+**Database Design is not applicable to this system.** The `hao-backprop-test` service (npm package `hello_world`, version `1.0.0`) is a single-file, stateless Express 5.2.1 HTTP server whose entire runtime is defined in `server.js`. Both endpoints return fixed strings held in process memory, and the service performs no reads or writes against any database, cache, key-value store, filesystem, or network resource at request time. There is therefore no schema to model, no persistence engine to configure, and no data lifecycle to manage.
 
-The hao-backprop-test repository implements a deliberately minimal, stateless HTTP server designed exclusively as a test harness for Backprop integration testing. This architectural approach explicitly excludes all forms of data persistence, database connectivity, and storage mechanisms by design.
+This determination is consistent with Section 3.5 (Databases and Storage), which records "no database, cache, or storage layer of any kind"; with Section 4.4 (State Management and Transaction Boundaries), which records no data-persistence points and no transaction boundaries; and with ADR-04 in Section 5.3, which fixes the stateless, no-datastore design. This sub-section records the determination and its evidence. The remaining sub-sections walk through each area the section prompt enumerates — Schema Design (6.2.2), Data Management (6.2.3), Compliance Considerations (6.2.4), and Performance Optimization (6.2.5) — and, for each, state which mechanisms are present, which are absent, and why, so this section stands as a complete and honest reference rather than a description of storage that does not exist. The required Entity-Relationship, data-flow, and replication diagrams are rendered to depict the actual in-memory data model and the absence of any persistent tier.
 
-#### Justification for Non-Applicability
+#### Basis for the Determination
 
-The system's architecture intentionally omits database functionality to ensure test reproducibility, predictable behavior, and complete isolation. The following analysis provides comprehensive justification for why Database Design documentation is not applicable.
+Each persistence indicator below was checked by direct inspection of `server.js`, `package.json`, `package-lock.json`, and the repository tree; every one resolves to "absent."
 
-| Architecture Requirement | System Status | Evidence |
-|-------------------------|---------------|----------|
-| Data Persistence | Not Implemented | No database drivers in `package.json` |
-| Database Connectivity | Not Supported | Zero external dependencies |
-| Query Execution | Not Present | No ORM or SQL libraries |
-| Data Storage | Not Required | Stateless response pattern |
-| Schema Management | Not Applicable | No data models defined |
-| Migration Support | Not Applicable | No database to migrate |
+| Persistence Indicator | Present? | Supporting Evidence |
+|---|---|---|
+| Database client / driver (SQL or NoSQL) | No | `server.js` line 1 has a single `require('express')`; no `pg`, `mysql`, `mongodb`, `mongoose`, or `sqlite` package appears in `package-lock.json` |
+| ORM / query builder (Sequelize, TypeORM, Prisma, Knex) | No | No ORM package in the 67-package dependency tree (`package-lock.json`) |
+| Cache / session store (Redis, Memcached) | No | No cache client in the dependency tree; responses are static literals |
+| Connection string / datastore configuration | No | No `process.env`, connection string, or config file in `server.js`; host/port are hardcoded constants (lines 11–12) |
+| Migration / schema / DDL artifacts | No | No `.sql`, `.prisma`, `knexfile`, `ormconfig`, migration, or schema files exist (repository scan excluding `node_modules/`) |
+| Filesystem persistence at runtime | No | No `require('fs')` and no file read/write in `server.js`; `industry.csv` is never opened by the service |
 
-#### Architectural Classification for Database Requirements
+#### Complete Runtime Data Path
 
-```mermaid
-flowchart TB
-    subgraph Assessment["Database Requirement Assessment"]
-        direction TB
-        Q1{{"Does the system<br/>store user data?"}}
-        Q2{{"Does it require<br/>session management?"}}
-        Q3{{"Are there any<br/>database dependencies?"}}
-        Q4{{"Does it perform<br/>CRUD operations?"}}
-        Result[["Database Design<br/>NOT APPLICABLE"]]
-    end
-    
-    Q1 -->|"No: Static response"| Q2
-    Q2 -->|"No: Stateless design"| Q3
-    Q3 -->|"No: Zero dependencies"| Q4
-    Q4 -->|"No: Read-only operations"| Result
-```
-
-### 6.2.2 Excluded Database Technologies
-
-The project explicitly excludes all database technologies as part of its zero-dependency architecture. This is an intentional design decision aligned with the project's purpose as a stateless test server.
-
-#### Relational Database Exclusions
-
-| Database Type | Common Options | Status | Exclusion Rationale |
-|---------------|----------------|--------|---------------------|
-| PostgreSQL | pg, sequelize | ❌ Not used | No data persistence needed |
-| MySQL | mysql2, knex | ❌ Not used | No relational data requirements |
-| SQLite | better-sqlite3 | ❌ Not used | No local storage needed |
-| SQL Server | mssql | ❌ Not used | No enterprise data requirements |
-
-#### NoSQL Database Exclusions
-
-| Database Type | Common Options | Status | Exclusion Rationale |
-|---------------|----------------|--------|---------------------|
-| Document (MongoDB) | mongoose, mongodb | ❌ Not used | No document storage requirements |
-| Key-Value (Redis) | ioredis, redis | ❌ Not used | No caching requirements |
-| Graph (Neo4j) | neo4j-driver | ❌ Not used | No relationship modeling |
-| Wide-Column | cassandra-driver | ❌ Not used | No distributed data needs |
-
-#### Specialized Storage Exclusions
-
-| Storage Type | Common Options | Status | Exclusion Rationale |
-|--------------|----------------|--------|---------------------|
-| Time-Series | InfluxDB, TimescaleDB | ❌ Not used | No metrics collection |
-| Search Engine | Elasticsearch, Algolia | ❌ Not used | No search functionality |
-| Message Queue | RabbitMQ, Kafka | ❌ Not used | No async processing |
-| Object Storage | S3, MinIO | ❌ Not used | No file storage needs |
-
-### 6.2.3 Data Architecture Analysis
-
-#### Stateless Architecture Diagram
-
-The system implements a completely stateless architecture where no data persists between requests. The following diagram illustrates the absence of a data layer:
-
-```mermaid
-flowchart TB
-    subgraph ExternalActors["External Environment"]
-        Client["HTTP Client/Browser"]
-        Developer["Developer/Tester"]
-        Backprop["Backprop Analysis Tool"]
-    end
-    
-    subgraph SystemBoundary["System Boundary: hao-backprop-test"]
-        subgraph ApplicationLayer["Application Layer"]
-            HTTPServer["server.js<br/>HTTP Server<br/>14 lines of code"]
-        end
-        
-        subgraph ConfigLayer["Configuration Layer"]
-            PackageJSON["package.json<br/>NPM Metadata"]
-            PackageLock["package-lock.json<br/>Dependency Lock"]
-        end
-        
-        subgraph StaticFiles["Static Assets (Not Runtime Consumed)"]
-            IndustryCSV["industry.csv<br/>44 Industry Categories"]
-            README["README.md"]
-        end
-        
-        subgraph AbsentLayers["Absent Data Layers"]
-            NoDatabase[/"No Database Layer<br/>(By Design)"/]
-            NoCache[/"No Cache Layer<br/>(Not Required)"/]
-            NoSession[/"No Session Store<br/>(Stateless)"/]
-        end
-    end
-    
-    Client -->|"HTTP Request"| HTTPServer
-    HTTPServer -->|"'Hello, World!'"| Client
-    HTTPServer -.->|"No Connection"| NoDatabase
-    HTTPServer -.->|"No Connection"| NoCache
-    HTTPServer -.->|"No Connection"| NoSession
-    Backprop -->|"File System Read Only"| StaticFiles
-```
-
-#### Data Persistence Assessment
-
-| Persistence Point | Implementation | Storage Location | Purpose |
-|-------------------|----------------|------------------|---------|
-| Configuration | Hardcoded | `server.js` lines 3-4 | No runtime persistence |
-| Request Data | Not stored | Memory only (transient) | Immediate processing |
-| Response Data | Not stored | Generated per request | Static output |
-| Session Data | None | Not applicable | Stateless design |
-
-#### Request-Response Data Flow
-
-Each HTTP request represents a complete, isolated transaction with no data retention:
+The system's entire "data" surface is two compile-time string literals emitted directly from the route handlers in `server.js`: `Hello, World!\n` (14 bytes, `GET /`) and `Good evening` (12 bytes, `GET /good-evening`). The diagram traces a request from client to response and marks both the persistence tier and the on-disk `industry.csv` file as outside the runtime data path.
 
 ```mermaid
 flowchart LR
-    subgraph RequestCycle["Single Request Lifecycle (No Persistence)"]
-        R1["Request<br/>Received"]
-        R2["Handler<br/>Invoked"]
-        R3["Response<br/>Generated"]
-        R4["Response<br/>Sent"]
-        R5["Data<br/>Discarded"]
+    Client["HTTP Client<br/>curl, browser, or test"]
+    subgraph Proc["node server.js: single process, in-memory only"]
+        direction TB
+        Router["Express router"]
+        H1["GET / handler"]
+        H2["GET /good-evening handler"]
+        L1["In-memory literal<br/>Hello, World! plus LF (14 bytes)"]
+        L2["In-memory literal<br/>Good evening (12 bytes)"]
+        Router --> H1
+        Router --> H2
+        H1 --> L1
+        H2 --> L2
     end
-    
-    R1 --> R2 --> R3 --> R4 --> R5
-    
-    subgraph DataRetention["Data Retention Status"]
-        NoRequestLog["Request: Not Logged"]
-        NoResponseLog["Response: Not Stored"]
-        NoMetrics["Metrics: Not Collected"]
-    end
-    
-    R5 -.-> NoRequestLog
-    R5 -.-> NoResponseLog
-    R5 -.-> NoMetrics
+    NoDB[("Absent tier<br/>no database, cache, or session store")]
+    Disk[("industry.csv on disk<br/>never opened at runtime")]
+    Client -->|"HTTP/1.1 request"| Router
+    L1 -->|"200 text/plain"| Client
+    L2 -->|"200 text/plain"| Client
+    H1 -.->|"zero I/O, no query issued"| NoDB
+    H2 -.->|"zero I/O, no query issued"| NoDB
 ```
 
-### 6.2.4 Static Data Asset Analysis
+**Figure 6.2.1 — Complete runtime data path.** Every response is produced from an in-memory literal with zero I/O; the dashed edges to the absent datastore tier and the isolated `industry.csv` node make explicit that no persistent storage participates in request handling. This is the data-flow diagram required by the section prompt, rendered for a system with no data tier.
 
-## Industry.csv File Assessment
+### 6.2.2 Schema Design
 
-The repository contains one static data file (`industry.csv`) that warrants documentation, though it is **not programmatically consumed** by the server at runtime.
+There is **no database schema**. No relational or non-relational datastore exists, so there are no tables, collections, entities, relationships, indexes, keys, or constraints to define. The only data structures in the running system are the two immutable string constants emitted by the route handlers in `server.js` and the process configuration constants (host `127.0.0.1`, port `3000`). This sub-section documents that data landscape in Entity-Relationship form, records the (empty) index and constraint inventory, and addresses partitioning, replication, and backup — all of which are absent because nothing is persisted to partition, replicate, or back up.
 
-| Attribute | Value | Significance |
-|-----------|-------|--------------|
-| File Path | `industry.csv` (root directory) | Available for Backprop analysis |
-| Runtime Usage | None | Server does not load or read this file |
-| Content | 44 industry categories | Static reference data |
-| Purpose | Backprop test data | Available for code analysis tools |
+#### Entity Relationships and Data Model
 
-#### Static Asset Architecture
-
-```mermaid
-flowchart TB
-    subgraph RuntimeBehavior["Runtime Data Access"]
-        ServerJS["server.js"]
-        NoFileAccess["No File System Access"]
-        StaticResponse["Static Response:<br/>'Hello, World!'"]
-    end
-    
-    subgraph StaticAssets["Static Repository Assets"]
-        IndustryCSV["industry.csv<br/>44 industry categories"]
-        FileStatus["Status: NOT CONSUMED<br/>by server at runtime"]
-    end
-    
-    subgraph BackpropAnalysis["Backprop Analysis Context"]
-        BackpropTool["Backprop Tool"]
-        FileSystemRead["File System Read"]
-    end
-    
-    ServerJS --> NoFileAccess
-    NoFileAccess --> StaticResponse
-    ServerJS -.->|"No Runtime<br/>Connection"| IndustryCSV
-    BackpropTool --> FileSystemRead
-    FileSystemRead --> IndustryCSV
-    IndustryCSV --> FileStatus
-```
-
-### 6.2.5 Schema Design Assessment
-
-#### Schema Design Status: Not Applicable
-
-Since the system implements no data persistence, schema design documentation is not applicable. The following table summarizes what would typically be documented and why it's excluded:
-
-| Schema Component | Typical Purpose | Status | Rationale |
-|------------------|-----------------|--------|-----------|
-| Entity Relationships | Define data model connections | ❌ N/A | No entities exist |
-| Data Models | Structure stored data | ❌ N/A | No data storage |
-| Indexing Strategy | Optimize query performance | ❌ N/A | No queries executed |
-| Partitioning Approach | Distribute data across storage | ❌ N/A | No data to partition |
-
-#### Entity-Relationship Assessment
+The complete data inventory of the running service is three items, none of which is persisted and none of which relates to another. The diagram below renders them in Entity-Relationship notation to satisfy the ERD requirement and to make explicit that there are zero relationships and zero persistent entities.
 
 ```mermaid
 erDiagram
-    SYSTEM {
-        string status "No Entities Defined"
-        string reason "Stateless Architecture"
+    ROOT_GREETING_LITERAL {
+        string value "Hello, World! plus trailing LF"
+        int byte_length "14"
+        string lifetime "Ephemeral in-memory constant"
+        string source "server.js root route handler"
     }
-    
-    NO_TABLES {
-        string explanation "Zero database tables"
-        string rationale "No data persistence"
+    EVENING_GREETING_LITERAL {
+        string value "Good evening, no trailing LF"
+        int byte_length "12"
+        string lifetime "Ephemeral in-memory constant"
+        string source "server.js good-evening route handler"
     }
-    
-    NO_RELATIONSHIPS {
-        string explanation "Zero entity relationships"
-        string rationale "No data models"
+    INDUSTRY_CSV_ASSET {
+        string file_name "industry.csv"
+        int data_rows "43 categories plus 1 header"
+        string lifetime "Static on-disk, not read at runtime"
+        string origin "repository root"
     }
-    
-    SYSTEM ||--|| NO_TABLES : "by design"
-    SYSTEM ||--|| NO_RELATIONSHIPS : "by design"
 ```
 
-### 6.2.6 Data Management Assessment
+**Figure 6.2.2 — Data inventory (no database schema).** These are not database tables; they are the two in-memory response constants and one unused static file. They are shown as standalone entities with no relationship edges because no relational datastore — and therefore no entity relationship — exists. The two greeting literals live only in process memory; `industry.csv` is a static file that the service never opens (Section 3.5.3).
 
-#### Data Management Status: Not Applicable
+#### Indexes and Constraints
 
-The system requires no data management capabilities due to its stateless architecture and zero-persistence design.
+The section prompt requires documenting all indexes and constraints. Because there is no datastore, the inventory is empty in every category, as recorded below.
 
-| Management Area | Typical Purpose | Status | Rationale |
-|-----------------|-----------------|--------|-----------|
-| Migration Procedures | Evolve schema over time | ❌ N/A | No schema exists |
-| Versioning Strategy | Track data changes | ❌ N/A | No data changes |
-| Archival Policies | Preserve historical data | ❌ N/A | No data to archive |
-| Caching Policies | Optimize repeated access | ❌ N/A | Static response |
+| Schema Object | Present? | Evidence |
+|---|---|---|
+| Tables / collections | None | No datastore; no DDL or schema file in the repository |
+| Primary keys | None | No tables exist to key |
+| Foreign keys / referential constraints | None | No inter-entity relationships exist (Figure 6.2.2) |
+| Secondary indexes | None | No datastore or query engine to index |
+| Unique / check / NOT NULL constraints | None | No columns exist to constrain |
 
-#### Caching Requirements Analysis
+#### Indexing and Partitioning Strategy
 
-| Caching Aspect | Implementation | Rationale |
-|----------------|----------------|-----------|
-| Server-side Caching | None | Static response provides no caching benefit |
-| Client-side Caching | Not controlled | No cache headers set by server |
-| Request Caching | None | Each request processed independently |
-| Response Caching | None | Response generated per request |
+No indexing strategy exists because there is no queryable datastore; response selection is performed by HTTP route matching in the Express router, not by an indexed lookup. Likewise, no partitioning or sharding approach exists — there is no data volume to divide, no partition key, and no horizontal or vertical table split. Both concerns are structurally moot for a service that emits fixed literals with zero I/O.
 
-### 6.2.7 Compliance Considerations Assessment
+#### Replication Configuration
 
-#### Compliance Status: Minimal Applicable Requirements
-
-Given the system's stateless architecture and zero data persistence, most compliance considerations are not applicable.
-
-| Compliance Area | Typical Requirement | Status | Rationale |
-|-----------------|---------------------|--------|-----------|
-| Data Retention | Define retention periods | ❌ N/A | No data retained |
-| Backup Policies | Regular data backups | ❌ N/A | No data to backup |
-| Privacy Controls | PII protection | ❌ N/A | No PII collected |
-| Audit Mechanisms | Track data access | ❌ N/A | No data accessed |
-
-#### Access Control Assessment
-
-| Access Control Type | Implementation | Notes |
-|--------------------|----------------|-------|
-| Database Authentication | Not Implemented | No database connection |
-| Role-Based Access | Not Implemented | No user roles defined |
-| Row-Level Security | Not Implemented | No database rows |
-| Encryption at Rest | Not Required | No persistent data |
-
-#### Data Redundancy Assessment
-
-| Redundancy Aspect | Implementation | Rationale |
-|-------------------|----------------|-----------|
-| Data Backup | Not Required | No persistent data exists |
-| Replication | Not Implemented | Stateless architecture |
-| Failover | Not Implemented | Single instance design |
-| Geographic Distribution | Not Applicable | Localhost binding only |
-
-### 6.2.8 Performance Optimization Assessment
-
-#### Database Performance: Not Applicable
-
-Since no database operations occur, database performance optimization is not applicable to this system.
-
-| Optimization Area | Typical Purpose | Status | Rationale |
-|-------------------|-----------------|--------|-----------|
-| Query Optimization | Improve query speed | ❌ N/A | No queries executed |
-| Connection Pooling | Reuse connections | ❌ N/A | No database connections |
-| Read/Write Splitting | Distribute load | ❌ N/A | No read/write operations |
-| Batch Processing | Optimize bulk operations | ❌ N/A | No bulk data processing |
-
-#### Response Performance Characteristics
-
-While database performance is not applicable, the system's response performance is documented for completeness:
-
-| Performance Metric | Value | Notes |
-|--------------------|-------|-------|
-| Response Generation | < 1ms | Static string literal |
-| Memory Footprint | Minimal | No data buffering |
-| CPU Usage | Negligible | No computation required |
-| I/O Operations | None | No file or database I/O |
-
-### 6.2.9 Replication Architecture Assessment
-
-#### Replication Status: Not Applicable
-
-The system implements no replication mechanisms as there is no data to replicate.
+No database replication is configured because there is no database and the service holds no data at rest. The runtime is a single Node.js process bound to `127.0.0.1:3000` (`server.js`), with no primary/replica topology, no write-ahead-log or binlog streaming, and no read replicas. Section 5.4.5 (Disaster Recovery) independently confirms there are no replicas or standbys. The diagram contrasts the implemented single stateless process with the primary/replica database topology the system does not have.
 
 ```mermaid
 flowchart TB
-    subgraph ReplicationAssessment["Replication Architecture Assessment"]
-        subgraph NotApplicable["Not Applicable (No Data to Replicate)"]
-            NoPrimary["No Primary Database"]
-            NoReplica["No Replica Databases"]
-            NoSyncRequired["No Synchronization Required"]
-        end
-        
-        subgraph SystemReality["Actual System State"]
-            StatelessServer["Stateless HTTP Server"]
-            NoDataPersistence["Zero Data Persistence"]
-            SingleInstance["Single Instance Only"]
-        end
+    subgraph Impl["Implemented: single stateless process"]
+        direction TB
+        P1["node server.js<br/>one process, one event loop"]
+        M1["In-memory string literals only<br/>no data at rest"]
+        P1 --- M1
     end
-    
-    StatelessServer --> NoDataPersistence
-    NoDataPersistence --> SingleInstance
-    NoPrimary -.->|"Not Implemented"| StatelessServer
-    NoReplica -.->|"Not Implemented"| StatelessServer
+    subgraph Absent["Not implemented: database replication topology"]
+        direction TB
+        Pri["Primary / writer node"]
+        Rep1["Read replica 1"]
+        Rep2["Read replica 2"]
+        Pri -->|"WAL / binlog stream"| Rep1
+        Pri -->|"WAL / binlog stream"| Rep2
+    end
+    P1 -.->|"no datastore to replicate"| Pri
 ```
 
-| Replication Component | Status | Implementation |
-|-----------------------|--------|----------------|
-| Primary Database | ❌ N/A | No database deployed |
-| Read Replicas | ❌ N/A | No data to replicate |
-| Synchronization | ❌ N/A | No replication targets |
-| Failover | ❌ N/A | No database instances |
+**Figure 6.2.3 — Replication architecture.** The left cluster is the implemented single stateless process (nothing to replicate); the right cluster shows the primary/replica topology that would be required if a datastore existed, joined by a dashed "not implemented" edge. No replication is configured anywhere in the repository.
 
-### 6.2.10 Constraints Preventing Database Implementation
+#### Backup Architecture
 
-The following architectural constraints explicitly prevent database implementation in this system:
+No data-backup architecture exists because the service is stateless and stores nothing (Section 5.4.5). There is no database dump, snapshot schedule, point-in-time-recovery configuration, or backup target. The only recoverable assets are source artifacts under version control: the committed `package-lock.json` allows the exact runtime to be rebuilt deterministically via `npm install`, and `server.js` — with its embedded response literals — is recoverable from Git history. Recovery of a lost environment is therefore a source-checkout-and-reinstall operation, not a data-restore operation.
 
-| Constraint ID | Description | Impact on Database Design |
-|---------------|-------------|---------------------------|
-| C-001 | Localhost binding only | Cannot connect to external database servers |
-| C-002 | Zero external dependencies | Cannot add database drivers or ORMs |
-| C-003 | Hardcoded configuration | No connection string support |
-| C-004 | Repository immutability | Technology stack frozen ("Do not touch!") |
-| C-005 | Stateless design principle | Explicitly requires no data persistence |
+### 6.2.3 Data Management
 
-#### Constraint Impact Visualization
+Because no data is persisted, the data-management disciplines this area normally covers — schema migration, data versioning, archival, and datastore-backed storage/retrieval — have no subject matter. Each is recorded explicitly below, alongside the one storage-and-retrieval mechanism that does exist: direct emission of in-memory string literals.
 
-```mermaid
-flowchart TB
-    subgraph Constraints["Architectural Constraints"]
-        C1["C-001<br/>Localhost Only"]
-        C2["C-002<br/>Zero Dependencies"]
-        C3["C-003<br/>Hardcoded Config"]
-        C4["C-004<br/>Frozen Repository"]
-        C5["C-005<br/>Stateless Design"]
-    end
-    
-    subgraph BlockedCapabilities["Blocked Database Capabilities"]
-        NoExtDB["External Database<br/>Connection BLOCKED"]
-        NoDrivers["Database Drivers<br/>BLOCKED"]
-        NoConnStr["Connection Strings<br/>BLOCKED"]
-        NoChanges["Schema Changes<br/>BLOCKED"]
-        NoPersistence["Data Persistence<br/>BLOCKED"]
-    end
-    
-    C1 --> NoExtDB
-    C2 --> NoDrivers
-    C3 --> NoConnStr
-    C4 --> NoChanges
-    C5 --> NoPersistence
-```
+| Data-Management Concern | Status | Basis |
+|---|---|---|
+| Migration procedures | None | No schema and no migration tool (Flyway, Liquibase, Alembic, Prisma Migrate, Knex) in the dependency tree; nothing to migrate |
+| Versioning strategy (data / schema) | None | No schema to version; code and dependencies are versioned via `package.json` (`1.0.0`) and `package-lock.json`, not a data-version store |
+| Archival policies | None | No historical data accumulates; every request is stateless and share-nothing (Section 4.4) |
+| Storage and retrieval mechanism | In-memory literals | Handlers call `res.send(...)` with a constant string; retrieval is a direct memory read, not a datastore query (`server.js`) |
+| Caching policies | None (application) | No cache layer and no `Cache-Control` header; only framework artifacts (weak `ETag`, keep-alive) are present (Section 4.4.3) |
 
-### 6.2.11 Summary and Recommendations
+#### Storage and Retrieval Mechanism
 
-#### Summary
+The only "storage" is the process's own compiled code and memory. When `server.js` loads, the two greeting literals become part of the running program; when a request matches a route, the handler returns that literal synchronously with zero I/O. There is no read path to a database, no write path, and no lazy loading, connection acquisition, cursor iteration, or result-set marshaling. The static `industry.csv` file is not part of this mechanism — it is never opened at runtime (Sections 3.5.3, 4.4.2).
 
-Database Design is definitively **not applicable** for the hao-backprop-test system due to:
+#### Migration and Versioning Strategy
 
-1. **Zero Dependencies**: The `package.json` contains no database drivers, ORMs, or data access libraries
-2. **Stateless Architecture**: The system explicitly maintains no state between HTTP requests
-3. **Test Project Designation**: Marked as a test harness for Backprop integration with a "Do not touch!" directive
-4. **Hardcoded Configuration**: No mechanism for database connection strings or credentials
-5. **Localhost Binding**: Network isolation prevents connection to external database servers
-6. **Single-File Implementation**: The entire application (14 lines in `server.js`) contains no database logic
+Since there is no schema, there are no forward or rollback migrations, no migration version table, and no migration runner. The repository's only versioning constructs are the semantic version declared in `package.json` (`hello_world` 1.0.0) and the deterministic dependency pinning in `package-lock.json` (`lockfileVersion: 3`). These version application code and its dependency graph, not any data or schema, and they support reproducible rebuilds rather than data evolution.
 
-#### Architectural Appropriateness
+#### Archival and Caching Policies
 
-The absence of database design is **intentional and appropriate** for this system's purpose:
+No archival policy exists because the service generates and retains no records — there is no cold-storage tier, no time-based rollover, and no purge job. The application likewise defines no caching policy: as documented in Section 4.4.3, Express auto-generates a weak `ETag` per response body and Node.js applies a default `Keep-Alive: timeout=5`, but both are framework and transport defaults rather than an application-managed cache. No `Cache-Control` directive, TTL, eviction rule, or invalidation policy is set anywhere in `server.js`.
 
-| Design Decision | Benefit for Test Project |
-|-----------------|--------------------------|
-| No database dependencies | Eliminates database-related test variables |
-| Stateless responses | Ensures identical behavior across test runs |
-| Zero external connections | Maintains complete test isolation |
-| Static response content | Guarantees deterministic output |
+### 6.2.4 Compliance Considerations
 
-#### Future Considerations
+The compliance posture follows directly from the absence of persisted data: with no records stored, the data-centric compliance obligations this area enumerates do not attach. The service also handles no personal or user-supplied data — both responses are fixed greetings that are independent of request content (`server.js`).
 
-If the system scope were to expand beyond its current test project purpose to require database functionality, the following would need to be implemented:
+| Compliance Concern | Status | Basis |
+|---|---|---|
+| Data retention rules | Not applicable | No data is stored, so there is no retention period to define or enforce (Section 4.4) |
+| Backup and fault-tolerance policy | None (not required) | Stateless service with nothing to back up; single process, no HA or failover (Section 5.4.5) |
+| Privacy controls | Not applicable | No personal data is collected, stored, or logged; responses are fixed and independent of request input (`server.js`) |
+| Audit mechanisms | None | No audit log, access log, or change-data-capture; observability is limited to two console lines (Section 5.4.1) |
+| Access controls | Network-level only | No authentication/authorization and no row/column/object permissions; the loopback bind (`127.0.0.1`) is the sole access boundary (Section 5.4.3) |
 
-| Capability | Required Changes |
-|------------|------------------|
-| Database Connectivity | Add database driver dependencies |
-| Schema Management | Implement migration tooling |
-| Data Persistence | Remove localhost binding constraint |
-| Configuration Management | Add environment variable support |
+#### Data Retention and Privacy
 
-However, such expansion would contradict the project's stated purpose and the repository's immutability constraints as documented in the README.md.
+Because neither handler reads request bodies, query parameters, headers, or cookies to build its response, no user or personal data enters the system, is processed, or is retained. There is consequently no PII inventory, no data-classification scheme, no consent or erasure workflow, and no data-subject-access surface to govern. Request metadata is not logged, since no access logging is configured (Section 5.4.1), so no incidental personal data (for example client IP addresses) is captured either. With nothing stored, there is no retention schedule and no deletion obligation.
 
-### 6.2.12 References
+#### Backup, Fault-Tolerance, Audit, and Access Controls
 
-#### Repository Files Examined
+Data-tier controls — database roles, grants, row-level security, encryption-at-rest, and audit trails of reads and writes — do not exist because there is no data tier. Backup and fault-tolerance policy is correspondingly empty: the stateless service stores nothing to protect, runs as a single process with no replica or standby, and recovers by re-running from the committed source and lockfile (Section 5.4.5). At the process level there is no authentication or authorization (Section 5.4.3); the only enforced boundary is the loopback network bind, which makes the service unreachable from other hosts and substitutes network isolation for application-level access control. There is no audit trail of data access because no data access occurs — the process emits only a startup line to `stdout` and a bind-failure diagnostic to `stderr` (Section 5.4.1), and neither is a data-audit record.
 
-- `server.js` - Complete HTTP server implementation (14 lines); confirmed absence of any database code or data persistence logic
-- `package.json` - Confirmed zero external dependencies; no database drivers (mongoose, sequelize, pg, mysql, mongodb, etc.)
-- `package-lock.json` - Confirmed empty dependency tree; validates zero database package installations
-- `industry.csv` - Static data file present but NOT consumed by server at runtime; available for Backprop analysis only
-- `README.md` - Confirms test project designation: "test project for backprop integration. Do not touch!"
+### 6.2.5 Performance Optimization
 
-#### Technical Specification Sections Referenced
+The database performance-optimization techniques this area enumerates all presuppose a datastore and its access layer; none applies to a service that returns in-memory literals with zero I/O. Each is recorded below, together with the one relevant runtime characteristic: because the handlers never block on I/O, a single Node.js event loop serves requests with no data-tier bottleneck (Section 5.4.4).
 
-- `3.6 Databases & Storage` - Explicit "Database Status: None" declaration; comprehensive excluded technologies table
-- `4.4 State Management` - Documents "completely stateless architecture" with no data persistence points
-- `5.1 High-Level Architecture` - Confirms "zero-dependency, single-file, stateless HTTP server architecture"
-- `6.1 Core Services Architecture` - Confirms "No data persistence"; data redundancy not applicable
+| Optimization Technique | Status | Basis |
+|---|---|---|
+| Query optimization patterns | Not applicable | No queries are issued; response selection is HTTP route matching, not datastore querying (`server.js`) |
+| Caching strategy | None (application) | No application cache; only framework weak `ETag` and keep-alive defaults (Section 4.4.3) |
+| Connection pooling | Not applicable | No database connections to pool; inbound HTTP connection reuse is Node keep-alive (`timeout=5`), not a DB pool (Section 4.4.3) |
+| Read/write splitting | Not applicable | No reads or writes to any datastore; no primary/replica split (Section 5.4.5) |
+| Batch processing | None | No batch jobs, bulk loads, or scheduled data processing; every request is a single synchronous pass (Section 4.4) |
+
+#### Why Data-Tier Optimization Does Not Apply
+
+Query optimization, connection pooling, and read/write splitting are techniques for reducing the cost and contention of datastore access. With no datastore, there is no query plan to tune, no connection lifecycle to pool, and no read/write asymmetry to route across a primary and its replicas. The service's performance profile is instead governed entirely by the HTTP and framework layers: synchronous emission of a 14-byte or 12-byte literal, a weak `ETag` that enables conditional `304` responses, and connection reuse via keep-alive (Section 5.4.4). No numeric latency, throughput, or capacity target (SLA) is defined anywhere in the repository (Sections 1.2.3, 5.4.4), so these are structural characteristics rather than tuned commitments.
+
+#### Concurrency and Batch Posture
+
+The concurrency model is a single event loop with no clustering and no worker pool (Section 5.4.4). Because the handlers perform no blocking work, no data-tier batching, write coalescing, queueing, or bulk-load pipeline is needed or present, and there is no scheduled job, cron entry, or background worker anywhere in the repository. Any future introduction of a datastore would be the point at which these optimization patterns — indexing, pooled connections, read replicas, and batched writes — would first become relevant; none is warranted by the current stateless design.
+
+### 6.2.6 References
+
+The following repository artifacts and Technical Specification sections were examined as evidence for this section. All findings are grounded in direct inspection of the current codebase; no external web sources were required.
+
+**Repository files**
+
+- `server.js` — the sole executable application code; established the single `require('express')`, the two in-memory response literals (`Hello, World!\n` and `Good evening`), the hardcoded host/port constants, and the complete absence of database, filesystem, and persistence code.
+- `package.json` — established the sole runtime dependency (`express ^5.2.1`) and the absence of any database/ORM/cache driver or migration tooling.
+- `package-lock.json` — established the full 67-package Express dependency tree (`lockfileVersion: 3`) and confirmed, by enumeration and targeted scan, that no database, cache, ORM, or query-builder package is present.
+- `README.md` — established the operational contract (Node.js ≥ 18, loopback URL, two plain-text endpoints) with no database prerequisite.
+- `industry.csv` — the static, non-runtime CSV artifact (43 categories plus a header row) catalogued as outside the runtime data path; never read by `server.js`.
+
+**Repository folders**
+
+- Repository root (`/`) — scanned for datastore artifacts; confirmed the absence of `.sql`, `.prisma`, `knexfile`, `ormconfig`, `.env`, migration, and schema files, and of `models`, `db`, `migrations`, `prisma`, `seeds`, and `schema` directories (negative evidence for any schema, migration, or persistence layer).
+- `node_modules/` — contained Express 5.2.1 and its transitive HTTP-support dependencies only; no database, cache, or ORM packages.
+
+**Cross-referenced Technical Specification sections**
+
+- Section 3.5 Databases and Storage — the "no database, cache, or storage layer of any kind" determination, the absence-by-category table, and the static-artifact catalogue.
+- Section 4.4 State Management and Transaction Boundaries — statelessness, the absence of data-persistence points and transaction boundaries, and the caching posture (framework weak `ETag`, Node keep-alive `timeout=5`).
+- Section 5.3 Technical Decisions — ADR-04 (stateless, no datastore or cache).
+- Section 5.4 Cross-Cutting Concerns — authentication/authorization (5.4.3), performance and SLAs (5.4.4), and disaster recovery, backups, and reproducibility (5.4.5).
+- Section 6.1 Core Services Architecture — the single-process monolithic determination and the stateless data-tier note (6.1.3).
 
 ## 6.3 Integration Architecture
 
-### 6.3.1 Applicability Assessment
+### 6.3.1 Integration Architecture Applicability and Scope
 
-**Integration Architecture is not applicable for this system.**
+**Integration with external systems or services is not applicable for this system.** The `hao-backprop-test` service (npm package `hello_world`, version `1.0.0`) is a self-contained, single-process Express 5.2.1 application whose entire implementation resides in `server.js`. It performs **no outbound network calls**, consumes **no external API**, connects to **no database, cache, message broker, or third-party service**, reads **no environment-based configuration or credentials**, and binds **only** to the loopback interface `127.0.0.1:3000`, which makes it unreachable from any other host by design. Direct inspection of `server.js` confirms a single `require('express')` and no HTTP client, broker client, or `process.env` read of any kind. This posture is consistent with Section 3.4 (Third-Party Services — "integrates with no third-party runtime services of any kind"), Section 5.1.4 (External Integration Points), and Section 6.1 (single-process monolith).
 
-The hao-backprop-test repository implements a deliberately minimal "Hello World" HTTP server designed exclusively as a test harness for Backprop integration testing. The system architecture explicitly excludes all external service integrations, API design patterns, and message processing capabilities by design.
+Because of this, the enterprise-integration concerns the section prompt enumerates under **Message Processing** (event processing, message queues, stream processing, batch flows) and **External Systems** (third-party integration patterns, legacy interfaces, API gateway configuration, external service contracts) have **no corresponding implementation** and are recorded as not applicable, with evidence, in Sections 6.3.3 and 6.3.4.
 
-#### Justification for Non-Applicability
+One genuine integration surface does exist and is documented faithfully rather than dismissed: the system's **inbound HTTP API** — the two `GET` endpoints it exposes to local HTTP clients. That interface is the system's only contract with anything outside its own process, so it is the sole substantive subject of this section (Section 6.3.2). The only other external touchpoint anywhere in the lifecycle is the **npm registry**, contacted strictly at build/install time to obtain Express and its transitive packages (Section 6.3.4); it is never contacted at runtime.
 
-| Integration Requirement | System Status | Evidence |
-|------------------------|---------------|----------|
-| External API Integrations | Not Implemented | Zero dependencies in `package.json` |
-| Third-Party Services | None Connected | Localhost-only binding prevents external access |
-| API Design (REST/GraphQL) | Not Applicable | Single static response for all requests |
-| Message Processing | Not Implemented | No async processing or event handling |
-| Database Connectivity | Not Present | Stateless architecture by design |
-| Service-to-Service Communication | Not Required | Single-component system |
+#### Applicability by Prompt Area
 
-The system follows a **Minimal Monolith** architectural pattern that consolidates all functionality within a single 14-line implementation file while eliminating external dependencies. This design prioritizes predictability, reproducibility, and isolation over integration capabilities.
+The following table maps each area the section prompt requires to its applicability in this codebase.
 
-#### Architectural Classification
+| Prompt Area | Applicability | Basis in Repository |
+|-------------|---------------|---------------------|
+| API Design | Applicable (minimal inbound API) | One inbound HTTP/1.1 API with two `GET` routes bound to `127.0.0.1:3000` (`server.js` lines 19–33, 45) |
+| Message Processing | Not applicable | No broker/queue/stream/batch mechanism; only synchronous request/response (`server.js`; Section 5.1.3) |
+| External Systems | Not applicable at runtime | No external service consumed; sole external touchpoint is the build-time npm registry (`package-lock.json`; Section 3.4) |
 
-```mermaid
-flowchart TB
-    subgraph Classification["Integration Architecture Assessment"]
-        direction TB
-        Q1{{"Does the system<br/>connect to external APIs?"}}
-        Q2{{"Does it process<br/>messages or events?"}}
-        Q3{{"Does it require<br/>third-party services?"}}
-        Q4{{"Does it implement<br/>API specifications?"}}
-        Result[["Integration Architecture<br/>NOT APPLICABLE"]]
-    end
-    
-    Q1 -->|"No: Zero dependencies"| Q2
-    Q2 -->|"No: Static response"| Q3
-    Q3 -->|"No: Localhost only"| Q4
-    Q4 -->|"No: Single endpoint"| Result
-```
+#### Basis for the "No External Integration" Determination
 
-### 6.3.2 Project Context and Constraints
+Each integration capability that a conventional integration architecture would document resolves to "absent," and each is grounded in direct inspection of `server.js`, `package.json`, and `package-lock.json`.
 
-#### Project Purpose
+| Integration Capability | Present? | Evidence |
+|------------------------|----------|----------|
+| Outbound HTTP / API consumption | No | No `axios`/`node-fetch`/`got`/`request` in the dependency tree; no `http.request`/`fetch` call in `server.js` |
+| Message broker / queue / event bus client | No | No broker client (Kafka/RabbitMQ/SQS/etc.) in `package-lock.json`; no publish/subscribe code |
+| Streaming / batch data feed | No | No stream or scheduler library installed; each response is a fixed in-memory literal |
+| API gateway / reverse proxy | No | No proxy/gateway config; a single `app.listen` owns the only socket (`server.js` line 45) |
+| Authentication / identity provider integration | No | No auth SDK; endpoints are unauthenticated (constraint C-003) |
+| External configuration / secrets source | No | No `process.env` reads, `.env` files, or config files anywhere in the repository |
+| Runtime third-party service | No | Sole networked dependency (npm registry) is build-time only (`resolved` URLs in `package-lock.json`) |
 
-The README.md explicitly identifies this as a **"test project for backprop integration"** with a directive to "Do not touch!" This classification places the repository outside the domain of production systems where Integration Architecture would typically apply.
+#### Integration Context
 
-#### Architectural Constraints Preventing Integration
-
-| Constraint ID | Description | Integration Impact |
-|---------------|-------------|-------------------|
-| C-001 | Localhost binding only (127.0.0.1) | Prevents connection to cloud services or remote APIs |
-| C-002 | No external dependencies | Cannot integrate SDK libraries or API clients |
-| C-003 | Hardcoded configuration | No environment variables for API keys or endpoints |
-| C-004 | Static response content | No dynamic data from external sources |
-| C-005 | Repository immutability | Cannot add integration infrastructure |
-
-#### Network Isolation
-
-| Aspect | Configuration | Integration Impact |
-|--------|---------------|-------------------|
-| Binding Address | 127.0.0.1 (localhost only) | Prevents external network access |
-| Port | 3000 (hardcoded) | Single, known endpoint |
-| Protocol | HTTP (no TLS) | No secure external connections |
-| External Calls | None | Zero egress traffic |
-
-### 6.3.3 API Design Assessment
-
-**API Design is not applicable for this system.**
-
-The system does not implement an API in the traditional sense. It provides a single HTTP endpoint that returns an identical static response regardless of request method, path, headers, or body content.
-
-#### Excluded API Design Elements
-
-| API Design Element | Status | Exclusion Rationale |
-|-------------------|--------|---------------------|
-| Protocol Specifications | Not Implemented | Basic HTTP/1.1 via Node.js built-in module only |
-| Authentication Methods | Not Implemented | No security requirements for test harness |
-| Authorization Framework | Not Implemented | No access control needed for localhost |
-| Rate Limiting Strategy | Not Implemented | Single-user test execution model |
-| API Versioning | Not Implemented | Single static endpoint, no versioning |
-| Documentation Standards | Not Applicable | No API to document (OpenAPI/Swagger) |
-
-#### Request Handling Characteristics
-
-| Characteristic | Implementation | API Implications |
-|---------------|----------------|------------------|
-| HTTP Methods | All treated identically | No RESTful method differentiation |
-| URL Paths | All return same response | No request routing |
-| Query Parameters | Ignored | No parameter processing |
-| Request Headers | Not inspected | No content negotiation |
-| Request Body | Not parsed | No payload processing |
-
-#### HTTP Response Specification
-
-The system generates a single response type for all requests:
-
-| Response Element | Value | Notes |
-|-----------------|-------|-------|
-| Status Code | 200 | Always successful |
-| Content-Type | text/plain | Static header |
-| Response Body | "Hello, World!\n" | 14-character static string |
-
-### 6.3.4 Message Processing Assessment
-
-**Message Processing is not applicable for this system.**
-
-The system implements no asynchronous processing, event handling, or message queue interactions.
-
-#### Excluded Message Processing Patterns
-
-| Pattern Category | Status | Exclusion Rationale |
-|-----------------|--------|---------------------|
-| Event Processing | Not Implemented | No event bus or pub/sub infrastructure |
-| Message Queue Architecture | Not Implemented | No async processing requirements |
-| Stream Processing Design | Not Implemented | Static response requires no streaming |
-| Batch Processing Flows | Not Implemented | No data processing workloads |
-| Error Handling Strategy | Node.js Defaults | No custom retry or circuit breaker logic |
-
-#### Async Processing Assessment
-
-| Async Pattern | Implementation Status | Technical Reason |
-|--------------|----------------------|------------------|
-| Message Queues | None | Zero dependencies prevent queue client integration |
-| Event Streams | None | No Kafka, RabbitMQ, or SQS integration |
-| Pub/Sub | None | No event-driven architecture |
-| Webhooks | None | Localhost binding prevents callback registration |
-| Background Jobs | None | Synchronous request-response only |
-
-#### Error Handling Strategy
-
-The system delegates all error handling to Node.js runtime defaults:
-
-| Error Category | Handling Approach | Behavior |
-|---------------|-------------------|----------|
-| Startup Errors | Node.js default | Stack trace to stderr; process exit |
-| Runtime Exceptions | Uncaught exception handler | Stack trace; process termination |
-| Request Processing Errors | None possible | Static response guarantees no errors |
-
-```mermaid
-flowchart TD
-    subgraph NormalPath["Normal Execution"]
-        Start([node server.js])
-        LoadModule[Load http Module]
-        CreateServer[Create Server Instance]
-        BindPort[Bind to Port 3000]
-        ServerReady[Server Ready<br/>Awaiting Requests]
-    end
-    
-    subgraph ErrorScenarios["Error Scenarios"]
-        PortError[EADDRINUSE<br/>Port Occupied]
-        PermError[EACCES<br/>Permission Denied]
-        ModuleError[MODULE_NOT_FOUND]
-    end
-    
-    subgraph ErrorOutcome["Error Outcome"]
-        StackTrace[Stack Trace to stderr]
-        ProcessExit[Process Exit Code 1]
-    end
-    
-    Start --> LoadModule
-    LoadModule -->|Success| CreateServer
-    LoadModule -->|Failure| ModuleError
-    CreateServer --> BindPort
-    BindPort -->|Success| ServerReady
-    BindPort -->|Port Busy| PortError
-    BindPort -->|No Permission| PermError
-    
-    ModuleError --> StackTrace
-    PortError --> StackTrace
-    PermError --> StackTrace
-    StackTrace --> ProcessExit
-```
-
-### 6.3.5 External Systems Assessment
-
-**External Systems integration is not applicable for this system.**
-
-The system operates as a completely standalone application with no external service connections.
-
-#### Excluded Service Categories
-
-| Service Category | Common Examples | Status | Exclusion Rationale |
-|------------------|-----------------|--------|---------------------|
-| Cloud Platforms | AWS, Azure, GCP | ❌ Not used | Localhost isolation requirement |
-| Authentication | Auth0, Okta, Firebase Auth | ❌ Not used | No security requirements |
-| API Gateways | Kong, AWS API Gateway | ❌ Not used | Direct localhost access |
-| Message Queues | RabbitMQ, SQS, Kafka | ❌ Not used | No async processing |
-| Monitoring | Datadog, New Relic | ❌ Not used | Console output sufficient |
-| CDN | CloudFront, Cloudflare | ❌ Not used | No static asset delivery |
-| Email Services | SendGrid, SES, Mailgun | ❌ Not used | No notification requirements |
-| Payment Processing | Stripe, PayPal | ❌ Not used | Not applicable |
-
-#### Third-Party Integration Assessment
-
-| Integration Requirement | System Implementation | Gap |
-|------------------------|----------------------|-----|
-| SDK Libraries | None installed | Zero dependencies policy |
-| API Clients | None configured | No external endpoints |
-| Authentication Providers | None integrated | No identity management |
-| Storage Services | None connected | Stateless architecture |
-| Analytics Platforms | None configured | Test project scope |
-
-#### External Service Connectivity Diagram
+The complete integration topology is therefore one synchronous, loopback-only HTTP exchange between an external client and the single Express process, plus a one-time build-time pull of dependencies from the npm registry and fire-and-forget console logging. The diagram below labels this entire surface; no inter-system or asynchronous edges exist because none are implemented.
 
 ```mermaid
 flowchart LR
-    subgraph Project["hao-backprop-test System"]
-        Server["HTTP Server<br/>localhost:3000"]
+    Client["HTTP client<br/>curl / browser / automated test"]
+
+    subgraph Build["Build-time supply chain (runs before the process starts)"]
+        direction TB
+        Registry["npm registry<br/>registry.npmjs.org"]
+        Mods["node_modules/<br/>express 5.2.1 + transitive closure"]
+        Registry -->|"HTTPS tarballs + SHA-512"| Mods
     end
-    
-    subgraph External["External Services"]
-        None["None Integrated"]
+
+    subgraph Boundary["Runtime integration boundary — loopback 127.0.0.1:3000 (not reachable off-host)"]
+        direction TB
+        subgraph Proc["Sole OS process — node server.js (one event loop)"]
+            direction TB
+            App["Express 5.2.1 application<br/>x-powered-by disabled"]
+            R1["GET / handler"]
+            R2["GET /good-evening handler"]
+            FH["Default finalhandler (404)"]
+            App --> R1
+            App --> R2
+            App --> FH
+        end
+        Console["Console sink<br/>stdout / stderr"]
     end
-    
-    Backprop["Backprop Tool<br/>(Analysis Only)"] -.->|"Code Analysis<br/>(File I/O)"| Project
-    
-    style External fill:#f5f5f5,stroke:#bdbdbd
-    style None fill:#eeeeee,stroke:#bdbdbd
+
+    Client -->|"HTTP/1.1 request"| App
+    R1 -->|"200 text/plain + nosniff"| Client
+    R2 -->|"200 text/plain + nosniff"| Client
+    FH -->|"404 text/html + CSP"| Client
+    App -.->|"startup / error lines"| Console
+    Mods -.->|"required at startup"| App
 ```
 
-### 6.3.6 Single External Interaction: Backprop Analysis Tool
+**Figure 6.3.1 — Integration context and flow.** The only runtime integration is the inbound HTTP request/response between a local client and the single Express process; the dashed edges mark the build-time dependency pull and process logging. There are no external-service, message-broker, or gateway edges because none exist in the codebase.
 
-The only external interaction is with the **Backprop code analysis tool**, which represents a non-runtime integration through file system access.
+### 6.3.2 API Design
 
-#### Backprop Integration Characteristics
+The system's sole integration interface is an **inbound HTTP API** exposed by the single Express 5.2.1 application in `server.js`. It comprises exactly two routes — `GET /` and `GET /good-evening` — served over HTTP/1.1 on the loopback address `127.0.0.1:3000`. The API is intentionally minimal: it accepts no request body, query parameter, or header as input, and each response is a fixed in-memory string literal whose value depends only on the matched route, not on request content (Section 5.1.3). The sub-sections below document the protocol, the (absent) authentication/authorization, rate-limiting, and versioning mechanisms, and the documentation standards actually used.
 
-| Aspect | Specification | Notes |
-|--------|--------------|-------|
-| Integration Type | File System | Read-only access to repository files |
-| Protocol | File I/O | Not HTTP-based runtime integration |
-| Runtime Dependency | None | Analysis performed on static codebase |
-| Data Flow | Unidirectional | Backprop reads; system does not respond |
+The two route handlers are the entire API implementation. Each sets a hardening header, fixes the content type, and sends its literal body:
 
-#### Backprop Integration Sequence
+```javascript
+app.get('/', (req, res) => {
+  res.set('X-Content-Type-Options', 'nosniff').type('text/plain').send('Hello, World!\n');
+});
+```
+
+#### 6.3.2.1 Protocol Specifications
+
+The API uses unencrypted HTTP/1.1 over TCP, confined to the loopback interface. There is no TLS, no HTTP/2, and no non-localhost exposure — the bind target is the hardcoded constant `127.0.0.1:3000` (`server.js` lines 11–12, 45), so the service is unreachable from other hosts by design.
+
+| Protocol Attribute | Specification | Evidence |
+|--------------------|---------------|----------|
+| Transport / version | HTTP/1.1 over TCP (loopback only) | `app.listen(port, hostname, …)` on `127.0.0.1:3000` (`server.js` lines 11–12, 45) |
+| Transport security | None (plain HTTP; no TLS) | No TLS/HTTPS setup in `server.js`; Section 5.1.4 |
+| Success content type | `text/plain; charset=utf-8` | `res.type('text/plain')` + Express charset default (`server.js` lines 24, 32) |
+| Request inputs consumed | None (no body, query, or header parsing) | Handlers read no `req` data (`server.js` lines 19–33); Section 5.1.3 |
+| Connection reuse | Node default `Keep-Alive: timeout=5` | Node `net`/`http` default (Section 5.1.3); not application-configured |
+
+**Endpoint inventory.** The complete API surface is the two `GET` routes below. Response bodies are byte-significant: they differ only by a trailing newline.
+
+| Method | Path | Success Status | Response Body |
+|--------|------|----------------|---------------|
+| GET | `/` | `200 OK` | `Hello, World!\n` (14 bytes, one trailing newline) |
+| GET | `/good-evening` | `200 OK` | `Good evening` (12 bytes, no trailing newline) |
+
+**Success response headers.** Each `200` response carries the following headers; the framework-advertising `X-Powered-By` header is disabled application-wide via `app.disable('x-powered-by')` (`server.js` line 9), so it is absent.
+
+| Header | Value | Source |
+|--------|-------|--------|
+| `X-Content-Type-Options` | `nosniff` | Set explicitly on each route (`server.js` lines 24, 32) |
+| `Content-Type` | `text/plain; charset=utf-8` | `res.type('text/plain')` + Express charset |
+| `Content-Length` | `14` (`/`) or `12` (`/good-evening`) | Express-derived from the response body |
+| `ETag` | weak validator, e.g. `W/"e-…"` | Express default (enables conditional `GET`) |
+
+**Unmatched-request behavior.** Any request that does not match the two routes (for example `GET /nonexistent` or `POST /`) is finalized by Express's built-in `finalhandler`. This is a client-facing outcome of the routing layer, not a separately coded endpoint.
+
+| Aspect | Behavior |
+|--------|----------|
+| Trigger | Any method/path outside the two declared `GET` routes |
+| Responder | Express built-in `finalhandler` (no custom error middleware) |
+| Status / type | `404 Not Found`; `text/html; charset=utf-8` |
+| Extra headers | `Content-Security-Policy: default-src 'none'`; `X-Content-Type-Options: nosniff` |
+
+**API architecture.** The diagram shows the layered path a request traverses inside the single process, from the Node listener through the Express router to one of the two handlers or the default `404` responder.
+
+```mermaid
+flowchart TB
+    C["HTTP client<br/>curl / browser / test"]
+
+    subgraph Runtime["node server.js — bound to 127.0.0.1:3000"]
+        direction TB
+        Net["Node net/http listener<br/>owns the TCP socket"]
+        App["Express 5.2.1 application<br/>x-powered-by disabled"]
+        Router["Router<br/>path + method match"]
+        H1["GET / handler<br/>Hello, World! + LF (14 bytes)"]
+        H2["GET /good-evening handler<br/>Good evening (12 bytes)"]
+        FH["Default finalhandler<br/>404 text/html + CSP"]
+        Net --> App
+        App --> Router
+        Router --> H1
+        Router --> H2
+        Router --> FH
+    end
+
+    C -->|"HTTP/1.1 request"| Net
+    H1 -->|"200 text/plain + nosniff"| C
+    H2 -->|"200 text/plain + nosniff"| C
+    FH -->|"404 text/html + CSP + nosniff"| C
+```
+
+**Figure 6.3.2 — API architecture.** A single Node listener feeds one Express application and router that dispatches to two static handlers or the default `404` finalhandler; there are no upstream or downstream tiers.
+
+**Key request/response flow.** The sequence diagram below traces both outcomes of an inbound request — a matched route and an unmatched route — for the single synchronous exchange that constitutes the API.
 
 ```mermaid
 sequenceDiagram
-    participant D as Developer
-    participant R as Repository
-    participant B as Backprop Tool
-    participant S as HTTP Server (Optional)
-    
-    D->>R: Access repository
-    D->>B: Initiate analysis
-    B->>R: Read server.js
-    B->>R: Read package.json
-    B->>R: Read other files
-    B->>B: Parse source code
-    B->>B: Perform analysis
-    opt Server Running
-        B->>S: Test HTTP endpoint
-        S-->>B: "Hello, World!\n"
+    participant C as HTTP Client
+    participant N as Node net/http listener
+    participant E as Express app + router
+    participant H as Route handler
+    C->>N: HTTP/1.1 GET on 127.0.0.1:3000
+    N->>E: parsed request (method + path)
+    alt matches GET / or GET /good-evening
+        E->>H: dispatch to matching handler
+        H->>H: set nosniff + text/plain
+        H-->>C: 200 text/plain body (14 or 12 bytes)
+    else no route match
+        E-->>C: 404 text/html + CSP (finalhandler)
     end
-    B->>B: Generate results
-    B-->>D: Analysis complete
 ```
 
-#### Integration Flow Diagram
+**Figure 6.3.3 — Request/response sequence.** Every interaction is a single synchronous round trip; the handler emits a fixed literal, or the router's default `finalhandler` returns a `404`. No downstream call, callback, or asynchronous continuation occurs.
+
+#### 6.3.2.2 Authentication Methods and Authorization Framework
+
+**There is no authentication and no authorization framework.** Both endpoints are fully anonymous: no credential, token, API key, cookie, or session is required, parsed, or validated, and no identity or role concept exists in the code. `server.js` registers no authentication middleware and reads no `Authorization` header; the dependency tree contains no auth/identity SDK (Section 3.4). This is an explicit scope constraint (C-003, "no authentication"), appropriate to a loopback-only integration-test harness whose network exposure is limited to the local host.
+
+| Concern | Status | Evidence |
+|---------|--------|----------|
+| Authentication method | None (anonymous access) | No auth middleware or credential read in `server.js`; C-003 |
+| Authorization model | None (no roles, scopes, or ACLs) | Both routes served identically to any loopback client |
+| Identity / session store | None | No session or token library in `package-lock.json`; stateless design (Section 5.1.3) |
+
+#### 6.3.2.3 Rate Limiting Strategy
+
+**No rate limiting, throttling, or quota enforcement is implemented.** `server.js` registers no rate-limiting middleware (for example `express-rate-limit`), and no such package appears in the dependency tree (Section 3.3). Every request is processed on the single Node.js event loop with no per-client counters, token buckets, or concurrency caps. The only implicit bounds are structural rather than policy-driven: the loopback-only bind limits clients to the local host, and connection reuse follows Node's default keep-alive timeout of five seconds (Section 5.1.3). No numeric throughput, latency, or request-rate SLA is defined anywhere in the repository (Section 5.4.4).
+
+| Concern | Status | Evidence |
+|---------|--------|----------|
+| Rate limiting / throttling middleware | None | No rate-limit package in `package-lock.json`; none registered in `server.js` |
+| Quotas / concurrency caps | None | Single event loop, no per-client accounting (`server.js`) |
+| Effective bound | Loopback exposure + default keep-alive `timeout=5` | Bind to `127.0.0.1` (`server.js` line 11); Node default |
+
+#### 6.3.2.4 Versioning Approach
+
+**The API is unversioned.** There is no URI version prefix (no `/v1`), no version request header, and no media-type or content negotiation for versioning. The API surface is defined solely by the two literal route paths in `server.js`. The `1.0.0` value in `package.json` is npm **package** metadata, not an API version identifier. Backward compatibility is maintained by convention rather than by a versioning scheme: the re-platform from the native `http` baseline to Express preserved the `GET /` body byte-for-byte (requirement R3, referenced in `server.js` comments), and the new capability was added as a distinct path (`GET /good-evening`, R4) rather than as a new version of an existing endpoint.
+
+| Concern | Status | Evidence |
+|---------|--------|----------|
+| URI / header / media-type versioning | None | Routes are literal paths only (`server.js` lines 19, 30) |
+| Compatibility policy | Preserve existing paths byte-exact; add new paths | R3/R4 comments in `server.js`; new route `/good-evening` |
+| Package vs. API version | `package.json` `1.0.0` is package metadata, not an API version | `package.json` line 3 |
+
+#### 6.3.2.5 Documentation Standards
+
+The API is documented by human-readable Markdown and inline source comments rather than by a machine-readable contract. There is **no OpenAPI/Swagger specification, JSON Schema, or API-documentation generator** in the repository. The authoritative descriptions are:
+
+- **`README.md`** — presents an endpoint table (`Method` / `Path` / `Response`), states that both endpoints respond with `Content-Type: text/plain`, notes the trailing-newline distinction between the two bodies, and provides `curl` invocation examples against `http://127.0.0.1:3000/`.
+- **Inline comments in `server.js`** — document per-route behavior and trace it to requirements (R3 backward compatibility, R4 new route) and to the `nosniff`/`x-powered-by` hardening rationale.
+- **`blitzy/documentation/Project Guide.md`** — records the endpoint contracts, exact response-body byte lengths, content types, and the intentional Express `404` behavior for unknown routes.
+
+| Documentation Artifact | Format | Scope |
+|------------------------|--------|-------|
+| `README.md` | Markdown table + `curl` examples | Endpoints, content type, run/verify instructions |
+| `server.js` inline comments | Source comments | Per-route behavior, requirement/hardening rationale |
+| `blitzy/documentation/Project Guide.md` | Markdown | Endpoint contracts, byte lengths, `404` behavior |
+| Machine-readable API spec (OpenAPI/JSON Schema) | Absent | No such file exists in the repository |
+
+### 6.3.3 Message Processing
+
+**Message processing is not applicable for this system.** There is no asynchronous messaging of any kind: no event-processing subsystem, no message queue or broker, no stream processor, and no batch or scheduled job. The runtime is a purely synchronous HTTP request/response service — the only "message" exchange is a single request and its immediate response over the loopback interface (Figure 6.3.3). Direct inspection of `server.js` finds no message-broker client, no event emitter for domain events, no stream pipeline, and no scheduler; `package-lock.json` contains no queue, streaming, or job-scheduling package (Sections 3.3, 3.4). Section 5.1.4 records the same fact: "there are no webhooks, callbacks, long-polling, streaming, message queues, event buses, or batch feeds."
+
+The table maps each message-processing concern from the section prompt to its status and the code basis for that status.
+
+| Message Processing Concern | Status | Evidence |
+|----------------------------|--------|----------|
+| Event processing patterns | Not applicable | No domain-event emitter/handler; the only event bound is the Node server `'error'` lifecycle event (`server.js` line 60) |
+| Message queue architecture | Not applicable | No broker/queue client in `package-lock.json`; no producer/consumer code in `server.js` |
+| Stream processing design | Not applicable | No stream-processing library; responses are fixed in-memory literals, not streamed data (Section 5.1.3) |
+| Batch processing flows | Not applicable | No scheduler/cron/batch job; the static `industry.csv` is never read at runtime (Section 5.1.3) |
+| Error handling strategy | Present, but non-message | Fail-fast startup + request-plane `404` (`server.js` lines 45–63); Sections 4.5, 5.4.2, 6.1.4 |
+
+**Error handling in the absence of messaging.** Because there is no message pipeline, there is no dead-letter queue, no retry/back-off queue, and no poison-message handling — those constructs have nothing to act upon. The error handling that does exist operates on two independent planes (detailed in Sections 5.4.2 and 6.1.4): on the **process-lifecycle plane**, a startup bind failure such as `EADDRINUSE` is handled fail-fast by the `server.on('error', …)` listener, which writes a diagnostic to `stderr` and sets `process.exitCode = 1` with no retry; on the **request plane**, a request that matches no route is finalized as a `404` by Express's default `finalhandler`, and because both handlers emit static literals, no `5xx` path is reachable in normal operation.
+
+**Message flow.** The diagram contrasts the one message flow that exists — the synchronous HTTP request/response — with the asynchronous message-processing constructs that are not implemented.
 
 ```mermaid
-flowchart TB
-    subgraph Repository["Repository Layer"]
-        RepoFiles["Repository Files<br/>• server.js (14 lines)<br/>• package.json<br/>• package-lock.json<br/>• README.md<br/>• industry.csv"]
-        RepoServer["HTTP Server<br/>(Optional: Running)"]
+flowchart LR
+    subgraph Impl["Implemented — synchronous HTTP request/response (the only message flow)"]
+        direction LR
+        Cl["HTTP client"]
+        Sv["Express process<br/>node server.js"]
+        Cl -->|"request message (HTTP/1.1)"| Sv
+        Sv -->|"response message (200 or 404)"| Cl
     end
-    
-    subgraph Backprop["Backprop Analysis Layer"]
-        BPInit["Initialize Analysis"]
-        BPScan["Scan Repository<br/>Structure"]
-        BPParse["Parse Source Files"]
-        BPAnalyze["Perform Code<br/>Analysis"]
-        BPResults["Generate Analysis<br/>Results"]
+
+    subgraph Absent["Not implemented — asynchronous message processing"]
+        direction TB
+        Q["Message queue / broker"]
+        Ev["Event bus / pub-sub"]
+        St["Stream processor"]
+        Ba["Batch / scheduled job"]
+        DLQ["Dead-letter / retry queue"]
     end
-    
-    subgraph Output["Output Layer"]
-        OutReport["Analysis Report"]
-        OutInsights["Code Insights"]
-    end
-    
-    RepoFiles --> BPInit
-    RepoServer -.->|Optional| BPInit
-    BPInit --> BPScan
-    BPScan --> BPParse
-    BPParse --> BPAnalyze
-    BPAnalyze --> BPResults
-    BPResults --> OutReport
-    BPResults --> OutInsights
+
+    Sv -.->|"no producer/consumer path exists"| Q
 ```
 
-#### Integration Data Flow
+**Figure 6.3.4 — Message flow.** The `Impl` cluster is the complete message flow: a single synchronous request/response pair. The `Absent` cluster enumerates asynchronous message-processing mechanisms that are not present; the dashed edge marks that no producer or consumer path connects the process to any queue.
 
-| Flow ID | Source System | Target System | Data Type | Frequency |
-|---------|---------------|---------------|-----------|-----------|
-| DF-001 | Repository | Backprop | Source code files | Per analysis |
-| DF-002 | Server | Client | HTTP response | Per request |
-| DF-003 | Server | Console | Log messages | Per startup |
-| DF-004 | Backprop | User | Analysis results | Per analysis |
+### 6.3.4 External Systems Integration
 
-### 6.3.7 System Boundary and Integration Points
+**Integration with external systems is not applicable at runtime.** The service consumes no third-party API, connects to no external system, and is fronted by no gateway. Its runtime is fully self-contained on the loopback interface (Section 3.4: "integrates with no third-party runtime services of any kind"). The only external touchpoint anywhere in the lifecycle is the **npm registry**, contacted strictly at build/install time to obtain the Express library and its transitive packages; it is never contacted while the process runs (Sections 3.4, 5.1.4).
 
-#### Complete System Architecture
+The table maps each external-systems concern from the section prompt to its status and evidence.
 
-```mermaid
-flowchart TB
-    subgraph External["External Environment"]
-        Backprop["Backprop Analysis Tool"]
-        Developer["Developer/Tester"]
-        Browser["HTTP Client/Browser"]
-    end
-    
-    subgraph SystemBoundary["System Boundary: hao-backprop-test"]
-        subgraph CoreApp["Core Application"]
-            Server["server.js<br/>HTTP Server<br/>14 lines of code"]
-        end
-        
-        subgraph Config["Configuration Layer"]
-            Package["package.json<br/>NPM Metadata"]
-            Lock["package-lock.json<br/>Dependency Lock"]
-        end
-        
-        subgraph StaticAssets["Static Assets"]
-            CSV["industry.csv<br/>Data File"]
-            Readme["README.md<br/>Documentation"]
-        end
-    end
-    
-    Developer -->|"node server.js"| Server
-    Browser -->|"HTTP Request"| Server
-    Server -->|"HTTP Response"| Browser
-    Server -->|"stdout"| Developer
-    Backprop -->|"File System Read"| SystemBoundary
-```
+| External Systems Concern | Status | Evidence |
+|--------------------------|--------|----------|
+| Third-party integration patterns | Not applicable | No HTTP client/SDK in `package-lock.json`; no outbound call in `server.js` (Section 3.4.2) |
+| Legacy system interfaces | Not applicable | The native-`http` predecessor was fully replaced by Express (git commit `ec987aa`), not interfaced with; no legacy connector exists |
+| API gateway configuration | Not applicable | No gateway/reverse proxy; a single `app.listen` owns the only socket (`server.js` line 45) |
+| External service contracts | Not applicable at runtime | No external service consumed; the only external contract is the build-time npm dependency pull (`package-lock.json`) |
 
-#### External Integration Points Summary
+**Legacy-migration clarification.** The repository documents two states — an original native-Node `http` baseline (`blitzy/documentation/Technical Specifications.md`) and the current Express 5 delivery (`blitzy/documentation/Project Guide.md`). The transition between them is an **internal re-platforming that replaced the earlier implementation in place** (commit `ec987aa`), preserving the `GET /` response byte-for-byte for backward compatibility. It is not a runtime bridge to a still-running legacy system; the old `http`-module server no longer exists in the codebase, so there is no legacy interface to integrate with.
 
-| System Name | Integration Type | Protocol/Format | Runtime? |
-|-------------|------------------|-----------------|----------|
-| Backprop Analysis Tool | File System | File I/O | No |
-| HTTP Client/Browser | Request-Response | HTTP/1.1 | Yes |
-| Node.js Runtime | Process Execution | OS process | Yes |
-| Console/Terminal | Log Output | stdout | Yes |
+#### External Dependency Inventory
 
-### 6.3.8 Comparison: Expected vs. Actual Integration Architecture
+Although there is no external *service* integration, the section prompt requires that all external dependencies be documented. The complete set of external touchpoints across the system lifecycle is three items: one build-time supply-chain source and two host/library dependencies that are linked or provided in-process (never contacted over the network at runtime).
 
-```mermaid
-flowchart TB
-    subgraph ExpectedIntegration["Expected Integration Architecture"]
-        API["REST API<br/>Gateway"]
-        Auth["Authentication<br/>Service"]
-        MQ["Message<br/>Queue"]
-        DB["Database<br/>Connection"]
-        Third["Third-Party<br/>Services"]
-        
-        API --> Auth
-        API --> MQ
-        API --> DB
-        API --> Third
-    end
-    
-    subgraph ActualArchitecture["Actual System Architecture"]
-        SingleServer["server.js<br/>(14 lines)<br/>Localhost Only<br/>Zero Integrations"]
-    end
-    
-    ExpectedIntegration ~~~ ActualArchitecture
-```
+| Dependency | Lifecycle Phase | Interface | Purpose |
+|------------|-----------------|-----------|---------|
+| npm registry (`registry.npmjs.org`) | Build / install time only | HTTPS (tarballs + SHA-512 integrity) | Source of Express and its transitive packages during `npm install` / `npm ci` |
+| Express `5.2.1` (+ transitive closure) | Runtime (in-process library) | CommonJS `require` — linked code, no network | Web framework: routing, response API, default `404` handling |
+| Node.js ≥ 18 runtime | Host runtime | Node `net`/`http` API (in-process) | Listening socket, HTTP/1.1 parsing, event loop |
 
-### 6.3.9 Explicitly Excluded Integration Elements
+The runtime library dependency resolves to a full HTTP-middleware closure that is pinned by the committed `package-lock.json`. The complete inventory and its security posture are enumerated in Section 3.3 and summarized here for completeness:
 
-The following integration capabilities are explicitly excluded from this system and will not be implemented:
+| Dependency-Tree Attribute | Value | Evidence |
+|---------------------------|-------|----------|
+| Direct dependencies | 1 (`express ^5.2.1`) | `package.json` `dependencies` |
+| Installed packages (transitive closure) | 67, all from `registry.npmjs.org` | `package-lock.json` (`lockfileVersion 3`) |
+| License profile | Permissive only (62 MIT, 4 ISC, 1 BSD-3-Clause) | Section 3.3.4 |
+| Integrity / vulnerability posture | SHA-512 on every package; `npm audit` = 0 vulnerabilities | Section 3.3.5; `blitzy/documentation/Project Guide.md` |
 
-| Feature Category | Excluded Elements | Exclusion Rationale |
-|------------------|-------------------|---------------------|
-| API Design | REST endpoints, GraphQL, versioning | Single static response by design |
-| Authentication | OAuth, JWT, API keys, session management | No security requirements |
-| External Services | Cloud platforms, third-party APIs | Zero dependency policy |
-| Message Processing | Queues, streams, pub/sub, webhooks | No async processing needed |
-| Data Integration | Database connections, cache services | Stateless architecture |
-| Service Discovery | Consul, etcd, service registry | Single-instance design |
-| Gateway | API gateway, load balancer, reverse proxy | Localhost-only binding |
+No credentials, API keys, tokens, or secrets are required to build, install, or run the service — there are no `.env` files, configuration files, or secret-management integrations anywhere in the repository (Section 3.4.3). The build-time supply chain and the runtime request/response surface are depicted together in Figure 6.3.1.
 
-### 6.3.10 Summary
+### 6.3.5 References
 
-#### Integration Architecture Non-Applicability Summary
+The following repository artifacts and Technical Specification sections were examined as evidence for this section. All findings are grounded in direct inspection of the current codebase; no external web sources were required.
 
-Integration Architecture is definitively **not applicable** for the hao-backprop-test system due to:
+**Repository files**
 
-1. **Zero External Dependencies**: Empty `dependencies` object in `package.json` prevents SDK/client library integration
-2. **Localhost Binding**: Hardcoded `127.0.0.1` prevents connection to external services
-3. **Static Response**: No dynamic content from external data sources
-4. **Test Project Designation**: Explicitly marked as a test harness for Backprop integration
-5. **Repository Immutability**: "Do not touch!" policy prevents adding integration infrastructure
-6. **Single-Purpose Function**: Returns "Hello, World!" with no service logic
+- `server.js` — established the entire runtime integration surface: the single `require('express')`, the two `GET` routes and their byte-exact responses, the hardcoded loopback bind (`127.0.0.1:3000`), the `x-powered-by`/`nosniff` header policy, the absence of any outbound call, auth, or messaging code, and the fail-fast startup/`error` handling.
+- `package.json` — established package identity (`hello_world` `1.0.0`), the single direct dependency `express ^5.2.1`, and the absence of any auth, gateway, queue, or client configuration.
+- `package-lock.json` — established the pinned 67-package Express closure, all resolved from `registry.npmjs.org` with SHA-512 integrity, and confirmed the absence of any HTTP-client, broker, gateway, or streaming/scheduler package.
+- `README.md` — established the API documentation standard: the endpoint table, the `text/plain` content type, the trailing-newline distinction, and the `curl` verification examples against the loopback URL.
+- `node_modules/express/package.json` — confirmed the installed Express version `5.2.1`.
+- `blitzy/documentation/Project Guide.md` — corroborated the endpoint contracts, exact response-body byte lengths, the intentional Express `404` behavior for unknown routes, and the `npm audit` = 0 vulnerabilities result.
+- `blitzy/documentation/Technical Specifications.md` — established the original native-`http` baseline state referenced in the legacy-migration clarification (the predecessor implementation that Express replaced in place).
 
-#### Architectural Appropriateness
+**Repository folders**
 
-The absence of Integration Architecture is **appropriate and intentional** for this system's purpose:
+- `node_modules/` — contained Express `5.2.1` and its transitive HTTP-middleware closure only; confirmed (as negative evidence) the absence of any message-broker, streaming, service-discovery, gateway, or auth packages.
 
-| Constraint | Benefit for Test Project |
-|------------|-------------------------|
-| Zero dependencies | Eliminates supply chain risk and test variables |
-| Localhost binding | Maintains isolation; prevents unintended external access |
-| Hardcoded configuration | Guarantees identical behavior across test runs |
-| Static response | Provides predictable, verifiable output for testing |
+**Cross-referenced Technical Specification sections**
 
-#### Future Considerations
-
-If the system scope were to expand beyond its current test project purpose to require Integration Architecture, the following would need to be implemented:
-
-| Capability | Required Changes |
-|------------|-----------------|
-| External API Integration | Add HTTP client libraries; configure endpoints |
-| Authentication | Implement OAuth/JWT; add identity provider integration |
-| Message Processing | Add queue client libraries; implement async handlers |
-| Third-Party Services | Remove localhost binding; add SDK dependencies |
-| API Gateway | Add reverse proxy; implement routing |
-
-However, such expansion would contradict the project's stated purpose and the "Do not touch!" directive in the README.md.
-
-#### References
-
-#### Technical Specification Sections Retrieved
-
-- `6.1 Core Services Architecture` - Confirms single-component architecture with no service integration
-- `3.5 Third-Party Services` - Documents zero external service integrations
-- `1.3 Scope` - Lists out-of-scope elements including all integration points
-- `4.3 Integration Workflows` - Documents Backprop as only external interaction (non-runtime)
-- `5.5 Architectural Constraints` - Documents C-001 through C-005 constraints
-- `5.4 Cross-Cutting Concerns` - Confirms no authentication, monitoring services, or distributed tracing
-- `4.8 Integration Sequence Diagrams` - Provides Backprop integration sequence
-- `5.1 High-Level Architecture` - Confirms zero-dependency, single-file architecture
-- `Node.js http Module` - Confirms only built-in http module used; lists excluded libraries
-
-#### Repository Files Referenced
-
-- `server.js` - Complete HTTP server implementation (14 lines); confirms no external service calls
-- `package.json` - Confirms zero external dependencies; empty dependencies object
-- `README.md` - Confirms test project purpose: "test project for backprop integration. Do not touch!"
+- Section 2.6 Assumptions and Constraints — constraint C-003 (loopback-only, no authentication), which grounds the absent authentication/authorization posture.
+- Section 3.3 Open Source Dependencies — the complete 67-package dependency inventory, permissive-license profile, and SHA-512/`npm audit` security posture.
+- Section 3.4 Third-Party Services — the external-service posture (no third-party runtime services; sole build-time touchpoint is the npm registry).
+- Section 4.5 Error Handling and Recovery Flows — the request-plane and startup error-handling behavior referenced under Message Processing.
+- Section 5.1 High-Level Architecture — the system boundary (5.1.1), runtime data flow (5.1.3), and External Integration Points table (5.1.4).
+- Section 5.4 Cross-Cutting Concerns — the two-plane error-handling model (5.4.2) and the fact that no performance/rate SLA is defined (5.4.4).
+- Section 6.1 Core Services Architecture — the single-process monolith determination, the sole runtime interaction surface, and the fail-fast resilience pattern (6.1.4).
 
 ## 6.4 Security Architecture
 
-### 6.4.1 Applicability Assessment
+### 6.4.1 Security Architecture Applicability and Scope
 
-**Detailed Security Architecture is not applicable for this system.**
+**Detailed Security Architecture is not applicable for this system.** The repository implements a single-file, single-process Express 5 "Hello World" HTTP service (`server.js`, 64 lines) that binds exclusively to the loopback interface `127.0.0.1:3000`, exposes two anonymous read-only `GET` routes returning static plain-text greetings, and performs no authentication, authorization, data persistence, or handling of personal, financial, or health data. There is consequently no identity subsystem, no access-control model, and no protected data asset that a dedicated authentication framework, authorization system, or data-protection layer would govern.
 
-The hao-backprop-test repository implements a deliberately minimal, single-component HTTP server designed exclusively as a test harness for Backprop integration testing. This architectural approach explicitly excludes authentication, authorization, encryption, and comprehensive security infrastructure by design. The following documentation explains this design decision and identifies the standard security practices that are implicitly followed.
+Because the prompt requires this determination to be justified rather than merely asserted, this section still walks through every area enumerated in the section prompt — Authentication Framework (§6.4.2), Authorization System (§6.4.3), and Data Protection (§6.4.4) — and documents, with direct repository evidence, why each is absent and which standard security practices are followed instead. The consolidated inventory of controls actually in effect is presented in §6.4.5, and the sources are listed in §6.4.6. This mirrors the "not applicable for this system" determination pattern already established by sibling sections 6.1 Core Services Architecture and 6.3 Integration Architecture.
 
-#### 6.4.1.1 Justification for Non-Applicability
+#### 6.4.1.1 Basis for the Determination
 
-The absence of formal security architecture is an intentional design decision based on the following factors:
+The determination rests on the following observed facts. Each row cites the evidence that establishes it.
 
-| Factor | Description | Evidence |
-|--------|-------------|----------|
-| Test Environment Scope | No production data processed or stored | `README.md`: "test project for backprop integration" |
-| Localhost-Only Binding | Network isolation prevents external access | `server.js`: `const hostname = '127.0.0.1'` |
-| Static Response Content | No dynamic content requiring access control | `server.js`: Returns identical "Hello, World!" for all requests |
-| Single-User Execution Model | No concurrent access requiring authentication | Constraint A-005 documents assumed single-user execution |
-| Zero Dependencies | No security libraries or infrastructure | `package.json`: Empty dependencies object |
+| Determination factor | Observed state | Evidence |
+|---|---|---|
+| Authentication code | None — no credential, session, cookie, or token logic exists | `server.js` grep for `passw/session/cookie/token/jwt/auth` returned NONE FOUND |
+| Authorization code | None — no role, permission, scope, or ACL check | `server.js` (two unguarded `app.get` handlers); constraint C-003 |
+| Protected data | None — responses are compile-time string literals; no user data stored | `server.js` L24, L32; Section 3.5 (stateless, no storage layer) |
+| Secrets / keys / certs | None present anywhere in the repository | `find` for `*.env/*.pem/*.key/*.crt/*secret*` returned nothing; assumption A-005 |
+| Network exposure | Loopback-only bind; not reachable off-host | `server.js` L11–L12, L45; constraints C-003, A-004 |
+| Regulated data scope | No GDPR/CCPA, PCI-DSS, or HIPAA processing | Section 4.3.4; assumption A-005 |
 
-#### 6.4.1.2 Security Architecture Decision Matrix
+#### 6.4.1.2 Standard Security Practices Followed Instead
 
-The following matrix documents the explicit exclusion of security features from this system:
+Although no bespoke security architecture is warranted, the codebase is not security-indifferent: it applies a set of standard, defense-in-depth practices appropriate to a loopback-bound utility service. These are stated here in overview and detailed with evidence in §6.4.5:
 
-| Security Domain | Implementation Status | Design Rationale |
-|-----------------|----------------------|------------------|
-| Authentication Framework | ❌ Not Implemented | No user identity required for test harness |
-| Authorization System | ❌ Not Implemented | Single static response; no protected resources |
-| Data Protection | ⚠️ Minimal | Network isolation via localhost binding |
-| Encryption (TLS/SSL) | ❌ Not Implemented | Localhost traffic does not traverse network |
-| Session Management | ❌ Not Implemented | Stateless architecture by design |
-| Audit Logging | ❌ Not Implemented | Only startup console.log present |
+- **Network isolation as the trust boundary** — the service binds only to `127.0.0.1`, so the loopback interface itself is the de facto perimeter and off-host clients cannot establish a connection (C-003).
+- **HTTP response hardening** — the Express `X-Powered-By` fingerprint header is disabled application-wide (`server.js` L9, feature F-004, CWE-200 information-disclosure hardening), and `X-Content-Type-Options: nosniff` is emitted on both success responses (L24, L32); the framework's default error responses additionally carry `Content-Security-Policy: default-src 'none'`.
+- **Minimal attack surface** — only two `GET` routes exist, and neither parses a request body, query string, or client-supplied header, so there is no injection sink.
+- **Fail-safe startup** — a bind failure is surfaced to `stderr` with a non-zero exit code rather than being reported as a false success (`server.js` L50, L60–L63, feature F-005).
+- **Supply-chain integrity** — exactly one direct dependency (`express`) is pinned through a committed `package-lock.json` in which all 67 installed packages carry SHA-512 integrity hashes, and the documented `npm audit` result is zero vulnerabilities (constraints C-002, C-006; Section 3.3; risk S1).
+- **No embedded secrets and least privilege** — no credentials, keys, or certificates exist in the tree, and the process performs no filesystem, database, or shell operations (A-005).
 
-#### 6.4.1.3 Architectural Classification
+#### 6.4.1.3 Security Zone Model
+
+The runtime security posture is best understood as a set of nested trust zones. All application logic executes inside a single Node.js process that is reachable only through the loopback interface; the sole trust boundary that a request crosses is the loopback bind. The npm registry appears only as a build-time supply-chain zone and is never contacted at runtime.
 
 ```mermaid
 flowchart TB
-    subgraph SecurityClassification["Security Architecture Classification"]
+    subgraph ExternalZone["Zone 0 — Off-host network (untrusted)"]
         direction TB
-        Q1{{"Does system handle<br/>sensitive data?"}}
-        Q2{{"Is system<br/>externally accessible?"}}
-        Q3{{"Are there multiple<br/>user roles?"}}
-        Q4{{"Does system persist<br/>user data?"}}
-        Result[["Security Architecture<br/>NOT APPLICABLE"]]
+        Ext["Remote client / another host"]
     end
-    
-    Q1 -->|"No: Static response only"| Q2
-    Q2 -->|"No: Localhost only"| Q3
-    Q3 -->|"No: Single-user model"| Q4
-    Q4 -->|"No: Stateless design"| Result
+    subgraph HostZone["Zone 1 — Local host (127.0.0.1 loopback) — trust boundary"]
+        direction TB
+        LocalClient["Local HTTP client<br/>curl / browser / test"]
+        subgraph ProcZone["Zone 2 — Node.js process (node server.js, one event loop)"]
+            direction TB
+            App["Express 5.2.1 app<br/>x-powered-by disabled"]
+            R1["GET / handler<br/>200 text/plain + nosniff"]
+            R2["GET /good-evening handler<br/>200 text/plain + nosniff"]
+            FH["Default finalhandler<br/>404 + CSP default-src 'none'"]
+            App --> R1
+            App --> R2
+            App --> FH
+        end
+        Console["Console sink<br/>stdout / stderr"]
+    end
+    subgraph BuildZone["Build-time supply-chain zone (not contacted at runtime)"]
+        direction TB
+        Registry["npm registry<br/>HTTPS + SHA-512 integrity"]
+    end
+    Ext -. "blocked: loopback-only bind (C-003)" .-> App
+    LocalClient -->|"HTTP/1.1 plaintext (loopback)"| App
+    App -.->|"startup / error lines"| Console
+    Registry -.->|"npm install (build time only)"| App
 ```
 
----
+The diagram makes explicit that Zone 0 (off-host) has no runtime path into the process — the dashed, labeled edge from `Ext` to `App` is a blocked path, not an allowed one — and that the plaintext HTTP conversation is confined entirely to Zone 1 (the local host). This zoning is the reason a full TLS/authentication/authorization stack is unnecessary for the system as built, and it is the single most important input to the per-area analyses that follow.
 
-### 6.4.2 Authentication Framework Assessment
+### 6.4.2 Authentication Framework
 
-#### 6.4.2.1 Identity Management
+There is **no authentication framework** in this system. Every request is served anonymously: `server.js` registers no authentication middleware, reads no `Authorization` header or credential of any kind, and issues no session or token. The runtime-verified request path confirms this — a `GET /` returns `200` with body `Hello, World!` and a `GET /good-evening` returns `200` with body `Good evening`, in both cases without any prior credential exchange. The only gate a client encounters before being served is the loopback network bind (`127.0.0.1:3000`), which is a network-reachability control rather than an identity control (constraint C-003).
 
-**Not Implemented.** The system does not implement identity management as it operates under a single-user execution model with no requirement to distinguish between requesters.
+The subsections below address each authentication area enumerated in the section prompt and document why it is absent and what standard practice stands in its place.
 
-| Identity Component | Status | Technical Justification |
-|-------------------|--------|------------------------|
-| User Registration | ❌ Not Applicable | No user accounts or identities |
-| Identity Provider Integration | ❌ Not Applicable | No Auth0, Okta, or similar services |
-| User Directory | ❌ Not Applicable | No LDAP, Active Directory, or user store |
-| Identity Federation | ❌ Not Applicable | No cross-system authentication |
+#### 6.4.2.1 Authentication Area Analysis
 
-#### 6.4.2.2 Multi-Factor Authentication
+| Authentication area | Status | Standard practice in effect / evidence |
+|---|---|---|
+| Identity management | Not implemented | No user store, identity provider, or account model exists; requests are anonymous (`server.js`; assumption A-005) |
+| Multi-factor authentication | Not applicable | No primary authentication exists, so no second factor applies (`server.js`; constraint C-003) |
+| Session management | Not implemented | No session middleware, no server-side session store; service is fully stateless (Section 4.4; no `express-session` in dependency tree) |
+| Token handling | Not implemented | No JWT/opaque-token issuance or validation; grep of `server.js` for `token/jwt` = NONE FOUND (Section 3.3 dependency tree) |
+| Password policies | Not applicable | No credentials are accepted or stored, so no password policy exists (`server.js`; assumption A-005) |
 
-**Not Implemented.** Multi-factor authentication is not applicable as no authentication mechanism exists in the system.
+##### 6.4.2.1.1 Identity Management, MFA, and Password Policies
 
-| MFA Component | Status | Reason |
-|--------------|--------|--------|
-| Primary Factor (Password) | ❌ Not Implemented | No authentication layer |
-| Secondary Factor (OTP/SMS) | ❌ Not Applicable | No primary authentication to supplement |
-| Hardware Tokens | ❌ Not Applicable | No authentication infrastructure |
-| Biometric Factors | ❌ Not Applicable | No identity verification required |
+The repository contains no notion of a user, principal, or account. There is no user database, no directory or identity-provider integration, and no credential-verification code. Because no primary credential is ever collected, multi-factor authentication and password policies (complexity, rotation, lockout, hashing) are moot — there is nothing to strengthen or govern. The stray `LoginTest.java` file in the repository root is an empty, non-compiling stub (package `com.blitzyTest`, containing only a stray `Web` token) that is not part of the Node.js service and implements no login logic; it must not be read as evidence of an authentication capability.
 
-#### 6.4.2.3 Session Management
+##### 6.4.2.1.2 Session Management and Token Handling
 
-**Not Implemented.** The system is stateless by design, with no session tracking or management.
+The service is stateless and holds no per-client state between requests (Section 4.4). No session cookie is issued (the `Set-Cookie` header is never emitted), no session store (in-memory, Redis, or otherwise) is configured, and no bearer, refresh, or CSRF token is created or checked. The only response-side artifacts that resemble "tokens" are the framework's automatically generated weak `ETag` validators (for example `W/"e-..."` on `GET /`), which are non-cryptographic cache validators emitted by Express and carry no security or identity semantics.
 
-| Session Aspect | Status | Design Rationale |
-|---------------|--------|------------------|
-| Session Creation | ❌ Not Implemented | Stateless architecture |
-| Session Storage | ❌ Not Implemented | No persistent state |
-| Session Expiration | ❌ Not Applicable | No sessions to expire |
-| Session Invalidation | ❌ Not Applicable | Each request is independent |
+#### 6.4.2.2 Anonymous Request Flow
 
-#### 6.4.2.4 Token Handling
-
-**Not Implemented.** The system does not use JWT, OAuth tokens, or any form of bearer tokens.
-
-| Token Type | Status | Technical Evidence |
-|-----------|--------|-------------------|
-| JWT (JSON Web Tokens) | ❌ Not Implemented | No `jsonwebtoken` dependency |
-| OAuth 2.0 Tokens | ❌ Not Implemented | No OAuth provider integration |
-| API Keys | ❌ Not Implemented | No request header validation |
-| Refresh Tokens | ❌ Not Applicable | No token-based authentication |
-
-#### 6.4.2.5 Password Policies
-
-**Not Applicable.** No password-based authentication exists in the system.
-
-| Password Policy | Status | Reason |
-|----------------|--------|--------|
-| Complexity Requirements | ❌ N/A | No password authentication |
-| Rotation Policies | ❌ N/A | No credentials to rotate |
-| Hashing Algorithms | ❌ N/A | No password storage |
-| Breach Detection | ❌ N/A | No credential database |
-
----
-
-### 6.4.3 Authorization System Assessment
-
-#### 6.4.3.1 Role-Based Access Control (RBAC)
-
-**Not Implemented.** The system has no concept of users, roles, or permissions.
-
-| RBAC Component | Status | Technical Evidence |
-|----------------|--------|-------------------|
-| Role Definitions | ❌ Not Implemented | No user model exists |
-| Role Assignment | ❌ Not Applicable | No users to assign roles |
-| Role Hierarchy | ❌ Not Applicable | Single-permission model (implicit allow) |
-| Role-Permission Mapping | ❌ Not Applicable | All requests treated identically |
-
-#### 6.4.3.2 Permission Management
-
-**Not Implemented.** All HTTP requests receive identical treatment and response.
-
-| Permission Aspect | Status | Implementation |
-|------------------|--------|----------------|
-| Resource Permissions | ❌ Not Implemented | Single resource (/) returns same response |
-| Action Permissions | ❌ Not Implemented | All HTTP methods accepted |
-| Permission Inheritance | ❌ Not Applicable | No permission structure |
-| Dynamic Permissions | ❌ Not Applicable | Static response logic |
-
-#### 6.4.3.3 Resource Authorization
-
-**Not Implemented.** The system exposes a single resource with no access restrictions.
-
-```mermaid
-flowchart LR
-    subgraph RequestFlow["Request Authorization Flow"]
-        Request["Any HTTP Request"]
-        Server["server.js"]
-        Response["'Hello, World!'<br/>HTTP 200"]
-    end
-    
-    Request -->|"No Authorization Check"| Server
-    Server -->|"Static Response"| Response
-```
-
-| Resource | Authorization Level | Access Control |
-|----------|-------------------|----------------|
-| Root Endpoint (/) | Open | No restrictions |
-| All Other Paths | Open | Same response as root |
-| HTTP Methods (GET, POST, etc.) | Open | All methods accepted |
-
-#### 6.4.3.4 Policy Enforcement Points
-
-**Not Implemented.** No policy enforcement points exist in the request processing pipeline.
-
-| Enforcement Point | Status | Evidence |
-|------------------|--------|----------|
-| Network Layer | ❌ None | No firewall rules; localhost-only binding serves as implicit restriction |
-| Application Layer | ❌ None | No middleware checking authorization |
-| Data Layer | ❌ None | No data persistence; no access control |
-
-#### 6.4.3.5 Audit Logging
-
-**Minimal Implementation.** The system logs only server startup; no request audit trail exists.
-
-| Audit Capability | Status | Current Implementation |
-|-----------------|--------|----------------------|
-| Startup Events | ✅ Basic | `console.log("Server running at...")` |
-| Request Logging | ❌ Not Implemented | No request handler logging |
-| Authentication Events | ❌ N/A | No authentication |
-| Authorization Events | ❌ N/A | No authorization |
-| Security Alerts | ❌ Not Implemented | No anomaly detection |
-
----
-
-### 6.4.4 Data Protection Assessment
-
-#### 6.4.4.1 Encryption Standards
-
-**Not Implemented.** The system uses plain HTTP without TLS/SSL encryption.
-
-| Encryption Type | Status | Technical Evidence |
-|-----------------|--------|-------------------|
-| Transport Layer (TLS/SSL) | ❌ Not Implemented | Uses `http` module, not `https` |
-| Application Layer | ❌ Not Implemented | No encryption libraries |
-| Data at Rest | ❌ N/A | No persistent data storage |
-| End-to-End | ❌ N/A | No cross-service communication |
-
-**Acceptable Risk Rationale:** Transport encryption is unnecessary for localhost-bound traffic as data never traverses a network that could be intercepted.
-
-#### 6.4.4.2 Key Management
-
-**Not Applicable.** No cryptographic operations require key management.
-
-| Key Management Aspect | Status | Reason |
-|----------------------|--------|--------|
-| Key Generation | ❌ N/A | No encryption implemented |
-| Key Storage | ❌ N/A | No secrets to store |
-| Key Rotation | ❌ N/A | No keys to rotate |
-| Key Revocation | ❌ N/A | No certificate infrastructure |
-
-#### 6.4.4.3 Data Masking Rules
-
-**Not Applicable.** The system processes no sensitive data requiring masking.
-
-| Data Category | Masking Status | Reason |
-|--------------|----------------|--------|
-| PII (Personal Identifiable Information) | ❌ N/A | No user data processed |
-| Financial Data | ❌ N/A | No payment processing |
-| Health Data (PHI) | ❌ N/A | No health information |
-| Credentials | ❌ N/A | No authentication data |
-
-#### 6.4.4.4 Secure Communication
-
-**Partial Implementation.** Network isolation via localhost binding provides security through architectural constraint.
-
-| Communication Aspect | Implementation | Security Implication |
-|---------------------|----------------|---------------------|
-| Binding Address | `127.0.0.1` (localhost only) | Prevents external network access |
-| Protocol | HTTP (not HTTPS) | Acceptable for localhost traffic |
-| Port Exposure | Port 3000 only | Single known endpoint |
-| External Calls | None | No egress traffic; no data leakage risk |
-
-#### 6.4.4.5 Compliance Controls
-
-**Not Applicable.** As a test project with no production data, compliance frameworks do not apply.
-
-| Compliance Framework | Applicability | Justification |
-|---------------------|---------------|---------------|
-| GDPR | ❌ Not Applicable | No personal data processed |
-| HIPAA | ❌ Not Applicable | No health information |
-| PCI-DSS | ❌ Not Applicable | No payment data |
-| SOC 2 | ❌ Not Applicable | No production services |
-| SOX | ❌ Not Applicable | No financial reporting |
-
----
-
-### 6.4.5 Security Zone Architecture
-
-#### 6.4.5.1 Network Security Zones
-
-The system operates within a single, isolated security zone defined by its localhost binding:
+The following diagram traces an inbound request through the (absent) authentication stage. The upper path is what actually happens; the lower `AbsentAuth` subgraph shows the conventional identity pipeline that is deliberately not implemented, with a dashed edge indicating there is no path from the request into any identity mechanism.
 
 ```mermaid
 flowchart TB
-    subgraph ExternalZone["External Zone (Untrusted)"]
-        ExternalClient["External Network<br/>Clients"]
-        Internet["Internet"]
+    Client(["HTTP client (anonymous)"]) --> Recv["Request received on 127.0.0.1:3000"]
+    Recv --> Q1{"Any authentication middleware<br/>registered in server.js?"}
+    Q1 -->|"No — none exists"| NoAuth["No credential parsed:<br/>no Authorization header read,<br/>no session, no token"]
+    NoAuth --> Route["Proceed directly to routing"]
+    Route --> Served["Handler runs — request served anonymously"]
+    subgraph AbsentAuth["Not implemented — typical authentication pipeline"]
+        direction TB
+        A1["Identity provider / user store"]
+        A2["Credential + MFA verification"]
+        A3["Session / token issuance"]
+        A1 --> A2 --> A3
     end
-    
-    subgraph HostZone["Host Machine Zone (Trusted)"]
-        subgraph LocalhostBoundary["Localhost Boundary (127.0.0.1)"]
-            Server["HTTP Server<br/>Port 3000"]
-            LocalClient["Local HTTP Client<br/>(Browser/curl)"]
-        end
-        
-        Developer["Developer"]
-        Backprop["Backprop Tool"]
-    end
-    
-    ExternalClient -.->|"BLOCKED<br/>by localhost binding"| LocalhostBoundary
-    Internet -.->|"BLOCKED"| LocalhostBoundary
-    
-    Developer -->|"node server.js"| Server
-    LocalClient <-->|"HTTP Request/Response"| Server
-    Backprop -->|"File System Access"| LocalhostBoundary
-    
-    style ExternalZone fill:#ffcdd2,stroke:#c62828
-    style LocalhostBoundary fill:#c8e6c9,stroke:#2e7d32
-    style HostZone fill:#e3f2fd,stroke:#1565c0
+    Q1 -. "no path to any identity mechanism" .-> A1
 ```
 
-#### 6.4.5.2 Security Zone Definition Table
+The practical security implication is that access control for this service is delegated entirely to the host: any process able to reach `127.0.0.1:3000` on the local machine is authorized to invoke either route. This is acceptable precisely because the loopback bind (§6.4.1.3) keeps the surface local; it would not be acceptable for an off-host-exposed service, which is why non-localhost exposure is explicitly out of scope for the current system (risk S2, accepted).
 
-| Zone | Trust Level | Access Method | Protected Assets |
-|------|-------------|---------------|------------------|
-| External (Internet) | Untrusted | BLOCKED | N/A |
-| Host Machine | Trusted | File System | Source code, configuration |
-| Localhost Network | Trusted | HTTP (127.0.0.1:3000) | HTTP endpoint |
+### 6.4.3 Authorization System
 
-#### 6.4.5.3 Implicit Security Through Architecture
+There is **no authorization system** in this system, by design (constraint C-003). Neither route handler in `server.js` performs any role, scope, permission, ownership, or access-control-list check before responding; once a request reaches a matching handler it is served unconditionally. Because authentication is also absent (§6.4.2), there is no principal against which an authorization decision could be made. The two access "gates" that a request actually crosses are network reachability (the loopback bind) and route matching (Express routing) — neither of which is an application-level authorization control.
 
-The system's security posture relies on architectural constraints rather than implemented security controls:
+#### 6.4.3.1 Authorization Area Analysis
+
+| Authorization area | Status | Standard practice in effect / evidence |
+|---|---|---|
+| Role-based access control | Not implemented | No roles, groups, or RBAC model; both handlers are unguarded (`server.js` L19, L30) |
+| Permission management | Not implemented | No permission or scope definitions exist anywhere in the tree (`server.js`; A-005) |
+| Resource authorization | Not implemented | Both routes return the same static content to every caller; no per-resource ownership check (`server.js` L24, L32) |
+| Policy enforcement points | Implicit only | Two network/routing gates stand in for a PEP; no application policy engine (see §6.4.3.2) |
+| Audit logging | Not implemented | No access-decision or audit log; only startup/bind-error lines go to the console (Section 5.4; `server.js` L51, L61) |
+
+##### 6.4.3.1.1 RBAC, Permission Management, and Resource Authorization
+
+The service defines no roles, no permission or scope catalog, and no resource-ownership model. Both routes are public, read-only, and identical for every caller, so there is no differential authorization to enforce: `GET /` and `GET /good-evening` return fixed strings regardless of who calls them. A conventional RBAC or attribute-based authorization layer (policy definitions, a permission store, and an evaluation engine) would have nothing to protect and is therefore absent.
+
+##### 6.4.3.1.2 Policy Enforcement Points
+
+While there is no application-level policy engine, two implicit enforcement points determine whether a caller receives content. They are described here as PEPs for completeness but are properties of the network stack and the web framework, not of an authorization subsystem:
+
+- **PEP-1 — Network boundary (loopback reachability).** The service is bound to `127.0.0.1` (`server.js` L11, L45), so an off-host client cannot even open a TCP connection; such requests are denied implicitly by the absence of a listening socket on any external interface (constraints C-003, A-004).
+- **PEP-2 — Routing gate (path/method match).** Express matches the request against the two registered `GET` routes; any other path or method (for example `POST /` or `GET /nope`) falls through to the framework's default `finalhandler`, which returns `404 Not Found` carrying `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff` (runtime-verified). This is a routing outcome, not an authorization decision, but it does bound what the service will act upon.
+
+##### 6.4.3.1.3 Audit Logging
+
+The service maintains **no audit log** of access decisions, because there are no access decisions to record. Its only observability output is two operational console lines: a success message written to `stdout` once the socket is confirmed listening (`server.js` L51) and a failure message written to `stderr` on a bind error (`server.js` L61). Neither line records per-request activity, client identity, or an authorization outcome, and there is no persistent log sink (Section 5.4). Request-level audit logging is explicitly out of the current scope.
+
+#### 6.4.3.2 Authorization Flow
+
+The following diagram shows the two implicit gates a request passes through and confirms that no role, scope, permission, or ACL check occurs at the point of service. The lower `AbsentAuthz` subgraph depicts the conventional authorization controls that are not implemented, with a dashed edge indicating there is no authorization decision point in the request path.
 
 ```mermaid
-flowchart LR
-    subgraph ArchitecturalSecurity["Security Through Architecture"]
-        C001["C-001: Localhost Binding<br/>Network Isolation"]
-        C002["C-002: Zero Dependencies<br/>Supply Chain Protection"]
-        C003["C-003: Static Response<br/>Injection Prevention"]
-        C004["C-004: Stateless Design<br/>Session Attack Prevention"]
+flowchart TB
+    C(["HTTP client"]) --> G1{"PEP-1 network boundary:<br/>can reach 127.0.0.1:3000?<br/>loopback-only bind"}
+    G1 -->|"Off-host — cannot connect"| Deny(["Denied implicitly<br/>no TCP connection"])
+    G1 -->|"Same-host"| G2{"PEP-2 routing gate:<br/>matches GET / or GET /good-evening?"}
+    G2 -->|"No"| NF(["Default 404 (finalhandler)"])
+    G2 -->|"Yes"| Serve["Handler runs — no role,<br/>scope, permission, or ACL check"]
+    Serve --> OK(["200 OK response"])
+    subgraph AbsentAuthz["Not implemented — typical authorization controls"]
+        direction TB
+        Z1["Role / permission model (RBAC)"]
+        Z2["Resource-level authorization"]
+        Z3["Audit log of access decisions"]
+        Z1 --> Z2 --> Z3
     end
-    
-    subgraph SecurityOutcomes["Security Outcomes"]
-        NetSec["Network Security"]
-        SupplySec["Supply Chain Security"]
-        AppSec["Application Security"]
-        DataSec["Data Security"]
-    end
-    
-    C001 --> NetSec
-    C002 --> SupplySec
-    C003 --> AppSec
-    C004 --> DataSec
+    Serve -. "no authorization decision point exists" .-> Z1
 ```
 
----
+As with authentication, effective authorization for this system reduces to "any local process that can reach the loopback port may invoke either public route." This is consistent with the validation-and-authorization posture documented in Section 4.3, whose sole access control is likewise the network boundary rather than an application check.
 
-### 6.4.6 Standard Security Practices Applied
+### 6.4.4 Data Protection
 
-While formal security architecture is not applicable, the system implicitly follows several security best practices through its architectural constraints:
+A dedicated data-protection layer is **not applicable** because the system stores no data and handles no personal, financial, or health information. Response bodies are compile-time string literals (`Hello, World!\n` and `Good evening`), there is no database or file persistence (Section 3.5), and no user-supplied data is ever read, so the classic concerns of encryption at rest, key management, and data masking have no subject matter. The one area with a concrete posture is transport: runtime traffic is plaintext HTTP but is confined to the loopback interface, while the only encrypted channel in the system's lifecycle is the build-time dependency download from the npm registry over HTTPS.
 
-#### 6.4.6.1 Network Isolation
+#### 6.4.4.1 Data-Protection Area Analysis
 
-| Practice | Implementation | Benefit |
-|----------|----------------|---------|
-| Localhost-Only Binding | `const hostname = '127.0.0.1'` in `server.js` | Prevents any external network access to the server |
-| No External Network Calls | Zero egress traffic | Eliminates data exfiltration risk |
-| Single Port Exposure | Port 3000 only | Minimizes attack surface |
+| Data-protection area | Posture | Evidence |
+|---|---|---|
+| Encryption at rest | Not applicable | No data stored; responses are in-code literals (`server.js` L24, L32; Section 3.5) |
+| Encryption in transit (runtime) | Plaintext HTTP, loopback-confined | No `https`/`tls` usage in `server.js` (grep NONE FOUND); bind `127.0.0.1` (C-003); risk S2 accepted |
+| Encryption in transit (build) | TLS/HTTPS to npm registry | Dependencies fetched from `registry.npmjs.org` over HTTPS (Section 3.3) |
+| Key management | Not applicable | No cryptographic keys, secrets, or certificates in the tree (`find` for `*.pem/*.key/*.crt` = none; A-005) |
+| Data masking | Not applicable | No user data in responses or logs to mask (`server.js` L51, L61) |
+| Integrity verification | SHA-512 (supply chain) | All 67 lockfile packages carry `sha512-` integrity hashes (`package-lock.json`; C-002) |
 
-#### 6.4.6.2 Zero Supply Chain Risk
+##### 6.4.4.1.1 Encryption Standards and Secure Communication
 
-| Practice | Implementation | Benefit |
-|----------|----------------|---------|
-| Zero External Dependencies | Empty `dependencies` in `package.json` | Eliminates npm package vulnerabilities |
-| Built-in Modules Only | Uses only Node.js native `http` module | No third-party code execution |
-| No Security Library Dependencies | No passport, bcrypt, helmet, etc. | Intentional—security not required |
+At runtime the service speaks plaintext HTTP/1.1: `server.js` requires only `express` and calls `app.listen(port, hostname, ...)` with no TLS context, and a runtime capture confirms responses are served over cleartext on `127.0.0.1:3000`. This is a deliberate, accepted posture (risk S2) rather than an oversight, because the loopback bind means the cleartext never traverses a network segment reachable by another host (§6.4.1.3). No in-application TLS termination, certificate, or cipher-suite configuration exists; if the service were ever exposed off-host, a TLS-terminating reverse proxy would be required, which is why non-localhost exposure is explicitly out of scope. The sole encrypted channel in the system's lifecycle is the HTTPS connection used by `npm install` to retrieve packages from the registry at build time (Section 3.3).
 
-#### 6.4.6.3 Minimal Attack Surface
+##### 6.4.4.1.2 Key Management, Data Masking, and Integrity
 
-| Practice | Implementation | Benefit |
-|----------|----------------|---------|
-| Minimal Codebase | 14 lines of executable code | Reduced vulnerability surface |
-| Static Response | Same response for all requests | Prevents injection attacks |
-| No Input Processing | Request content ignored | Eliminates input validation vulnerabilities |
-| No Dynamic Content | No template engines or user content | Prevents XSS and injection |
+There is **no key management** function: the repository contains no private keys, certificates, API keys, or secrets, and no key store, rotation, or KMS integration is configured (assumption A-005). The SHA-512 digests present throughout `package-lock.json` are **content-integrity hashes** used by npm to verify that each downloaded package matches its expected bytes; they are not encryption keys and secure the supply chain, not application data (constraint C-002, risk S1). Likewise, the weak `ETag` validators Express emits on `GET` responses (for example `W/"e-..."`) are non-cryptographic cache validators, not integrity or authentication material. **Data masking** is not applicable because neither the responses nor the two console log lines contain user data, credentials, or any field that would need redaction.
 
-#### 6.4.6.4 Stateless Architecture
+#### 6.4.4.2 Compliance Controls
 
-| Practice | Implementation | Benefit |
-|----------|----------------|---------|
-| No Session State | Each request independent | Prevents session hijacking |
-| No Persistent Data | No database or file storage | No data breach risk |
-| No User Context | No authentication state | Eliminates credential theft risk |
+No industry or regulatory compliance regime applies to the runtime service, because it neither collects nor processes regulated data (Section 4.3.4). The one compliance obligation that does apply is open-source license attribution, arising from the dependency tree rather than from data handling. The table below records each regime, its applicability, and the basis; all rows are documentation of status, not claims of certification.
 
----
+| Compliance regime | Applicability | Basis |
+|---|---|---|
+| GDPR / CCPA (personal data) | Not applicable | No personal data collected or stored; static non-personal responses (Section 4.3.4; A-005) |
+| PCI-DSS (cardholder data) | Not applicable | No payment or cardholder data handled (Section 4.3.4) |
+| HIPAA (health data) | Not applicable | No protected health information handled (Section 4.3.4) |
+| SOC 2 audit logging | Not applicable | No user data and no access decisions to log (Section 5.4; §6.4.3.1.3) |
+| Open-source license compliance | Applicable — attribution only | Permissive licenses only: 62 MIT, 4 ISC, 1 BSD-3-Clause; no copyleft (Section 3.3) |
+| Transport encryption (TLS) baseline | Accepted gap | Plaintext HTTP confined to loopback; no external exposure (risk S2; C-003) |
 
-### 6.4.7 Security Control Matrix
+The net data-protection position is therefore straightforward: nothing sensitive is stored, transmitted off-host, or logged, so the protective controls that would normally be mandatory are correspondingly unnecessary — with the single, explicitly accepted exception that runtime transport is unencrypted within the loopback trust zone.
 
-#### 6.4.7.1 Control Implementation Summary
+### 6.4.5 Standard Security Practices and Security Control Matrix
 
-| Control Category | Control Type | Status | Responsibility |
-|-----------------|--------------|--------|----------------|
-| Network Controls | Preventive | ✅ Implicit | Architecture (localhost binding) |
-| Access Controls | Preventive | ❌ Not Implemented | N/A |
-| Encryption Controls | Preventive | ❌ Not Implemented | N/A |
-| Detection Controls | Detective | ❌ Not Implemented | N/A |
-| Response Controls | Corrective | ❌ Not Implemented | N/A |
+This subsection consolidates the standard security practices that the system actually implements into a single control matrix, then maps the documented risks to those controls and states the residual posture. It is the authoritative "what is in place" counterpart to the "what is absent" analyses in §6.4.2 through §6.4.4.
 
-#### 6.4.7.2 Threat Mitigation Matrix
+#### 6.4.5.1 Security Control Matrix
 
-| Threat Category | OWASP Risk | Mitigation Status | Mitigation Method |
-|-----------------|------------|-------------------|-------------------|
-| Injection (SQLi, XSS) | Critical | ✅ Mitigated | No input processing; static response |
-| Broken Authentication | Critical | ✅ Mitigated | No authentication required |
-| Sensitive Data Exposure | High | ✅ Mitigated | No sensitive data processed |
-| Broken Access Control | Critical | ✅ Mitigated | No protected resources |
-| Security Misconfiguration | High | ⚠️ Acceptable Risk | Default Node.js configuration |
-| Vulnerable Components | High | ✅ Mitigated | Zero external dependencies |
-| Insufficient Logging | Medium | ⚠️ Acceptable Risk | Test project scope |
+Each row is a control that is present and verifiable in the repository, together with the standard practice it represents and the evidence that establishes it.
 
----
+| Security control | Standard practice / status | Evidence |
+|---|---|---|
+| Network isolation | Loopback-only bind `127.0.0.1:3000`; off-host unreachable | `server.js` L11–L12, L45; C-003; runtime curl |
+| Framework fingerprint suppression | `X-Powered-By` disabled application-wide | `server.js` L9; F-004 (commit `3ba1489`); runtime headers |
+| MIME-sniffing protection | `X-Content-Type-Options: nosniff` on both 200 routes | `server.js` L24, L32; runtime headers |
+| Error-response CSP | Default 404 carries `Content-Security-Policy: default-src 'none'` + nosniff | Express finalhandler; runtime curl of `/nope` and `POST /` |
+| Minimal attack surface | Two `GET` routes; no body/query/header parsing | `server.js` L19, L30; `README.md` endpoint table |
+| No embedded secrets | No `.env`, keys, or certificates in the tree | `find` returned none; `.gitignore` = `node_modules/` only; A-005 |
+| Fail-safe startup | Non-zero exit on bind error; success log gated on `server.listening` | `server.js` L50, L60–L63; F-005 (commit `55f5b91`) |
+| Supply-chain integrity | 67/67 SHA-512 lockfile hashes; committed lockfile; `npm audit` = 0 | `package-lock.json`; Section 3.3; C-002; risk S1 |
+| Lean dependency surface | One direct dependency (`express` ^5.2.1); permissive licenses only | `package.json`; Section 3.3; C-006 |
+| Least privilege | No filesystem, database, or shell operations | `server.js`; A-005 |
 
-### 6.4.8 Authentication Flow Diagram
+#### 6.4.5.2 Risk-to-Control Mapping
 
-Since authentication is not implemented, the following diagram illustrates the current (non-authenticated) request flow:
+The documented risk register resolves against the controls above as follows. This shows that the two "accepted" gaps are conscious trade-offs bounded by the loopback design, not unmanaged exposures.
 
-```mermaid
-sequenceDiagram
-    participant Client as HTTP Client
-    participant Server as server.js
-    
-    Note over Client,Server: No Authentication Required
-    
-    Client->>Server: HTTP Request (any method, any path)
-    Note right of Server: No credential validation
-    Note right of Server: No token verification
-    Note right of Server: No session check
-    Server->>Client: HTTP 200 OK
-    Server->>Client: "Hello, World!"
-    
-    Note over Client,Server: All requests treated identically
-```
+| Risk | Disposition | Controlling factor |
+|---|---|---|
+| S1 — Express supply chain (67 transitive deps) | Mitigated | Committed lockfile + SHA-512 integrity + clean `npm audit` (C-002) |
+| S2 — No TLS / no authentication | Accepted | Loopback-only bind bounds exposure to the local host (C-003) |
+| I3 — No external services / DB / secrets | Not applicable | No secret material or external dependency exists at runtime (A-005) |
 
----
+#### 6.4.5.3 Residual Risk and Out-of-Scope Hardening
 
-### 6.4.9 Authorization Flow Diagram
+Within the system's stated boundary — a local, loopback-bound utility — the residual security risk is low: there is no remotely reachable surface, no stored or regulated data, no secret material, and a small, integrity-pinned dependency tree with a documented clean audit. The principal residual exposure is that any local process on the host can call the two public routes over plaintext HTTP; this is the accepted S2 trade-off and is intrinsic to the loopback design rather than a defect.
 
-Since authorization is not implemented, the following diagram illustrates the current (non-authorized) request processing:
+The following hardening measures are **deliberately out of scope** for the current system and would only become relevant if its boundary changed (for example, if it were exposed beyond localhost). They are recorded here so their absence is understood as intentional, consistent with the project's documented scope exclusions:
 
-```mermaid
-sequenceDiagram
-    participant Client as HTTP Client
-    participant Server as server.js
-    
-    Note over Client,Server: No Authorization Required
-    
-    Client->>Server: Any HTTP Request
-    Note right of Server: No role check
-    Note right of Server: No permission check
-    Note right of Server: No resource validation
-    Server->>Client: HTTP 200 OK
-    Server->>Client: "Hello, World!"
-    
-    Note over Client,Server: Universal access to all endpoints
-```
+- TLS/HTTPS termination and certificate management (needed only for off-host exposure).
+- An authentication framework and an authorization/RBAC layer (needed only once there are principals or protected resources).
+- Per-request/audit logging and structured monitoring.
+- Environment-variable-based configuration for host/port and secrets (the current binding is hardcoded per constraint C-004).
+- Non-localhost network binding.
 
----
+Should any of these scope boundaries move, the corresponding absent subsystems in §6.4.2–§6.4.4 would need to be designed and this section revised accordingly; as the system stands, the standard practices catalogued in §6.4.5.1 constitute a complete and appropriate security posture.
 
-### 6.4.10 Security Risk Assessment
+### 6.4.6 References
 
-#### 6.4.10.1 Risk Evaluation
+The following repository artifacts, technical-specification sections, and verification activities were used as evidence for this section.
 
-| Security Aspect | Risk Level | Justification |
-|-----------------|------------|---------------|
-| Supply Chain Vulnerabilities | **No Risk** | Zero external dependencies |
-| Network Exposure | **Minimal Risk** | Localhost-only binding |
-| Authentication Bypass | **Acceptable** | No authentication required by design |
-| Data Breach | **No Risk** | No sensitive data stored or processed |
-| Injection Attacks | **No Risk** | No input processing; static response |
-| Session Hijacking | **No Risk** | Stateless architecture |
-| Man-in-the-Middle | **Minimal Risk** | Localhost traffic only |
+**Repository files examined**
 
-#### 6.4.10.2 Residual Risk Acceptance
+- `server.js` — the sole application source (64 lines); established the loopback bind `127.0.0.1:3000` (L11–L12, L45), `X-Powered-By` disable (L9), `nosniff` on both routes (L24, L32), the two anonymous `GET` handlers (L19, L30), and the fail-safe startup/error handling (L50, L60–L63); grep confirmed the absence of any auth/TLS/crypto/session/token/secret code.
+- `package.json` — declared the single direct runtime dependency (`express` ^5.2.1) and the `start`/`test` scripts.
+- `package-lock.json` — established the pinned 67-package tree with SHA-512 integrity on all entries (supply-chain integrity, C-002).
+- `README.md` — documented the two endpoints and their exact response bodies/byte lengths.
+- `.gitignore` — confirmed only `node_modules/` is ignored (no secret-exclusion patterns needed).
+- `LoginTest.java` — confirmed to be an empty, non-compiling stub that is not part of the service and implements no authentication.
+- `industry.csv` — confirmed to be a static artifact not read at runtime (not in any data-protection path).
+- `blitzy/documentation/Project Guide.md` — corroborated the header hardening and fail-fast commits, the `npm audit` = 0 result, the absence of secrets/`.env`, and the risk register (S1, S2, I3) and scope exclusions.
 
-The following residual risks are accepted as appropriate for the system's test project scope:
+**Folders examined**
 
-| Residual Risk | Risk Level | Acceptance Rationale |
-|---------------|------------|---------------------|
-| No HTTPS encryption | Low | Localhost traffic not exposed to network interception |
-| No audit logging | Low | Test environment with no compliance requirements |
-| No authentication | Low | Single-user model with localhost isolation |
-| Default error messages | Low | No sensitive information in stack traces |
+- `blitzy/documentation/` — the documentation subtree containing the Project Guide used for risk/scope corroboration.
 
----
+**Technical Specification sections cross-referenced**
 
-### 6.4.11 Future Security Considerations
+- `2.6 Assumptions and Constraints` — constraints C-002, C-003, C-004, C-006 and assumptions A-004, A-005; feature commits F-004 (`3ba1489`) and F-005 (`55f5b91`).
+- `3.3 Open Source Dependencies` — 67-package count, SHA-512 integrity, license profile (62 MIT / 4 ISC / 1 BSD-3-Clause), `npm audit` = 0, risk S1.
+- `4.3 Validation Rules, Authorization, and Compliance Checkpoints` — network-boundary access control and the no-GDPR/CCPA/PCI-DSS/HIPAA determination (4.3.4).
+- `5.4 Cross-Cutting Concerns` — no-authentication/authorization design, the loopback trust boundary, and the console-only logging posture.
+- `6.1 Core Services Architecture` — the "not applicable for this system" determination pattern followed here.
+- `6.3 Integration Architecture` — the same determination pattern and the build-time-only npm registry touchpoint over HTTPS.
 
-If the system scope were to expand beyond its current test project purpose, the following security elements would need to be implemented:
+**Verification performed**
 
-#### 6.4.11.1 Required Security Additions for Production Use
-
-| Expansion Scenario | Required Security Changes |
-|-------------------|--------------------------|
-| External Network Access | HTTPS/TLS encryption; firewall rules; rate limiting |
-| Multi-User Access | Authentication framework (OAuth 2.0, JWT); session management |
-| Protected Resources | Authorization system (RBAC); permission middleware |
-| Data Persistence | Encryption at rest; secure credential storage; data masking |
-| Compliance Requirements | Audit logging; access controls; data retention policies |
-
-#### 6.4.11.2 Security Implementation Priority Matrix
-
-| Security Control | Implementation Priority | Reason |
-|-----------------|------------------------|--------|
-| HTTPS/TLS | P0 (Critical) | Required for any external access |
-| Authentication | P0 (Critical) | Required for user identification |
-| Authorization | P1 (High) | Required for resource protection |
-| Audit Logging | P1 (High) | Required for security monitoring |
-| Input Validation | P2 (Medium) | Required for dynamic content |
-| Rate Limiting | P2 (Medium) | Required for abuse prevention |
-
-**Note:** Such expansion would contradict the project's stated purpose and the "Do not touch!" directive in the `README.md`.
-
----
-
-### 6.4.12 Summary
-
-#### 6.4.12.1 Key Findings
-
-The hao-backprop-test repository deliberately excludes formal security architecture based on its constrained scope as a test project for Backprop integration:
-
-1. **Authentication Framework**: Not implemented—no user identity requirements
-2. **Authorization System**: Not implemented—single static response for all requests
-3. **Data Protection**: Minimal—relies on localhost binding for network isolation
-4. **Encryption**: Not implemented—HTTP-only; acceptable for localhost traffic
-5. **Compliance**: Not applicable—test project with no production data
-
-#### 6.4.12.2 Security Posture Summary
-
-| Domain | Formal Implementation | Implicit Protection |
-|--------|----------------------|---------------------|
-| Network Security | None | Localhost binding (127.0.0.1) |
-| Application Security | None | Static response; no input processing |
-| Data Security | None | No persistent data; stateless design |
-| Supply Chain Security | None | Zero external dependencies |
-
-#### 6.4.12.3 Architectural Constraints Enabling Security
-
-| Constraint ID | Description | Security Benefit |
-|--------------|-------------|------------------|
-| C-001 | Localhost binding only | Complete network isolation |
-| C-002 | No external dependencies | Zero supply chain risk |
-| C-003 | Hardcoded configuration | No credential exposure in environment |
-| C-004 | Static response content | Injection attack prevention |
-| C-005 | Repository immutability | Prevents security drift |
-
----
-
-### 6.4.13 References
-
-#### Technical Specification Sections Retrieved
-
-- `5.4 Cross-Cutting Concerns` - Confirms Authentication and Authorization "Not Applicable" (Section 5.4.4)
-- `1.3 Scope` - Documents out-of-scope security features: Authentication/Authorization, HTTPS/TLS, Session management, Rate limiting
-- `5.5 Architectural Constraints` - Documents constraints C-001 through C-005 that shape security posture
-- `6.1 Core Services Architecture` - Confirms single-component, localhost-only architecture with no security services
-- `3.5 Third-Party Services` - Confirms no authentication services (Auth0, Okta, etc.) integrated
-- `1.2 System Overview` - Confirms test project purpose with zero-dependency architecture
-
-#### Repository Files Referenced
-
-- `server.js` - HTTP server implementation using `http` module (not `https`); localhost binding (`127.0.0.1`); no authentication or authorization logic
-- `package.json` - Confirms zero external dependencies; no security libraries present
-- `README.md` - Confirms test project designation: "test project for backprop integration. Do not touch!"
+- First-hand runtime verification: the server was started locally and each endpoint was exercised with `curl`, confirming `200`/`nosniff`/no-`X-Powered-By` on the two routes and `404` + `Content-Security-Policy: default-src 'none'` on unmatched path/method responses.
+- Static negative-evidence checks: `grep` of `server.js` and a repository-wide `find` confirmed the absence of authentication, TLS, cryptographic, session/token, and secret/certificate material.
 
 ## 6.5 Monitoring and Observability
 
-### 6.5.1 Applicability Assessment
+### 6.5.1 Monitoring Infrastructure
 
-**Detailed Monitoring Architecture is not applicable for this system.**
+**Detailed Monitoring Architecture is not applicable for this system.** The `hao-backprop-test` service (npm package `hello_world`, version `1.0.0`) is a single-process, single-file Express 5.2.1 monolith whose entire runtime is defined in `server.js` and which binds one listening socket to the loopback interface `127.0.0.1:3000`. It is a minimal, localhost-only integration-test target with no persistence, no external service calls, and two static plain-text routes (`GET /`, `GET /good-evening`). There is consequently no monitoring infrastructure to document: the dependency graph pinned in `package-lock.json` contains only Express 5.2.1 and its transitive packages, and no metrics client, log shipper, tracing SDK, alert manager, or dashboard platform is installed anywhere in the repository.
 
-The hao-backprop-test repository implements a deliberately minimal, single-component HTTP server designed exclusively as a test harness for Backprop integration testing. This architectural approach explicitly excludes monitoring infrastructure, alerting systems, distributed tracing, and comprehensive observability tooling by design. The following documentation explains this design decision and identifies the basic monitoring practices that are implicitly followed.
+This absence is deliberate and recorded in the codebase, not an oversight. The repository's Project Guide (`blitzy/documentation/Project Guide.md`) lists a "health-check endpoint, structured logging, [and] monitoring" as **explicitly out of scope** (per its AAP §0.6.2) and tracks their absence as accepted operational risk **O1** — *"No health-check / structured logging / monitoring … Acceptable for localhost tutorial … Accepted (AAP scope)."* The determination is consistent with Section 5.4.1 (Monitoring, Observability, Logging and Tracing) and Section 6.1.3 (Scalability Design), both of which record that no `/health`, `/metrics`, or readiness endpoint and no metrics pipeline exist.
 
-#### 6.5.1.1 Justification for Non-Applicability
+In place of a monitoring stack, the service relies on a small set of **basic operational practices that are actually implemented in `server.js`**:
 
-The absence of formal monitoring architecture is an intentional design decision based on the following factors:
+- **Console lifecycle logging** — a single success line to `stdout` and a single failure diagnostic to `stderr`.
+- **Process exit-code signaling** — exit `0` when healthy, exit `1` on a failed start.
+- **Fail-fast startup** — the success log is suppressed unless the socket is genuinely listening, and a dedicated `'error'` handler surfaces bind failures.
+- **External HTTP checks** — ad-hoc liveness verification by issuing `GET /` or `GET /good-evening` with `curl` or a Node HTTP client (the manual acceptance method used during validation).
 
-| Factor | Description | Evidence |
-|--------|-------------|----------|
-| Test Environment Scope | No production workloads or SLA requirements | `README.md`: "test project for backprop integration" |
-| Single-User Execution Model | No concurrent access requiring capacity monitoring | Constraint A-005 documents assumed single-user execution |
-| Localhost-Only Binding | No network metrics or external access to monitor | `server.js`: `const hostname = '127.0.0.1'` |
-| Zero Dependencies | No monitoring libraries or infrastructure | `package.json`: Empty dependencies object |
-| Stateless Architecture | No data persistence requiring storage monitoring | Single static response; no state changes |
+The complete observability surface is the four signals below, consistent with the canonical table in Section 5.4.1. These are the only signals a monitoring tool could ever consume, because they are the only ones the process emits.
 
-#### 6.5.1.2 Monitoring Architecture Decision Matrix
+| Observable Signal | Channel | Emitted When |
+|-------------------|---------|--------------|
+| Startup success line (`Server running at http://127.0.0.1:3000/`) | `stdout` | Once `server.listening` is `true` (`server.js:50–51`) |
+| Bind-failure diagnostic (`Failed to start server …`) | `stderr` | On the server `'error'` event (`server.js:60–61`) |
+| Process exit code (`0` healthy / `1` bind failure) | Process | On process exit (`server.js:62`) |
+| HTTP status and response headers | HTTP response | Per request — `200` (routes) or `404` (unmatched) |
 
-The following matrix documents the explicit exclusion of monitoring features from this system:
-
-| Monitoring Domain | Implementation Status | Design Rationale |
-|-------------------|----------------------|------------------|
-| Metrics Collection | ❌ Not Implemented | Not required for test environment scope |
-| Log Aggregation | ❌ Not Implemented | Console output sufficient for test purposes |
-| Distributed Tracing | ❌ Not Implemented | Single-component system; no distributed calls |
-| Alert Management | ❌ Not Implemented | No SLA requirements or production criticality |
-| Health Checks | ❌ Not Implemented | Server availability verified by HTTP request |
-| Dashboard Monitoring | ❌ Not Implemented | No metrics to visualize |
-
-#### 6.5.1.3 Architectural Classification
+The diagram below shows this complete monitoring topology: the sole process, the four signals it emits, and the two consumers of those signals — an external HTTP client/probe and the operator (or OS/process manager) that reads the console streams and exit code. No collector, agent, broker, time-series store, or dashboard tier appears because none exists in the repository.
 
 ```mermaid
-flowchart TB
-    subgraph MonitoringClassification["Monitoring Architecture Classification"]
+flowchart LR
+    Client["External HTTP client / probe<br/>curl or Node http client"]
+
+    subgraph Proc["node server.js — sole OS process (one event loop)"]
         direction TB
-        Q1{{"Does system have<br/>production SLAs?"}}
-        Q2{{"Are there multiple<br/>distributed components?"}}
-        Q3{{"Does system require<br/>capacity planning?"}}
-        Q4{{"Is there compliance<br/>logging requirement?"}}
-        Result[["Monitoring Architecture<br/>NOT APPLICABLE"]]
+        App["Express 5.2.1 application<br/>bound to 127.0.0.1:3000"]
+        Life["Startup / error lifecycle<br/>server.listening guard + 'error' handler"]
+        App --- Life
     end
-    
-    Q1 -->|"No: Test project only"| Q2
-    Q2 -->|"No: Single file"| Q3
-    Q3 -->|"No: Localhost only"| Q4
-    Q4 -->|"No: No compliance"| Result
-```
 
----
-
-### 6.5.2 Current Observability Implementation
-
-#### 6.5.2.1 Observability Status Summary
-
-The system implements **minimal observability** appropriate for its test purpose:
-
-| Observability Aspect | Implementation | Tool/Method |
-|---------------------|----------------|-------------|
-| Health Monitoring | None | Server availability verified by HTTP request |
-| Metrics Collection | None | Not required for test scope |
-| Distributed Tracing | None | Single-component system |
-| Log Aggregation | None | Console output only |
-
-#### 6.5.2.2 Logging Implementation
-
-The system's logging capability consists of a single startup notification:
-
-| Log Type | Output Destination | Format | Trigger |
-|----------|-------------------|--------|---------|
-| Startup Log | stdout | Plain text template literal | Server successfully bound |
-| Error Logs | stderr | Node.js stack trace | Unhandled exceptions (runtime default) |
-
-#### Log Output Specification
-
-```
-Server running at http://127.0.0.1:3000/
-```
-
-This single log entry confirms:
-- Server initialization completed successfully
-- Network binding successful
-- Hostname and port configuration active
-
-#### 6.5.2.3 Verification Methods
-
-The following verification methods are available to confirm system operation:
-
-| Verification Type | Method | Expected Outcome |
-|-------------------|--------|------------------|
-| Server Running | HTTP GET to localhost:3000 | 200 OK response |
-| Startup Success | Console output inspection | "Server running at..." message |
-| Process Status | OS process listing | Node.js process on port 3000 |
-
-#### 6.5.2.4 Basic Verification Flow
-
-```mermaid
-flowchart LR
-    subgraph VerificationMethods["Basic System Verification"]
-        Start([Start Verification])
-        CheckProcess["Check Process<br/>ps aux | grep node"]
-        CheckPort["Check Port<br/>lsof -i :3000"]
-        CheckHTTP["HTTP Request<br/>curl localhost:3000"]
-        VerifyResponse["Verify Response<br/>'Hello, World!'"]
-        Complete([System Verified])
+    subgraph Surface["Complete emitted signal surface"]
+        direction TB
+        OUT["stdout: 'Server running at ...'<br/>console.log only if server.listening"]
+        ERR["stderr: 'Failed to start server ...'<br/>console.error on 'error' event"]
+        EXIT["process exit code<br/>0 healthy / 1 bind failure"]
+        HTTP["HTTP status + headers<br/>200 routes / 404 unmatched"]
     end
-    
-    Start --> CheckProcess
-    CheckProcess --> CheckPort
-    CheckPort --> CheckHTTP
-    CheckHTTP --> VerifyResponse
-    VerifyResponse --> Complete
+
+    Operator["Operator / OS / process manager<br/>reads console streams + exit code"]
+
+    Client -->|"HTTP/1.1 request"| App
+    App -->|"per request"| HTTP
+    HTTP -->|"response"| Client
+    Life -->|"success"| OUT
+    Life -->|"bind failure"| ERR
+    Life -->|"bind failure"| EXIT
+    OUT --> Operator
+    ERR --> Operator
+    EXIT --> Operator
 ```
 
----
+**Figure 6.5.1 — Monitoring architecture (actual).** The entire monitoring surface of the system: one process emitting four signals to two consumers, with no telemetry collection, storage, or visualization infrastructure between them.
 
-### 6.5.3 Error Notification and Output
+#### 6.5.1.1 Metrics Collection
 
-#### 6.5.3.1 Error Output Destinations
+No metrics collection is implemented. `server.js` instantiates no counters, gauges, or histograms; imports no metrics client (no `prom-client`, StatsD/`hot-shots`, `appmetrics`, or OpenTelemetry metrics SDK appears in `package-lock.json`); and exposes no `/metrics` scrape endpoint (confirmed in Sections 5.4.1 and 6.1.3). No process- or host-level metrics — CPU, resident memory, event-loop lag, garbage-collection pauses, open handles — are sampled or exported; the Node.js runtime defaults apply unobserved.
 
-Error handling is delegated entirely to Node.js runtime defaults:
+The only quantitative values the service produces are intrinsic attributes of each HTTP response that Express computes automatically: the status code and the `Content-Length` of the fixed bodies (`14` bytes for `GET /`, `12` bytes for `GET /good-evening`). These appear on the wire per response but are neither recorded nor aggregated.
 
-| Error Type | Output Destination | Format |
-|------------|-------------------|--------|
-| Startup Errors | stderr | Stack trace |
-| Runtime Exceptions | stderr | Stack trace |
-| Uncaught Rejections | stderr | Stack trace (Node.js 15+) |
+| Metric Class | Collected / Exported? | Basis in Repository |
+|--------------|-----------------------|---------------------|
+| Application counters / gauges / histograms | No | No metrics SDK in `package-lock.json`; none instrumented in `server.js` |
+| HTTP response status / size | Not collected; observable per response only | Express-computed status + `Content-Length` (14 / 12 bytes) |
+| Process / runtime (CPU, RSS, event-loop lag, GC) | No | Node.js defaults; nothing sampled or exported |
+| Host / system metrics | No | No monitoring agent installed |
 
-#### 6.5.3.2 Error Notification Flow
+#### 6.5.1.2 Log Aggregation
 
-```mermaid
-flowchart LR
-    subgraph ErrorNotification["Error Notification (Default Node.js Behavior)"]
-        Error([Error Occurs])
-        Stack["Generate<br/>Stack Trace"]
-        Console["Write to<br/>stderr"]
-        Exit["Process Exit<br/>Code: 1"]
-    end
-    
-    Error --> Stack --> Console --> Exit
-```
+No log aggregation is implemented. Logging consists of exactly two `console` sinks and nothing else, consistent with Section 5.4.1: `console.log` writes one startup success line to `stdout` (`server.js:51`, guarded by the `server.listening` check at `server.js:50`), and `console.error` writes one bind-failure diagnostic to `stderr` (`server.js:61`). There is no structured (JSON) logging, no log levels, no timestamps, no log rotation, no log file, and no HTTP request-access logging — no `morgan` or equivalent is installed, and Express does not log requests by default.
 
-#### 6.5.3.3 Error Scenarios and Outputs
+Output is written to the inherited `stdout`/`stderr` of whichever shell, terminal, or parent process launches `node server.js`; there is no log shipper, collector, buffer, or index (no Fluentd, Logstash, or syslog forwarder in the dependency graph). Aggregation, search, and retention are therefore entirely a function of how the operator captures those two streams.
 
-| Error Scenario | Error Code | Console Output | Exit Code |
-|----------------|------------|----------------|-----------|
-| Port 3000 in use | EADDRINUSE | Stack trace with error details | 1 |
-| Permission denied | EACCES | Stack trace with error details | 1 |
-| Node.js corrupted | MODULE_NOT_FOUND | Stack trace with module error | 1 |
-| Network unavailable | ENETDOWN | Stack trace with network error | 1 |
+| Log Line (verbatim template) | Stream | Trigger |
+|-------------------------------|--------|---------|
+| `Server running at http://127.0.0.1:3000/` | `stdout` | Successful bind (`server.listening` is `true`) |
+| `Failed to start server at http://127.0.0.1:3000/: <err.message>` | `stderr` | Server `'error'` event (e.g. `EADDRINUSE`) |
 
----
+#### 6.5.1.3 Distributed Tracing
 
-### 6.5.4 Performance Targets (Informational)
+Distributed tracing is not applicable. The system is a single process running a single event loop and makes no outbound network calls: both route handlers return in-memory string literals with zero I/O (Sections 6.1.2, 5.4.1), so there is no cross-service call graph to trace. `server.js` installs no tracing SDK (no OpenTelemetry, Jaeger, or Zipkin package in `package-lock.json`), generates no correlation or request IDs, creates no spans, and performs no context propagation. Express's default weak `ETag` on responses is a cache-validation aid, not a trace identifier.
 
-#### 6.5.4.1 Design Expectations
+#### 6.5.1.4 Alert Management
 
-While no formal monitoring verifies these metrics, the following represent design expectations for the test environment:
+No alert-management system exists — there is no Alertmanager, PagerDuty/Opsgenie integration, webhook notifier, or alert-rule engine anywhere in the repository. The single alerting primitive the code provides is the **fail-fast failure signal**: on the server `'error'` event, `server.js` writes a diagnostic to `stderr` and sets `process.exitCode = 1` (`server.js:60–62`), so a supervising shell, CI job, or process manager can detect a failed start by observing the non-zero exit code together with the `stderr` line. No thresholds are configured and the application dispatches no notifications of its own. This is the process-lifecycle plane described in Sections 5.4.2 and 6.1.4; how that signal is (or could be) routed and escalated is detailed in Section 6.5.3.
 
-| Metric | Target | Measurement Method | Current Status |
-|--------|--------|-------------------|----------------|
-| Server Startup Time | < 100ms | Time from execution to ready state | Achieved |
-| Response Latency | < 10ms | Request to response completion | Achieved |
-| Memory Footprint | ~20-50MB | Node.js process memory | Node.js baseline |
-| CPU Utilization | Negligible | Process CPU usage | Near-zero when idle |
+#### 6.5.1.5 Dashboard Design
 
-#### 6.5.4.2 SLA Considerations (Non-Binding)
+No dashboard is designed or provisioned. There is no Grafana, Kibana, CloudWatch, or equivalent visualization layer, and — because no metrics are collected (6.5.1.1) and no logs are aggregated (6.5.1.2) — there is no time-series or log data store for a dashboard to query. Operational visibility is limited to reading the console streams and the process exit code directly.
 
-**Note:** This is a test project with no formal SLA requirements. The metrics below represent design expectations for test environment operation rather than contractual service level agreements.
-
-| SLA Metric | Target | Applicability |
-|------------|--------|---------------|
-| Availability | 100% when running | Local development only |
-| Response Time | < 10ms | Test environment |
-| Throughput | Unspecified | Not designed for load testing |
-| Error Rate | 0% | Deterministic static response |
-
----
-
-### 6.5.5 Recovery Procedures
-
-#### 6.5.5.1 Manual Recovery Requirements
-
-Given the absence of automated monitoring and recovery, all recovery procedures are manual:
-
-| Failure Scenario | Recovery Procedure | RTO |
-|------------------|-------------------|-----|
-| Server Process Crash | Execute `node server.js` | < 1 second |
-| Port Conflict | Clear port; restart server | < 1 minute |
-| Repository Corruption | Re-clone from source | < 5 minutes |
-| Node.js Failure | Reinstall Node.js runtime | < 10 minutes |
-
-#### 6.5.5.2 Diagnostic Commands
-
-| Diagnostic Need | Command | Expected Output |
-|-----------------|---------|-----------------|
-| Verify server process | `ps aux \| grep node` | Node process with server.js |
-| Check port availability | `lsof -i :3000` | Process ID if port in use |
-| Test HTTP endpoint | `curl http://localhost:3000` | "Hello, World!" |
-| Check Node.js version | `node --version` | v20.19.6 or compatible |
-
-#### 6.5.5.3 Recovery Decision Flow
-
-```mermaid
-flowchart TD
-    subgraph RecoveryFlow["Recovery Decision Flow"]
-        Start([Server Not Responding])
-        CheckProcess{{"Is Node.js<br/>process running?"}}
-        CheckPort{{"Is port 3000<br/>available?"}}
-        CheckNode{{"Is Node.js<br/>installed?"}}
-        
-        KillProcess["Kill conflicting<br/>process on port"]
-        InstallNode["Install Node.js<br/>v20.19.6+"]
-        StartServer["Execute<br/>node server.js"]
-        Recovered([Server Recovered])
-    end
-    
-    Start --> CheckProcess
-    CheckProcess -->|"No"| CheckPort
-    CheckProcess -->|"Yes (crashed)"| StartServer
-    CheckPort -->|"In Use"| KillProcess
-    CheckPort -->|"Available"| CheckNode
-    KillProcess --> StartServer
-    CheckNode -->|"No"| InstallNode
-    CheckNode -->|"Yes"| StartServer
-    InstallNode --> StartServer
-    StartServer --> Recovered
-```
-
----
-
-### 6.5.6 Architectural Constraints Affecting Monitoring
-
-#### 6.5.6.1 Constraint Impact Analysis
-
-The following architectural constraints prevent implementation of standard monitoring practices:
-
-| Constraint ID | Description | Impact on Monitoring |
-|--------------|-------------|---------------------|
-| C-001 | Localhost binding only | No remote monitoring possible; no external health check endpoints |
-| C-002 | No external dependencies | Cannot add monitoring libraries (Prometheus, DataDog, etc.) |
-| C-003 | Hardcoded configuration | No configurable alerting thresholds or log levels |
-| C-004 | Static response content | No dynamic health check responses or metrics endpoints |
-| C-005 | Repository immutability | Cannot add monitoring infrastructure ("Do not touch!") |
-
-#### 6.5.6.2 Blocked Monitoring Capabilities
+For completeness, the four observable signals could be surfaced in a minimal operator view. The layout below is a **recommendation, not an implemented artifact** — it depicts how the existing signals map onto four conceptual panels and is explicitly marked as absent from the repository (no dashboard tooling is provisioned).
 
 ```mermaid
 flowchart TB
-    subgraph Constraints["Architectural Constraints"]
-        LocalhostBinding["C-001: Localhost<br/>Binding Only"]
-        ZeroDeps["C-002: Zero<br/>Dependencies"]
-        Hardcoded["C-003: Hardcoded<br/>Configuration"]
-        Immutable["C-005: Repository<br/>Immutability"]
+    subgraph Dash["Recommended minimal operator view — NOT implemented (no dashboard tooling in repository)"]
+        direction LR
+        subgraph P1["Panel 1 · Process State"]
+            direction TB
+            N1["UP / DOWN<br/>exit 0 = healthy · exit 1 = failed start"]
+        end
+        subgraph P2["Panel 2 · Startup Log (stdout)"]
+            direction TB
+            N2["'Server running at http://127.0.0.1:3000/'"]
+        end
+        subgraph P3["Panel 3 · Failure Log (stderr)"]
+            direction TB
+            N3["'Failed to start server ...: EADDRINUSE'"]
+        end
+        subgraph P4["Panel 4 · HTTP Liveness Probe"]
+            direction TB
+            N4["GET / returns 200 (14B)<br/>GET /good-evening returns 200 (12B)"]
+        end
     end
-    
-    subgraph BlockedCapabilities["Blocked Monitoring Capabilities"]
-        RemoteMonitoring["Remote Monitoring<br/>BLOCKED"]
-        MetricsLibrary["Metrics Libraries<br/>BLOCKED"]
-        Alerting["Alert Configuration<br/>BLOCKED"]
-        HealthEndpoint["Health Endpoints<br/>BLOCKED"]
-        LogAggregation["Log Aggregation<br/>BLOCKED"]
-    end
-    
-    LocalhostBinding --> RemoteMonitoring
-    ZeroDeps --> MetricsLibrary
-    ZeroDeps --> LogAggregation
-    Hardcoded --> Alerting
-    Immutable --> HealthEndpoint
 ```
 
----
+**Figure 6.5.1.5 — Recommended minimal operator view (not implemented).** A conceptual four-panel layout mapping the system's only observable signals onto operator-facing panels; it is shown to document what a minimal view would contain and to make explicit that no dashboard exists in the repository.
 
-### 6.5.7 Basic Monitoring Practices Followed
+### 6.5.2 Observability Patterns
 
-#### 6.5.7.1 Implicit Monitoring Practices
+Observability patterns in this system are minimal and **external by necessity**: because `server.js` contains no in-process instrumentation, every observability pattern below is satisfied — where it is satisfied at all — by inspecting the process from outside (its console streams, its exit code, and its HTTP responses). Health is verifiable; performance, business, and capacity signals are not tracked; and no SLA is defined. Each pattern is recorded explicitly so this sub-section is a complete and honest reference rather than a description of instrumentation that does not exist. These findings are consistent with Sections 5.4.1, 5.4.4, and 6.1.3.
 
-While formal monitoring architecture is not applicable, the system implicitly follows several basic monitoring practices through its architectural constraints and minimal implementation:
+#### 6.5.2.1 Health Checks
 
-| Practice | Implementation | Benefit |
-|----------|----------------|---------| 
-| Startup Notification | `console.log()` on successful bind | Confirms server initialization |
-| Error Output to stderr | Node.js default behavior | Provides error visibility |
-| Deterministic Response | Static "Hello, World!" output | Simplifies verification |
-| Single Entry Point | Port 3000 only | Easy availability check |
+There is **no dedicated health-check endpoint** — no `/health`, `/healthz`, `/ready`, or `/live` route is registered in `server.js` (confirmed in Sections 5.4.1 and 6.1.3, and listed as out of scope in the Project Guide risk **O1**). Health is instead determined by two external means, both exercised during the project's manual validation:
 
-#### 6.5.7.2 Observability Through Simplicity
+1. **Process liveness.** The OS process is either running with the socket bound (the `stdout` line `Server running at http://127.0.0.1:3000/` confirms a successful bind) or it has failed to start (a `stderr` diagnostic and exit code `1`). There is no readiness-versus-liveness distinction and no degraded state — availability is binary (running / failed-to-start), per Section 6.1.4.
+2. **HTTP functional probe.** Issuing `GET /` or `GET /good-evening` with `curl` or a Node HTTP client and checking for `200` plus the expected body is the "Functional Acceptance" and "Runtime Smoke" method the project used (all such checks passed). Because Express returns a default `404` for any unmatched route, either registered route doubles as a liveness probe; a `connection refused` or non-`200` result indicates the process is down or never bound.
 
-The minimal architecture provides implicit observability benefits:
+| Health Check | Method | Healthy Result |
+|--------------|--------|----------------|
+| Process liveness | Observe process state + `stdout` startup line | Process running; `Server running at http://127.0.0.1:3000/` printed |
+| HTTP probe — root | `GET /` via `curl` / Node http client | `200`, `text/plain`, body `Hello, World!\n` (14B) |
+| HTTP probe — evening | `GET /good-evening` | `200`, `text/plain`, body `Good evening` (12B) |
+| Bind-failure detection | Observe `stderr` + process exit code | No failure line; exit code `0` / unset |
 
-| Architectural Feature | Observability Benefit |
-|-----------------------|----------------------|
-| 14 lines of code | Complete system visibility |
-| Single file implementation | Unambiguous failure source |
-| Zero dependencies | No third-party failure modes |
-| Stateless design | No state corruption to diagnose |
-| Static response | Binary success/failure determination |
+#### 6.5.2.2 Performance Metrics
 
----
+No performance metrics are instrumented or collected (Sections 5.4.1, 5.4.4). `server.js` contains no latency timer, throughput counter, or histogram, and the repository holds no benchmark or load-test artifact. The performance characteristics that exist are **structural facts, not measured or monitored values**: both handlers perform zero I/O (they emit fixed in-memory literals) and run on a single Node.js event loop; connection reuse is governed by Node's default `Keep-Alive: timeout=5` (Sections 5.1.3, 5.4.4); and Express derives a weak `ETag` per response, enabling conditional `GET`/`304` behavior.
 
-### 6.5.8 Monitoring Architecture Comparison
+| Performance Aspect | Observed Characteristic | Monitored? |
+|--------------------|-------------------------|------------|
+| Request latency | Not measured; handlers emit fixed literals with zero I/O | No |
+| Throughput | Not measured; single event loop, no clustering | No |
+| Connection handling | Node default `Keep-Alive: timeout=5` | No |
+| Response caching | Express weak `ETag` enables conditional `304` | No |
 
-#### 6.5.8.1 Expected vs. Actual Implementation
+#### 6.5.2.3 Business Metrics
+
+No business metrics are defined or collected. The service is a minimal integration-test target with no domain events, transactions, accounts, or conversion funnel to measure. `server.js` records no request counts, per-endpoint hit tallies, or usage analytics, and the static `industry.csv` file (43 category rows) is **not read at runtime** and drives no metric. There is no business-KPI instrumentation of any kind; the success criteria in Section 1.2.3 (per Section 5.4.4) intentionally omit numeric business targets.
+
+#### 6.5.2.4 SLA Monitoring
+
+No SLA is defined or monitored. As recorded verbatim in Section 5.4.4, *"No performance SLA — latency, throughput, or uptime — is defined anywhere in the repository,"* and no benchmark, load-test, or performance-configuration artifact exists. With no SLA target there is nothing to monitor against: no error budget, uptime objective, or latency percentile is tracked. This is consistent with the localhost-tutorial scope, in which production-hardening items are intentionally excluded (Project Guide production-readiness note). The table documents the requirement state — every dimension resolves to "none defined."
+
+| SLA Dimension | Defined Requirement | Monitoring in Place |
+|---------------|---------------------|---------------------|
+| Availability / uptime | None defined | None |
+| Latency (response time) | None defined | None |
+| Throughput | None defined | None |
+| Error rate | None defined | None — no `5xx` path is reachable in normal operation (only the intentional `404` for unmatched routes) |
+
+#### 6.5.2.5 Capacity Tracking
+
+No capacity tracking exists (Section 6.1.3). There is no resource-utilization monitoring, no auto-scaling trigger, no capacity plan, and no numeric capacity target anywhere in the repository. The system is bounded to a **single local instance on one event loop**; horizontal scaling is precluded by the hardcoded `127.0.0.1:3000` bind, since a second instance on the same port collides with `EADDRINUSE` (Sections 5.4.4, 6.1.3). Capacity is therefore whatever a single Node.js process provides on its host — unmeasured and ungoverned. No memory limit, connection cap, or rate limit is configured in `server.js`.
+
+### 6.5.3 Incident Response
+
+A formal incident-response capability — on-call rotations, paging, alert fan-out, and post-mortem tooling — is **not applicable** to this localhost tutorial service and is not present in the repository. Incident response reduces to the one actionable failure the code anticipates: a **startup bind failure** (for example `EADDRINUSE`), which is surfaced deterministically by the fail-fast lifecycle and then remediated manually by the operator (Sections 5.4.2, 5.4.5, 6.1.4). Request-plane `404`s are normal client outcomes, not incidents. The diagram below traces the complete alert/response path from launch through failure detection to manual remediation.
 
 ```mermaid
 flowchart TB
-    subgraph ExpectedMonitoring["Expected Monitoring Architecture"]
-        Prometheus["Prometheus<br/>Metrics Collection"]
-        Grafana["Grafana<br/>Dashboards"]
-        ELK["ELK Stack<br/>Log Aggregation"]
-        PagerDuty["PagerDuty<br/>Alert Management"]
-        Jaeger["Jaeger<br/>Distributed Tracing"]
-        
-        Prometheus --> Grafana
-        ELK --> Grafana
-        Prometheus --> PagerDuty
-    end
-    
-    subgraph ActualImplementation["Actual System Implementation"]
-        ConsoleLog["console.log()<br/>Startup Message"]
-        Stderr["stderr<br/>Error Output"]
-        HTTPCheck["HTTP GET<br/>Availability Check"]
-    end
-    
-    ExpectedMonitoring ~~~ ActualImplementation
+    Start["Launch: node server.js / npm start"]
+    Listen["app.listen on 127.0.0.1:3000"]
+    Check{"bind succeeded?<br/>(server.listening)"}
+    Healthy["stdout: Server running at ...<br/>process healthy · exit code 0"]
+    ErrEvt["server error event<br/>e.g. EADDRINUSE"]
+    Stderr["stderr: Failed to start server ...<br/>process.exitCode = 1"]
+    Exit["process exits non-zero"]
+    Detect{"supervisor / CI / operator<br/>observes exit 1 + stderr?"}
+    Manual["Operator remediation:<br/>free port 3000 or resolve error"]
+    NoOp["No automated recovery configured<br/>no supervisor or watchdog in repo"]
+
+    Start --> Listen --> Check
+    Check -->|"yes"| Healthy
+    Check -->|"no — error event"| ErrEvt
+    ErrEvt --> Stderr --> Exit --> Detect
+    Detect -->|"yes"| Manual
+    Detect -->|"no"| NoOp
+    Manual -->|"re-run"| Start
 ```
 
-#### 6.5.8.2 Feature Gap Analysis
+**Figure 6.5.3 — Alert flow (fail-fast startup).** The only alerting path in the system: a failed bind raises the server `'error'` event, which writes to `stderr` and sets a non-zero exit code; detection and remediation are manual, with no automated recovery configured.
 
-| Monitoring Feature | Production Expectation | Actual Implementation |
-|-------------------|----------------------|----------------------|
-| Metrics Collection | Prometheus, StatsD, CloudWatch | None |
-| Log Aggregation | ELK, Splunk, Datadog Logs | stdout/stderr only |
-| Distributed Tracing | Jaeger, Zipkin, X-Ray | None (single component) |
-| Alert Management | PagerDuty, OpsGenie, Slack | None |
-| Dashboards | Grafana, Kibana, CloudWatch | None |
-| Health Checks | /health, /ready endpoints | HTTP 200 on root only |
-| APM | New Relic, Datadog APM | None |
+The "alert thresholds" in this system are **intrinsic binary conditions coded in `server.js`, not configured numeric thresholds** (no numeric threshold, error budget, or rate is defined anywhere — Section 5.4.4). The matrix records each condition, its rule, severity, and the automatic in-process response.
 
----
+| Condition (Trigger) | Threshold / Rule | Severity | Automatic Response |
+|---------------------|------------------|----------|--------------------|
+| Startup bind failure | Server `'error'` event fires — single bind attempt (e.g. `EADDRINUSE`) | Critical — process cannot serve | `stderr` diagnostic + `process.exitCode = 1`; no retry/backoff |
+| Successful bind | `server.listening === true` | Info — healthy | `stdout` success line |
+| Unmatched route request | No route matches path/method | Informational — client outcome | Express default `404`; process stays healthy |
+| Runtime request exception | Not reachable — handlers emit static literals with no I/O | N/A — no `5xx` path exists | None required |
 
-### 6.5.9 Out-of-Scope Monitoring Elements
+#### 6.5.3.1 Alert Routing
 
-#### 6.5.9.1 Explicitly Excluded Features
+The only alert the system raises is the startup-failure signal, and its routing is fixed in code to two destinations: a human-readable diagnostic on `stderr` (`console.error`, `server.js:61`) and a machine-readable non-zero process exit code (`process.exitCode = 1`, `server.js:62`). There is no fan-out to email, chat, SMS, or a pager and no alert manager. In practice the signal is "routed" only to whatever consumes the process's `stderr` and exit status — an interactive operator's terminal, a CI job's step result, or an external process manager (none is configured; Section 5.4.5). The healthy path routes a single line to `stdout`. Because request-plane `404`s are not logged server-side (Section 5.4.2), they generate no alert traffic.
 
-The following monitoring capabilities are explicitly out of scope per the system's design:
+#### 6.5.3.2 Escalation Procedures
 
-| Feature | Exclusion Rationale |
-|---------|---------------------|
-| Metrics Infrastructure | Not required for test environment |
-| Log Aggregation Systems | Console output sufficient for test purposes |
-| Distributed Tracing | Single-component system |
-| Alert Management | No SLA requirements |
-| Dashboard Monitoring | No metrics to visualize |
-| APM Integration | No performance optimization needed |
-| Health Check Endpoints | Server availability verified by HTTP request |
+No escalation procedure is defined. There is no on-call rotation, tiered support model, severity ladder, or paging policy anywhere in the repository. The service has a single owner/maintainer (`package.json` `author: "hxu"`; the stakeholder model in Section 1 identifies the developer/integration team as the operators). Because the process is a local, typically foreground tutorial service, an "incident" is observed directly by the operator who launched it, and there is no second tier to escalate to. Should the service ever move beyond localhost, the Project Guide flags adding a health-check endpoint and structured logging as prerequisites — presently optional and out of scope (AAP §0.6.2).
 
-#### 6.5.9.2 Incident Response Elements Not Implemented
+#### 6.5.3.3 Runbooks
 
-| Element | Status | Justification |
-|---------|--------|---------------|
-| Alert Routing | Not Implemented | No alert system |
-| Escalation Procedures | Not Implemented | Single-user execution model |
-| Runbooks | Not Required | Restart procedure is trivial |
-| Post-Mortem Processes | Not Required | Test project scope |
-| Improvement Tracking | Not Required | Frozen architecture ("Do not touch!") |
+No runbook document exists in the repository. The fail-fast design nevertheless encodes a de-facto recovery procedure for the single actionable incident (a startup bind failure), which Section 5.4.5 documents as operator-driven and manual. The effective runbook is:
 
----
+| Step | Action | Expected Signal |
+|------|--------|-----------------|
+| 1 — Detect | Note the missing startup line; observe the `stderr` failure line and exit code `1` | `Failed to start server …` on `stderr` |
+| 2 — Diagnose | Read the appended `err.message` | Dominant cause `EADDRINUSE` on `127.0.0.1:3000` |
+| 3 — Remediate | Free port `3000` (stop the conflicting process) or resolve the reported error | Port available |
+| 4 — Restart | Re-run `node server.js` or `npm start` | Single bind attempt (no auto-retry) |
+| 5 — Verify | Confirm the startup line and a `200` from `GET /` | `Server running …`; `200` `Hello, World!\n` |
 
-### 6.5.10 Future Monitoring Considerations
+Environment recovery — for example a lost `node_modules` — is deterministic via the committed `package-lock.json`: run `npm install`, then restart (Section 5.4.5). There is a single bind attempt with no automatic retry, backoff, or alternate-port fallback (Sections 5.4.2, 6.1.4).
 
-#### 6.5.10.1 Required Additions for Production Use
+#### 6.5.3.4 Post-Mortem Processes
 
-If the system scope were to expand beyond its current test project purpose, the following monitoring elements would need to be implemented:
+No formal post-mortem process is defined in the repository — there is no incident log, retrospective template, or blameless-review procedure, and, with no production deployment, there are no runtime incidents to review. The nearest analog is the QA/acceptance validation captured in the Project Guide and git history, in which findings are recorded with IDs, severity, and a disposition and then resolved or explicitly declined with documented rationale (see 6.5.3.5). This is a development-time quality process rather than an operational incident-review process.
 
-| Expansion Scenario | Required Monitoring Changes |
-|-------------------|----------------------------|
-| Production Deployment | Metrics collection; health endpoints; log aggregation |
-| External Network Access | Network monitoring; DDoS detection; rate limiting metrics |
-| Multi-User Access | User activity tracking; concurrent connection monitoring |
-| SLA Requirements | Uptime monitoring; latency tracking; error rate alerting |
-| Compliance Requirements | Audit logging; access logging; retention policies |
+#### 6.5.3.5 Improvement Tracking
 
-#### 6.5.10.2 Monitoring Implementation Priority Matrix
+Reliability and observability improvements are tracked through **git version control and pull-request review**, not a monitoring-driven action-item system (none exists, because nothing is instrumented). The repository history shows this loop working: QA findings carry IDs, severity, and a FIX/CERTIFY/DECLINE disposition, and remediations land as discrete, message-documented commits merged via a pull request (PR #1, merge commit `893bd8d`). Two of these commits were themselves observability/reliability improvements.
 
-| Monitoring Control | Implementation Priority | Reason |
-|-------------------|------------------------|--------|
-| Health Check Endpoints | P0 (Critical) | Required for any orchestration |
-| Metrics Collection | P0 (Critical) | Required for SLA tracking |
-| Structured Logging | P1 (High) | Required for debugging |
-| Alert Management | P1 (High) | Required for incident response |
-| Distributed Tracing | P2 (Medium) | Required for distributed systems |
-| Dashboards | P2 (Medium) | Required for operational visibility |
+| Commit | Improvement | Classification |
+|--------|-------------|----------------|
+| `55f5b91` | Fail-fast on listen error — guard the success log on `server.listening` and add an `'error'` handler that writes to `stderr` and sets exit `1` ("listen failure made observable") | Observability / reliability (finding P4-F1, MAJOR) |
+| `3ba1489` | Harden HTTP response headers — disable `X-Powered-By` (CWE-200) and add `X-Content-Type-Options: nosniff` on both routes | Security hardening (findings F1/F2) |
 
-**Note:** Such expansion would contradict the project's stated purpose and the "Do not touch!" directive in the `README.md`.
+These demonstrate that improvements are proposed, reviewed, and merged with traceable rationale in source control; there is no separate metrics- or alert-driven feedback loop because no such telemetry is collected (Sections 6.5.1, 6.5.2).
 
----
+### 6.5.4 References
 
-### 6.5.11 Summary
+All findings in this section are grounded in direct inspection of the current codebase and its version-control history; no external web sources were required.
 
-#### 6.5.11.1 Key Findings
+**Repository files**
 
-The hao-backprop-test repository deliberately excludes formal monitoring architecture based on its constrained scope as a test project for Backprop integration:
+- `server.js` — the sole executable application code; established the complete observability surface: the `console.log` startup success line guarded on `server.listening` (`server.js:50–51`), the `console.error` bind-failure diagnostic (`server.js:60–61`), `process.exitCode = 1` on the server `'error'` event (`server.js:62`), the two `GET` routes and their `text/plain`/`nosniff` responses, and the hardcoded `127.0.0.1:3000` bind. Confirmed the absence of any `/health`, `/metrics`, tracing, or metrics-instrumentation code.
+- `package.json` — established package identity (`hello_world` 1.0.0), the single runtime dependency `express ^5.2.1`, and the `start`/`test` scripts; confirmed no monitoring, logging, or telemetry configuration or tooling.
+- `package-lock.json` — established the pinned Express dependency graph and confirmed that **no** metrics, logging, tracing, or APM library (e.g., `prom-client`, `winston`, `morgan`, OpenTelemetry, Jaeger, `dd-trace`, `@sentry/*`) is present.
+- `node_modules/express/package.json` — confirmed the installed Express version `5.2.1`.
+- `README.md` — established the operational contract (Node.js ≥ 18, `npm install`, `node server.js` / `npm start`, loopback URL, two plain-text endpoints) used for external HTTP health checks.
+- `.gitignore` — established that only `node_modules/` is excluded; no observability or deployment configuration is tracked.
+- `industry.csv` — confirmed a static 43-row data file that is not read at runtime and drives no business metric.
+- `blitzy/documentation/Project Guide.md` — established the explicit design intent: health-check endpoint, structured logging, and monitoring are out of scope (AAP §0.6.2); accepted operational risk **O1** (no health-check/logging/monitoring) and **O2** (hardcoded port, mitigated by fail-fast); the manual runtime-health validation suite; and the improvement-tracking commit references.
 
-1. **Metrics Collection**: Not implemented—no production SLA requirements
-2. **Log Aggregation**: Not implemented—console output sufficient
-3. **Distributed Tracing**: Not implemented—single-component system
-4. **Alert Management**: Not implemented—test project scope
-5. **Health Checks**: Not implemented—HTTP availability verification sufficient
+**Repository folders**
 
-#### 6.5.11.2 Monitoring Posture Summary
+- `node_modules/` — contained Express 5.2.1 and its transitive dependencies only; no metrics/logging/tracing/APM/agent packages.
+- Repository root (`/`) — inspected for observability and deployment artifacts; confirmed the absence of any `Dockerfile`, `docker-compose`, Kubernetes/Helm, Procfile, PM2/`nginx`, `.github`/CI, Prometheus, Grafana, or OpenTelemetry configuration (negative evidence for a monitoring stack).
 
-| Domain | Formal Implementation | Basic Practice |
-|--------|----------------------|----------------|
-| Startup Notification | None | console.log() message |
-| Error Visibility | None | stderr output (Node.js default) |
-| Availability Verification | None | HTTP GET returns 200 |
-| Performance Tracking | None | Manual observation |
+**Version control (improvement-tracking evidence)**
 
-#### 6.5.11.3 Architectural Constraints Summary
+- Git history — commit `55f5b91` ("fail fast on listen error"; made a failed `listen` observable via `stderr` + non-zero exit), commit `3ba1489` ("harden HTTP response headers"), and merge commit `893bd8d` (PR #1); established that reliability/observability improvements are tracked via commits and pull-request review with IDs, severity, and disposition.
 
-| Constraint ID | Description | Monitoring Impact |
-|--------------|-------------|-------------------|
-| C-001 | Localhost binding only | Prevents remote monitoring |
-| C-002 | No external dependencies | Prevents monitoring library integration |
-| C-003 | Hardcoded configuration | Prevents configurable alerting |
-| C-005 | Repository immutability | Prevents monitoring infrastructure additions |
+**Cross-referenced Technical Specification sections**
 
----
-
-### 6.5.12 References
-
-#### Technical Specification Sections Retrieved
-
-- `5.4 Cross-Cutting Concerns` - Confirms minimal observability implementation, verification methods, logging strategy, and SLA considerations
-- `1.3 Scope` - Documents Health Checks/Monitoring as explicitly out-of-scope; lists logging infrastructure exclusion
-- `5.5 Architectural Constraints` - Documents constraints C-001 through C-005 affecting monitoring capabilities
-- `6.1 Core Services Architecture` - Confirms single-component architecture with monitoring explicitly excluded
-- `6.4 Security Architecture` - Confirms minimal audit logging (startup only); documents security zone architecture
-- `4.5 Error Handling` - Documents error notification flow, recovery procedures, and absence of retry mechanisms
-
-#### Repository Files Referenced
-
-- `server.js` - HTTP server implementation with single `console.log()` as only observability feature; localhost binding (`127.0.0.1`)
-- `package.json` - Confirms zero external dependencies; no monitoring libraries present
-- `README.md` - Confirms test project designation: "test project for backprop integration. Do not touch!"
+- Section 1.2.3 Success Criteria — KPIs intentionally omit numeric performance/business targets.
+- Section 5.1 High-Level Architecture — single-process monolith; runtime data flow; Node keep-alive `timeout=5`.
+- Section 5.4 Cross-Cutting Concerns — observability (5.4.1, the canonical four-signal surface), error-handling planes (5.4.2), performance/scalability/SLAs (5.4.4, "no SLA defined"), and disaster recovery (5.4.5).
+- Section 6.1 Core Services Architecture — single-service determination (6.1.2), scalability/capacity and the absence of a health/metrics endpoint and auto-scaling (6.1.3), and fail-fast resilience (6.1.4).
 
 ## 6.6 Testing Strategy
 
-### 6.6.1 Applicability Assessment
+### 6.6.1 Testing Strategy Applicability
 
 **Detailed Testing Strategy is not applicable for this system.**
 
-The hao-backprop-test repository is a deliberately minimal, single-component HTTP server consisting of only 14 lines of code. It is explicitly designated as a test harness for Backprop integration testing, with a "Do not touch!" directive in the `README.md`. This architectural simplicity and constrained purpose explicitly exclude formal testing infrastructure, automated test suites, and comprehensive quality gates by design.
+The `hao-backprop-test` service (npm package `hello_world` v1.0.0, defined in `package.json`) is a deliberately minimal, single-file Express 5.2.1 application. Its entire runtime surface is `server.js` (64 lines) exposing exactly two synchronous `GET` routes — `/` and `/good-evening` — that return fixed, byte-exact plaintext bodies over a loopback-only listener on `127.0.0.1:3000`. There is no database, no authentication, no persistence, no outbound integration, no configuration layer, and no user interface. A layered testing program spanning unit, integration, and end-to-end tiers with coverage gates, CI orchestration, and performance benchmarks would be disproportionate to this scope and is explicitly excluded by the project's design constraints rather than omitted by oversight.
 
-#### 6.6.1.1 Justification for Non-Applicability
+This exclusion is codified in the constraints recorded in Section 2.6 Assumptions and Constraints and mirrors the minimal toolchain documented in Section 3.6 Development and Deployment. The table below maps each factor to its repository evidence and testing implication.
 
-The absence of formal testing infrastructure is an intentional design decision based on the following factors:
+| System Factor | Repository Evidence | Testing Implication |
+|---|---|---|
+| Minimal surface area | `server.js` (64 lines); two `GET` routes; no database, auth, persistence, or UI | No integration seams, data layers, or user journeys to exercise |
+| No test framework (constraint C-005) | `npm test` = `echo "Error: no test specified" && exit 1`; no `devDependencies` in `package.json` | Verification is manual by constraint, not by omission |
+| Single dependency, no build tooling (constraint C-006) | Only `express ^5.2.1` declared; no linter, bundler, or transpiler | No build/test pipeline exists to integrate suites into |
+| Fixed, static responses | Handlers emit byte-exact literals (`Hello, World!\n` = 14 B; `Good evening` = 12 B) | Each route contract is fully verifiable with one HTTP probe |
 
-| Factor | Description | Evidence |
-|--------|-------------|----------|
-| Test Project Scope | System exists solely as a test harness for Backprop analysis | `README.md`: "test project for backprop integration" |
-| Minimal Codebase | Complete implementation in 14 lines of code | `server.js`: Single-file implementation |
-| Zero Dependencies | No external packages requiring integration testing | `package.json`: Empty dependencies object |
-| Deterministic Output | Static response eliminates test scenario complexity | Returns "Hello, World!\n" for all requests |
-| Repository Immutability | Cannot add testing infrastructure | "Do not touch!" directive |
-| Single Functionality | Only one behavior to verify | HTTP 200 response with static content |
+Constraint **C-005** states verbatim: *"No automated test framework; verification is manual"*, with supporting evidence *"Placeholder `npm test` exits `1`; no test files or devDependencies"*. Constraint **C-006** states *"Exactly one direct runtime dependency; no linter or build tooling"*. The delivery record in `blitzy/documentation/Project Guide.md` reinforces this: no unit-test framework exists by design, the placeholder `test` script is intentionally left unchanged, and the associated risk (T1 — *"No automated regression tests; future edits could silently break the byte-exact contract"*) is formally **Accepted** with the mitigation of documented `curl` checks and an optional future smoke test.
 
-#### 6.6.1.2 Testing Architecture Decision Matrix
+#### 6.6.1.1 Current Validation State
 
-The following matrix documents the explicit exclusion of testing features from this system:
+The "not applicable" determination does **not** mean the system is unverified. Verification is performed manually through runtime and command-line checks. The delivery record enumerates eight discrete validation entries, all passing (100% pass rate); code coverage is not measured because no instrumentation is present. The following table condenses that record.
 
-| Testing Domain | Implementation Status | Design Rationale |
-|----------------|----------------------|------------------|
-| Unit Testing Framework | ❌ Not Implemented | Single function; complexity doesn't warrant framework |
-| Integration Testing | ❌ Not Implemented | No external services or dependencies to integrate |
-| End-to-End Testing | ❌ Not Implemented | Trivial request-response pattern |
-| CI/CD Pipeline | ❌ Not Configured | Test project designation |
-| Code Coverage Tools | ❌ Not Installed | No tests to measure coverage for |
-| Test Automation | ❌ Not Required | Manual verification sufficient |
+| Validation Category | Method / Tool | Passed / Total | Observed Result |
+|---|---|---|---|
+| Functional acceptance (endpoints) | Manual HTTP — `curl` / Node `http` | 2 / 2 | `GET /` → 200, 14 B, `Hello, World!\n`; `GET /good-evening` → 200, 12 B, `Good evening` |
+| Runtime smoke | Node.js runtime | 2 / 2 | Clean startup via `node server.js` and `npm start`; startup log emitted; no stderr |
+| Negative routing | Manual HTTP — `curl` | 1 / 1 | `GET /<unknown>` and `POST /` → 404 (Express default) |
+| Static syntax gate | `node --check server.js` | 1 / 1 | Parses cleanly; exit 0 |
+| Dependency resolution | `npm ls` | 1 / 1 | `express@5.2.1` resolves |
+| Dependency audit | `npm audit` | 1 / 1 | 0 vulnerabilities across 67 transitive dependencies |
+| Unit tests | none — excluded by design | 0 / 0 | Placeholder `test` script unchanged |
+| **Total** | — | **8 / 8** | 100% pass rate; coverage not measured |
 
-#### 6.6.1.3 Testing Classification Flow
+#### 6.6.1.2 Test Execution Flow
 
-```mermaid
-flowchart TB
-    subgraph TestingClassification[Testing Architecture Classification]
-        Q1{{Does system have<br/>production requirements?}}
-        Q2{{Is codebase complexity<br/>above minimal threshold?}}
-        Q3{{Are there external<br/>dependencies to test?}}
-        Q4{{Is automated testing<br/>permitted by constraints?}}
-        Result[[Testing Strategy<br/>NOT APPLICABLE]]
-    end
-    
-    Q1 -->|No: Test project only| Q2
-    Q2 -->|No: 14 lines| Q3
-    Q3 -->|No: Zero dependencies| Q4
-    Q4 -->|No: Do not touch| Result
-```
-
----
-
-### 6.6.2 Current Testing Implementation Status
-
-#### 6.6.2.1 Test Script Configuration
-
-The `package.json` contains only a placeholder test script:
-
-| Script | Command | Status |
-|--------|---------|--------|
-| `test` | `echo "Error: no test specified" && exit 1` | Placeholder (non-functional) |
-
-This placeholder script:
-- Returns exit code 1 (failure) when invoked
-- Outputs explicit error message indicating no tests exist
-- Serves as NPM convention compliance rather than actual testing capability
-
-#### 6.6.2.2 Testing Infrastructure Inventory
-
-| Testing Component | Status | Evidence |
-|-------------------|--------|----------|
-| Test Framework (Jest/Mocha) | Not Installed | No devDependencies in `package.json` |
-| Test Runner | Not Configured | Placeholder script only |
-| Test Directories | Not Present | No `test/`, `tests/`, `__tests__/`, or `spec/` folders |
-| Coverage Tools (Istanbul/nyc) | Not Installed | No coverage configuration |
-| Assertion Libraries | Not Installed | No chai, expect, or similar packages |
-| Mocking Libraries | Not Installed | No sinon, jest mocks, or nock |
-
-#### 6.6.2.3 CI/CD Testing Configuration
-
-| CI/CD Platform | Configuration Status | Evidence |
-|----------------|---------------------|----------|
-| GitHub Actions | Not Configured | No `.github/workflows/` directory |
-| Jenkins | Not Configured | No `Jenkinsfile` |
-| CircleCI | Not Configured | No `.circleci/` directory |
-| Travis CI | Not Configured | No `.travis.yml` |
-| GitLab CI | Not Configured | No `.gitlab-ci.yml` |
-
-#### 6.6.2.4 Placeholder Test Files (Non-Functional)
-
-The repository contains placeholder files that suggest potential future multi-language testing scenarios but provide no functional testing implementation:
-
-| File | Status | Contents | Purpose |
-|------|--------|----------|---------|
-| `LoginTest.java` | Non-functional | Incomplete Java stub | Potential Backprop multi-language analysis target |
-| `test.py.txt` | Empty | 0 bytes | Placeholder |
-| `test.txt.txt` | Empty | 0 bytes | Placeholder |
-
----
-
-### 6.6.3 Basic Verification Approach
-
-#### 6.6.3.1 Manual Verification Methods
-
-While formal testing infrastructure is not applicable, the following verification methods are available to confirm system operation:
-
-| Verification Type | Method | Expected Outcome | Purpose |
-|-------------------|--------|------------------|---------|
-| Server Availability | HTTP GET to `localhost:3000` | HTTP 200 OK response | Confirms server is running |
-| Startup Success | Console output inspection | "Server running at..." message | Confirms initialization |
-| Process Status | OS process listing | Node.js process on port 3000 | Confirms runtime |
-| Response Correctness | Compare response body | Exact match: "Hello, World!\n" | Validates functionality |
-
-#### 6.6.3.2 Verification Execution Flow
-
-```mermaid
-flowchart LR
-    subgraph ManualVerification[Manual Verification Process]
-        Start([Start Verification])
-        StartServer[Execute<br/>node server.js]
-        CheckConsole[Verify Console<br/>Output Message]
-        SendRequest[Send HTTP Request<br/>curl localhost:3000]
-        ValidateResponse[Validate Response<br/>Hello World]
-        Complete([Verification Complete])
-    end
-    
-    Start --> StartServer
-    StartServer --> CheckConsole
-    CheckConsole --> SendRequest
-    SendRequest --> ValidateResponse
-    ValidateResponse --> Complete
-```
-
-#### 6.6.3.3 Diagnostic Commands
-
-The following commands provide verification capabilities without formal testing infrastructure:
-
-| Diagnostic Need | Command | Expected Output |
-|-----------------|---------|-----------------|
-| Verify server process | `ps aux \| grep node` | Node process running server.js |
-| Check port availability | `lsof -i :3000` | Process ID if port in use |
-| Test HTTP endpoint | `curl http://localhost:3000` | "Hello, World!" |
-| Check Node.js version | `node --version` | v20.19.6 or compatible |
-| Verify package integrity | `npm ls` | Empty dependency tree |
-
-#### 6.6.3.4 Verification Success Criteria
-
-| Criterion | Measurement | Target |
-|-----------|-------------|--------|
-| Server Startup | Console log message displayed | "Server running at http://127.0.0.1:3000/" |
-| HTTP Response Status | Status code from HTTP request | 200 OK |
-| Content-Type Header | Header value from response | `text/plain` |
-| Response Body | Body content from response | Exact match: "Hello, World!\n" |
-| Process Stability | Server remains running | No crashes during operation |
-
----
-
-### 6.6.4 Theoretical Test Scenarios
-
-#### 6.6.4.1 Functional Test Cases (Hypothetical)
-
-If testing were to be implemented, the following test cases would provide complete coverage of the system's single functionality:
-
-| Test ID | Test Case | Input | Expected Output | Priority |
-|---------|-----------|-------|-----------------|----------|
-| TC-001 | Server responds to GET request | GET `/` | 200 OK, "Hello, World!\n" | P0 |
-| TC-002 | Server responds to POST request | POST `/` | 200 OK, "Hello, World!\n" | P1 |
-| TC-003 | Server returns correct Content-Type | Any HTTP method | `text/plain` header | P0 |
-| TC-004 | Server handles any URL path | GET `/any/path` | 200 OK, "Hello, World!\n" | P1 |
-| TC-005 | Server ignores query parameters | GET `/?param=value` | 200 OK, "Hello, World!\n" | P2 |
-| TC-006 | Server starts successfully | Execute `node server.js` | Console log message | P0 |
-
-#### 6.6.4.2 Error Scenario Test Cases (Hypothetical)
-
-| Test ID | Scenario | Trigger Condition | Expected Behavior |
-|---------|----------|-------------------|-------------------|
-| ERR-001 | Port in use | Port 3000 occupied | EADDRINUSE error, exit code 1 |
-| ERR-002 | Permission denied | Insufficient privileges | EACCES error, exit code 1 |
-| ERR-003 | Node.js unavailable | Missing runtime | MODULE_NOT_FOUND error |
-
-#### 6.6.4.3 Test Data Requirements
-
-| Data Category | Requirement | Current Status |
-|---------------|-------------|----------------|
-| Test Fixtures | None required | Static response eliminates fixtures |
-| Mock Data | None required | No external services to mock |
-| Seed Data | None required | No database or state |
-| Environment Variables | None required | Hardcoded configuration |
-
----
-
-### 6.6.5 Architectural Constraints Affecting Testing
-
-#### 6.6.5.1 Constraint Impact Analysis
-
-The following architectural constraints prevent implementation of standard testing practices:
-
-| Constraint ID | Description | Impact on Testing |
-|---------------|-------------|-------------------|
-| C-001 | Localhost binding only | Prevents remote test execution; limits to local manual verification |
-| C-002 | No external dependencies | Cannot add testing frameworks (Jest, Mocha, etc.) |
-| C-003 | Hardcoded configuration | No configurable test environments or test modes |
-| C-004 | Static response content | Single test case covers all functionality |
-| C-005 | Repository immutability | Cannot add test infrastructure ("Do not touch!") |
-
-#### 6.6.5.2 Blocked Testing Capabilities
-
-```mermaid
-flowchart TB
-    subgraph Constraints[Architectural Constraints]
-        ZeroDeps[C-002: Zero<br/>Dependencies]
-        Immutable[C-005: Repository<br/>Immutability]
-        LocalhostOnly[C-001: Localhost<br/>Binding Only]
-    end
-    
-    subgraph BlockedCapabilities[Blocked Testing Capabilities]
-        TestFrameworks[Test Frameworks<br/>Jest Mocha<br/>BLOCKED]
-        CoverageTools[Coverage Tools<br/>Istanbul nyc<br/>BLOCKED]
-        CIPipeline[CI CD Pipeline<br/>BLOCKED]
-        E2EFrameworks[E2E Frameworks<br/>Playwright Cypress<br/>BLOCKED]
-        RemoteTesting[Remote Test<br/>Execution<br/>BLOCKED]
-    end
-    
-    ZeroDeps --> TestFrameworks
-    ZeroDeps --> CoverageTools
-    Immutable --> CIPipeline
-    Immutable --> E2EFrameworks
-    LocalhostOnly --> RemoteTesting
-```
-
----
-
-### 6.6.6 Testing Strategy Comparison
-
-#### 6.6.6.1 Expected vs. Actual Implementation
-
-```mermaid
-flowchart TB
-    subgraph ExpectedTesting[Expected Testing Architecture]
-        UnitTests[Unit Tests<br/>Jest Mocha]
-        IntTests[Integration Tests<br/>Supertest]
-        E2ETests[E2E Tests<br/>Playwright]
-        Coverage[Coverage Reports<br/>Istanbul]
-        CICD[CI CD Pipeline<br/>GitHub Actions]
-        
-        UnitTests --> Coverage
-        IntTests --> Coverage
-        E2ETests --> Coverage
-        Coverage --> CICD
-    end
-    
-    subgraph ActualImplementation[Actual System Implementation]
-        ManualTest[Manual HTTP Request<br/>curl localhost:3000]
-        ConsoleLog[Console Log<br/>Verification]
-    end
-    
-    ExpectedTesting ~~~ ActualImplementation
-```
-
-#### 6.6.6.2 Feature Gap Analysis
-
-| Testing Feature | Production Expectation | Actual Implementation |
-|-----------------|----------------------|----------------------|
-| Unit Tests | Jest/Mocha with assertions | None |
-| Integration Tests | Supertest, API testing | None |
-| E2E Tests | Playwright, Cypress | None |
-| Code Coverage | Istanbul, 80%+ target | None |
-| CI/CD Integration | Automated pipeline | None |
-| Test Reporting | JUnit XML, HTML reports | None |
-| Mocking | Sinon, Jest mocks | None |
-| Test Data Management | Fixtures, factories | None |
-
----
-
-### 6.6.7 Quality Metrics (Non-Applicable)
-
-#### 6.6.7.1 Standard Quality Metrics Status
-
-| Metric | Standard Target | Current Status | Applicability |
-|--------|-----------------|----------------|---------------|
-| Code Coverage | ≥80% | Not Measured | Not Applicable |
-| Test Pass Rate | 100% | No Tests | Not Applicable |
-| Test Execution Time | <5 minutes | N/A | Not Applicable |
-| Defect Detection Rate | ≥90% | Not Measured | Not Applicable |
-| Test Case Count | Varies | 0 | Not Applicable |
-
-#### 6.6.7.2 Quality Gates (Non-Applicable)
-
-| Quality Gate | Standard Threshold | Implementation Status |
-|--------------|-------------------|----------------------|
-| Unit Test Pass | 100% | Not Implemented |
-| Integration Test Pass | 100% | Not Implemented |
-| Code Coverage | ≥80% | Not Implemented |
-| No Critical Bugs | 0 | Not Measured |
-| Performance SLA | <100ms response | Not Measured (meets design target) |
-
----
-
-### 6.6.8 Recommended Testing Approach (If Implemented)
-
-#### 6.6.8.1 Framework Recommendations
-
-If testing requirements were to change, the following Node.js ecosystem tools would be recommended:
-
-| Category | Recommended Tool | Rationale |
-|----------|------------------|-----------|
-| Unit Testing | Jest or Mocha | Most popular Node.js test frameworks |
-| HTTP Testing | supertest | HTTP assertion library for Node.js servers |
-| Coverage | Istanbul/nyc | Standard coverage tool for Node.js |
-| Mocking | Sinon or Jest mocks | Comprehensive mocking capabilities |
-| Linting | ESLint | Code quality assurance |
-
-#### 6.6.8.2 Hypothetical Test Structure
-
-```mermaid
-flowchart TB
-    subgraph HypotheticalStructure[Hypothetical Test Structure]
-        Root[Project Root]
-        TestDir[test/]
-        UnitDir[unit/]
-        IntDir[integration/]
-        ServerTest[server.test.js]
-        ConfigFile[jest.config.js]
-    end
-    
-    Root --> TestDir
-    Root --> ConfigFile
-    TestDir --> UnitDir
-    TestDir --> IntDir
-    UnitDir --> ServerTest
-```
-
-#### 6.6.8.3 Hypothetical Test Implementation Pattern
-
-If tests were implemented, they would follow this pattern:
-
-| Test File | Test Suite | Test Cases |
-|-----------|------------|------------|
-| `server.test.js` | Hello World Server | Response status, Content-Type, Body content |
-| `startup.test.js` | Server Initialization | Port binding, Console logging |
-
-#### 6.6.8.4 Hypothetical Test Execution Flow
+The diagram below models the manual validation sequence actually used to certify the service. It combines the static/dependency gates (`node --check`, `npm ls`, `npm audit`), the fail-fast runtime launch, and the HTTP acceptance probes into a single ordered flow that terminates in certification and merge via pull request.
 
 ```mermaid
 flowchart TD
-    subgraph TestExecution[Hypothetical Test Execution Flow]
-        Start([npm test])
-        LoadConfig[Load Test<br/>Configuration]
-        DiscoverTests[Discover<br/>Test Files]
-        ExecuteTests[Execute<br/>Test Suites]
-        CollectCoverage[Collect<br/>Coverage Data]
-        GenerateReport[Generate<br/>Test Report]
-        Complete([Exit with<br/>Status Code])
-    end
-    
-    Start --> LoadConfig
-    LoadConfig --> DiscoverTests
-    DiscoverTests --> ExecuteTests
-    ExecuteTests --> CollectCoverage
-    CollectCoverage --> GenerateReport
-    GenerateReport --> Complete
+    Start(["Developer / reviewer initiates validation"])
+    Syntax["Static syntax gate<br/>node --check server.js (exit 0)"]
+    Install["Install deps from lockfile<br/>npm install / npm ci"]
+    Resolve["Dependency resolution<br/>npm ls (express@5.2.1)"]
+    Audit["Dependency audit<br/>npm audit (0 vulns / 67 deps)"]
+    Launch["Launch service<br/>node server.js OR npm start"]
+    Bound{"Startup log printed and<br/>socket bound on 127.0.0.1:3000?"}
+    FailStart["Fail-fast: stderr diagnostic<br/>+ process.exitCode = 1 (investigate)"]
+    Root["Functional acceptance - root<br/>curl GET / => 200, 14B, Hello World"]
+    Evening["Functional acceptance - evening<br/>curl GET /good-evening => 200, 12B"]
+    Negative["Negative routing<br/>curl GET /unknown => 404"]
+    Headers["Security headers<br/>X-Powered-By absent; nosniff present"]
+    Pass(["All 8 checks pass => certify / merge via PR"])
+
+    Start --> Syntax --> Install --> Resolve --> Audit --> Launch --> Bound
+    Bound -->|"no"| FailStart
+    Bound -->|"yes"| Root --> Evening --> Negative --> Headers --> Pass
 ```
 
-#### 6.6.8.5 Hypothetical CI/CD Integration
+The remaining sub-sections (6.6.2 through 6.6.5) document the conventional testing dimensions requested by this specification. For each, they first state the **current state** (predominantly "not implemented / not applicable" given the constraints above) and then a **proportionate recommended approach** that remains strictly consistent with the established technology stack, so that the guidance can be adopted verbatim should the project's scope ever grow.
 
-| CI/CD Stage | Actions | Triggers |
-|-------------|---------|----------|
-| Build | `npm install` | Push to branch |
-| Test | `npm test` | Push, PR |
-| Coverage | Generate coverage report | Post-test |
-| Quality Gate | Enforce thresholds | Pre-merge |
+### 6.6.2 Testing Approach
 
----
+This sub-section documents the three conventional test tiers — unit, integration, and end-to-end. Because the system carries no test framework by constraint (C-005) and no build tooling (C-006), each tier below states the **current state** observed in the repository and then a **proportionate recommended approach** that introduces no new runtime dependencies and stays consistent with the Node.js 18+ / Express 5.2.1 stack.
 
-### 6.6.9 Test Environment Architecture (Theoretical)
+#### 6.6.2.1 Unit Testing
 
-#### 6.6.9.1 Environment Requirements
+**Current state.** No unit tests exist. The `test` script in `package.json` is the placeholder `echo "Error: no test specified" && exit 1`, and there is no `devDependencies` section. A structural constraint compounds this: `server.js` does **not** export the Express `app` (there is no `module.exports`) and calls `app.listen()` immediately on `require`, so its route handlers cannot be imported into a test process without first refactoring the module.
 
-If testing were implemented, the following environment would be required:
+**Recommended approach.** The stack-consistent choice is the Node.js built-in test runner, which adds zero packages and is present in the runtime.
 
-| Environment | Purpose | Configuration |
-|-------------|---------|---------------|
-| Development | Local testing | Node.js v20.19.6+, Port 3000 available |
-| CI | Automated testing | GitHub Actions runner, Node.js image |
+| Aspect | Current State | Recommended Approach |
+|---|---|---|
+| Framework / tools | None | Built-in `node:test` + `node:assert` (no new deps; available on Node ≥ 18, verified present on the container's Node v22) |
+| Test organization | None | A `test/` directory with `*.test.js` files, executed via `node --test` |
+| Mocking strategy | None | None required — handlers are pure and emit static literals with no I/O to stub |
+| Code coverage | Not measured | Built-in `node --test --experimental-test-coverage`; no external coverage tool (e.g., nyc) needed |
+| Naming convention | N/A | Behavior-oriented, e.g. `GET / returns 200 with 14-byte Hello, World body` |
+| Test data management | N/A | Inline literals mirroring the byte-exact contract; no fixtures or datasets |
 
-#### 6.6.9.2 Theoretical Test Environment Diagram
+Adopting Jest or Mocha would introduce `devDependencies`, which the project has deliberately avoided; `node:test` preserves the single-dependency posture. Enabling in-process tests first requires a minimal, non-behavioral refactor of `server.js` to export the app and guard the listener:
+
+```js
+module.exports = app;
+if (require.main === module) { app.listen(port, hostname, () => { /* log */ }); }
+```
+
+A representative unit/handler test then reads:
+
+```js
+const { test } = require('node:test');
+const assert = require('node:assert');
+// exercise app via supertest or a spawned server, then assert on status/body/headers
+```
+
+#### 6.6.2.2 Integration Testing
+
+**Current state.** The only integration verification is manual HTTP probing (`curl`) against the running process, as recorded in the delivery report and `README.md`. There is no automated integration suite.
+
+| Concern | Applicability and Recommendation |
+|---|---|
+| Service integration | Single self-contained service with no inter-service calls; integration reduces to HTTP request/response verification of the two routes |
+| API testing strategy | Recommended: `supertest` (dev-only) bound to the exported `app` on an ephemeral port; current: manual `curl -i` against `127.0.0.1:3000` |
+| Database integration | Not applicable — no database or persistence layer exists (see Section 6.2 Database Design) |
+| External service mocking | Not applicable — `server.js` makes no outbound network calls, so there is nothing to mock or stub |
+| Test environment management | A single localhost Node process; `supertest` can bind the app to an OS-assigned port, avoiding a collision on the hardcoded port 3000 |
+
+Example API integration pattern (dev-only, after the export refactor):
+
+```js
+const request = require('supertest');
+await request(app).get('/good-evening').expect(200).expect('Content-Length', '12');
+```
+
+Equivalent current manual check against a running instance:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:3000/good-evening   # -> 200
+```
+
+#### 6.6.2.3 End-to-End Testing
+
+**Current state.** There is no end-to-end automation. The E2E analog is a full HTTP round-trip against the two routes plus a negative route, verified manually and confirmed at runtime (`GET /` → 200/14 B, `GET /good-evening` → 200/12 B, unknown route or non-GET method → 404).
+
+| Concern | Applicability and Recommendation |
+|---|---|
+| E2E scenarios | Three: `GET /` → 200/14 B; `GET /good-evening` → 200/12 B; unknown route → 404; no multi-step user journeys exist |
+| UI automation | Not applicable — no UI, template, or frontend (the delivery record marks UI verification "Not Applicable"); no Cypress/Playwright/Selenium present |
+| Test data setup / teardown | None required — responses are stateless and static; the lifecycle is simply start/stop of the single process |
+| Performance testing | None defined; no SLA or latency thresholds exist (see Section 6.5 Monitoring and Observability); an optional smoke latency probe is the ceiling of relevance |
+| Cross-browser testing | Not applicable — responses are `text/plain`, so there is no browser-rendered markup to validate across engines |
+
+Example process-level end-to-end pattern grounded in observed behavior:
+
+```bash
+node server.js & sleep 1; curl -s -i http://127.0.0.1:3000/ | head -1   # HTTP/1.1 200 OK
+```
+
+### 6.6.3 Test Automation
+
+The system has no test-automation infrastructure. This is consistent with Section 3.6 Development and Deployment, which records CI/CD pipelines, containerization, and infrastructure-as-code as intentionally absent — there is no `.github/workflows/`, `.gitlab-ci.yml`, `Jenkinsfile`, `.travis.yml`, or `.circleci/` anywhere in the repository. Consequently, all validation is invoked manually by a developer or reviewer. The matrix below summarizes each automation concern requested by this specification against the current state and a minimal, stack-consistent recommendation.
+
+| Automation Concern | Current State | Recommended (Minimal) |
+|---|---|---|
+| CI/CD integration | None (Section 3.6) | One GitHub Actions workflow running `npm ci`, `node --check`, `npm audit` |
+| Automated test triggers | None — validation invoked by hand | Trigger on `push` and `pull_request` to the default branch |
+| Parallel test execution | Not applicable — 8 manual checks run sequentially | `node --test` runs test files in parallel by default if a suite is added |
+| Test reporting | Narrative record in the delivery report | `node --test` TAP output, optionally stored as a CI artifact |
+| Failed-test handling | `npm test` exits `1` (placeholder); startup failure sets `process.exitCode = 1`; defects tracked as QA findings | Non-zero step exit fails the job and blocks merge |
+| Flaky-test management | Not applicable — no tests | Deterministic static responses keep any future smoke test flake-free; no retries needed |
+
+#### 6.6.3.1 Defect Disposition Workflow
+
+In the absence of automated gating, defects are managed through a manual quality-assurance workflow captured in git history and pull-request review. Each finding carries an identifier, a **severity** (CRITICAL, MAJOR, MINOR, or INFO), and a **disposition** (FIX, CERTIFY, or DECLINE). This human-review gate is the de-facto "failed-test handling" mechanism today: a change is not merged until its findings are resolved or explicitly certified. Representative examples observed in the history include the response-header hardening change (commit `3ba1489`: `X-Powered-By` suppression and `X-Content-Type-Options: nosniff`) and the fail-fast startup change (commit `55f5b91`: non-zero exit on a listener error). The consolidated change set was integrated via pull request #1 (merge commit `893bd8d`).
+
+#### 6.6.3.2 Recommended Minimal CI Pipeline
+
+Should the project ever adopt automation, a single workflow is sufficient and introduces no runtime dependencies. It would run the same gates that are performed manually today, triggered on every push and pull request; any non-zero step exit fails the job and blocks merge.
+
+```yaml
+on: [push, pull_request]
+# steps: npm ci -> node --check server.js -> npm audit -> (node --test)
+
+```
+
+Within such a pipeline, `node --test` executes test files in parallel by default, its TAP output serves as the test report, and the deterministic byte-exact responses ensure runs remain free of flakiness — no retry or quarantine tooling is warranted at this scale.
+
+### 6.6.4 Quality Metrics
+
+Quality for this system is measured against a small set of deterministic, binary criteria rather than statistical coverage or performance targets. The metrics below reflect what is actually enforced (manual gates recorded in the delivery report) alongside the proportionate targets recommended if the project's scope grows.
+
+#### 6.6.4.1 Quality Metrics and Coverage Targets
+
+| Metric | Target | Current |
+|---|---|---|
+| Code coverage | No enforced gate; near-full line coverage of the two handlers if a suite is added | Not measured (no instrumentation) |
+| Test success rate | 100% of defined checks must pass to certify | 8 / 8 (100%) |
+| Performance threshold | None defined — no SLA exists (see Section 6.5 Monitoring and Observability) | Not measured |
+| Security posture | 0 known vulnerabilities; `X-Powered-By` suppressed; `nosniff` present | Pass |
+
+Code coverage is deliberately unmeasured: with no test suite and no instrumentation, there is nothing to report, and introducing a coverage tool would violate the single-dependency posture (constraint C-006). Test success rate is the primary live metric — the eight manual validation entries in Section 6.6.1.1 must all pass for a change to be certified, and they currently do (100%). No performance thresholds are defined because the system carries no latency or throughput SLA.
+
+#### 6.6.4.2 Quality Gates
+
+The following gates are applied manually before a change is certified and merged. Each is binary (pass/fail); a failure blocks merge.
+
+| Quality Gate | Criterion | Current Result |
+|---|---|---|
+| Static syntax | `node --check server.js` exits 0 | Pass |
+| Dependency audit | `npm audit` reports 0 vulnerabilities | Pass (0 / 67 deps) |
+| Byte-exact response contract | `GET /` body = `Hello, World!\n` (14 B); `/good-evening` = 12 B (constraint C-007) | Pass |
+| Functional acceptance | 8 / 8 manual checks pass | Pass (100%) |
+| Human review | Pull request approved and merged | Pass (PR #1, merge `893bd8d`) |
+
+#### 6.6.4.3 Test Strategy Matrix
+
+The matrix consolidates the applicability of each test dimension to this system, its current status, and the tooling that would be used if adopted. Every dimension is low-relevance because the surface area is two static routes.
+
+| Test Type | Applicability | Current Status | Tooling (if Adopted) |
+|---|---|---|---|
+| Unit | Low — two pure handlers | Not implemented | `node:test` |
+| Integration | Low — single service, no dependencies | Manual `curl` | `supertest` |
+| End-to-end | Low — HTTP round-trip | Manual `curl` | `curl` / `node:test` |
+| Performance | None — no SLA | Not measured | n/a |
+| Security | Low — headers + audit | `npm audit` + header checks | `npm audit` |
+
+#### 6.6.4.4 Security Testing Requirements
+
+Security verification is limited to the concerns that actually exist for a loopback-only, parameterless plaintext service, and aligns with Section 6.4 Security Architecture. There are no authentication flows, request bodies, query parameters, or data stores to fuzz or inject against, so the security surface reduces to dependency hygiene and response-header correctness.
+
+| Security Check | Method | Current Result |
+|---|---|---|
+| Dependency vulnerabilities | `npm audit` across the resolved tree | 0 vulnerabilities / 67 deps |
+| Information-exposure header | Verify `X-Powered-By` is absent (`app.disable('x-powered-by')`) | Header absent (verified at runtime) |
+| MIME-sniffing header | Verify `X-Content-Type-Options: nosniff` on both routes | Header present (verified at runtime) |
+| Network exposure | Confirm the listener binds `127.0.0.1` only | Loopback-only bind confirmed |
+
+Recommended practice is to retain `npm audit` as a CI gate and, if a smoke test is introduced, to assert the two header conditions above so header regressions are caught automatically.
+
+#### 6.6.4.5 Documentation Requirements
+
+The quality bar includes keeping documentation synchronized with observed behavior. `README.md` must accurately describe the two endpoints and their byte-exact bodies (including the trailing-newline distinction between `/` and `/good-evening`); the delivery report in `blitzy/documentation/Project Guide.md` records the validation results and their dispositions; and any future test added to guard the response contract should be documented alongside its `npm`/`node --test` invocation so that reviewers can reproduce it.
+
+### 6.6.5 Test Environment and Data Flow
+
+The test environment is intentionally identical to the runtime environment: validation runs on the same single host that runs the service, with no separate staging tier, test database, or mocked-dependency layer. This sub-section documents the environment topology and resource footprint, then the flow of test data.
+
+#### 6.6.5.1 Test Environment Architecture
+
+Validation occurs entirely on one machine (a developer workstation or, prospectively, a CI runner). Static and dependency checks (`node --check`, `npm ls`, `npm audit`) operate on the source and lockfile without a running process, while runtime checks launch the Express process and probe it over the loopback interface with `curl` or a Node `http` client. No database, container, external service, or remote environment participates.
 
 ```mermaid
 flowchart TB
-    subgraph TheoreticalEnvironment[Theoretical Test Environment]
-        subgraph LocalDev[Local Development]
-            DevMachine[Developer<br/>Machine]
-            NodeRuntime[Node.js<br/>Runtime]
-            TestRunner[Test Runner<br/>Jest Mocha]
+    subgraph Host["Single host - developer or CI workstation (Node.js >= 18)"]
+        direction TB
+        Lockfile[("package-lock.json<br/>pinned dependency graph")]
+        subgraph Tools["Static / dependency validation (no process running)"]
+            direction TB
+            Check["node --check server.js - syntax gate"]
+            Ls["npm ls - dependency tree"]
+            Audit["npm audit - vulnerability scan"]
         end
-        
-        subgraph CIEnvironment[CI Environment]
-            GitHubActions[GitHub Actions<br/>Runner]
-            NodeImage[Node.js<br/>Container Image]
-            CoverageService[Coverage<br/>Reporting]
+        subgraph Runtime["Runtime validation (process running)"]
+            direction TB
+            Proc["node server.js<br/>Express 5.2.1 - bound to 127.0.0.1:3000"]
+            Client["HTTP probe - curl / Node http client"]
         end
+        Lockfile -->|"npm install / npm ci"| Proc
+        Client -->|"GET / , /good-evening , /unknown"| Proc
+        Proc -->|"200 / 404 + headers"| Client
     end
-    
-    DevMachine --> NodeRuntime
-    NodeRuntime --> TestRunner
-    GitHubActions --> NodeImage
-    NodeImage --> CoverageService
+    subgraph Excluded["Explicitly absent from the test environment"]
+        direction TB
+        NoExt["No database, no containers, no CI service,<br/>no remote/staging target, no external services"]
+    end
+    Proc -.->|"no outbound calls"| NoExt
 ```
 
----
+The environment needs and resource footprint are correspondingly minimal. Port 3000 must be free for runtime checks; a `supertest`-based suite would avoid that constraint by binding the app to an OS-assigned ephemeral port.
 
-### 6.6.10 Security Testing Considerations
+| Resource | Requirement |
+|---|---|
+| Runtime | Node.js ≥ 18 (verified on v22.23.1); npm for install and audit |
+| Dependencies | `express ^5.2.1` plus 67 transitive packages, installed from `package-lock.json` (lockfileVersion 3) |
+| Network | Loopback only — TCP port 3000 on `127.0.0.1`; no egress or external endpoints |
+| Compute / memory | Negligible — a single Node process; no parallel workers, database, or container |
+| Credentials / secrets | None — no authentication, API keys, or environment variables |
 
-#### 6.6.10.1 Security Testing Status
+#### 6.6.5.2 Test Data Flow
 
-| Security Test Type | Implementation | Rationale |
-|-------------------|----------------|-----------|
-| Vulnerability Scanning | Not Implemented | Zero dependencies eliminate supply chain risks |
-| Penetration Testing | Not Applicable | Localhost-only binding; no external attack surface |
-| Authentication Testing | Not Applicable | No authentication mechanism |
-| Authorization Testing | Not Applicable | No authorization mechanism |
-| Input Validation Testing | Not Applicable | No input processing |
+All "test data" consists of fixed, in-memory string literals defined directly in `server.js`. There are no external fixtures, seed files, or datasets, and therefore no data setup or teardown. Test inputs are simply the HTTP request method and path; the assertion oracle is the fixed status code, headers, and byte-exact body for each route. Notably, `industry.csv` exists in the repository but is never read by `server.js`, so it drives no test input or output and is excluded from the data flow.
 
-#### 6.6.10.2 Security Posture Summary
+```mermaid
+flowchart LR
+    subgraph Inputs["Test inputs (request fixtures)"]
+        direction TB
+        I1["GET /"]
+        I2["GET /good-evening"]
+        I3["GET /unknown or POST /"]
+    end
+    subgraph SUT["System under test - server.js (Express 5.2.1)"]
+        direction TB
+        R1["Root handler - static literal"]
+        R2["Evening handler - static literal"]
+        R404["Unmatched => Express default 404"]
+    end
+    subgraph Expected["Expected outputs (assertion oracle)"]
+        direction TB
+        E1["200 - text/plain;charset=utf-8 - 14B - nosniff - no X-Powered-By"]
+        E2["200 - text/plain;charset=utf-8 - 12B - Good evening"]
+        E3["404 - Express default"]
+    end
+    subgraph NotData["Not test data"]
+        direction TB
+        CSV[("industry.csv - static file<br/>NOT read at runtime - drives no assertion")]
+    end
+    I1 --> R1 --> E1
+    I2 --> R2 --> E2
+    I3 --> R404 --> E3
+```
 
-The system's minimal architecture provides inherent security through simplicity:
+Because inputs and expected outputs are both fixed constants, any future automated check is fully deterministic: it constructs a request, compares the response's status, `Content-Length`, headers, and body against the literals shown above, and requires no database seeding, data anonymization, or cleanup step.
 
-| Security Aspect | Status |
-|-----------------|--------|
-| Attack Surface | Minimal (localhost only) |
-| Dependencies | Zero (no supply chain risk) |
-| Input Processing | None (static response) |
-| Data Handling | None (stateless) |
+### 6.6.6 References
 
----
+The following repository artifacts, specification sections, and verification activities were examined as evidence for this section.
 
-### 6.6.11 Summary
+**Files**
 
-#### 6.6.11.1 Key Findings
+- `server.js` — the single-file Express 5.2.1 application; established the two `GET` routes, the `text/plain` responses with `X-Content-Type-Options: nosniff`, the `app.disable('x-powered-by')` hardening, the hardcoded `127.0.0.1:3000` bind, the fail-fast `server.on('error')` path (`process.exitCode = 1`), and the absence of any `module.exports` (the in-process testability constraint)
+- `package.json` — established the placeholder `test` script (`echo "Error: no test specified" && exit 1`), the sole `express ^5.2.1` dependency, and the absence of a `devDependencies` section
+- `package-lock.json` — established the pinned dependency graph (lockfileVersion 3) and the 67-transitive-dependency count reconciled with `npm audit`
+- `README.md` — established the documented endpoint table and byte-exact response bodies, including the trailing-newline distinction between `/` and `/good-evening`
+- `industry.csv` — confirmed to be a static, unused file not read by `server.js`; excluded from the test data flow
+- `LoginTest.java` — confirmed to be a non-compiling Java stub unrelated to the Node.js project and not part of any test surface
+- `test.py.txt` and `test.txt.txt` — confirmed to be empty (0-byte) stray artifacts containing no test logic
+- `.gitignore` — confirmed the repository ignores only `node_modules/`, with no test or coverage output patterns
 
-The hao-backprop-test repository deliberately excludes formal testing architecture based on its constrained scope as a test project for Backprop integration:
+**Folders**
 
-1. **Test Framework**: Not implemented—placeholder test script returns error
-2. **CI/CD Pipeline**: Not configured—no automation files present
-3. **Code Coverage**: Not measured—no coverage tools installed
-4. **Test Directories**: Not present—no test file organization
-5. **Quality Gates**: Not implemented—no enforcement mechanisms
+- `blitzy/documentation/` — contained the delivery report `Project Guide.md`, source of the eight-entry validation results table (all passing, coverage N/A), the "no unit-test framework by design" statement, Risk T1 (accepted), the "UI verification: Not Applicable" record, and the QA finding/severity/disposition model
 
-#### 6.6.11.2 Testing Posture Summary
+**Technical Specification cross-references**
 
-| Domain | Formal Implementation | Basic Practice |
-|--------|----------------------|----------------|
-| Functional Testing | None | Manual HTTP verification |
-| Error Testing | None | Manual error observation |
-| Regression Testing | None | N/A (no changes permitted) |
-| Performance Testing | None | Manual observation |
+- Section 2.6 Assumptions and Constraints — constraints C-005 (no automated test framework; manual verification), C-006 (single dependency; no linter or build tooling), and C-007 (byte-exact `GET /` contract)
+- Section 3.6 Development and Deployment — the intentionally absent build/CI/CD/containerization toolchain and the `node --check` / `npm audit` / `curl` validation surface
+- Section 6.2 Database Design — confirmation of the absence of any database or persistence layer
+- Section 6.4 Security Architecture — the header-hardening and dependency-audit posture referenced by the security testing requirements
+- Section 6.5 Monitoring and Observability — the absence of SLA/performance thresholds and the health-probe behavior of the two routes
 
-#### 6.6.11.3 Verification Methods Available
+**Verification activities**
 
-| Method | Command | Expected Result |
-|--------|---------|-----------------|
-| HTTP Test | `curl http://localhost:3000` | "Hello, World!" |
-| Process Check | `ps aux \| grep node` | Running process |
-| Port Check | `lsof -i :3000` | Port in use |
-| Console Check | Visual inspection | Startup message |
-
-#### 6.6.11.4 Architectural Constraints Summary
-
-| Constraint ID | Description | Testing Impact |
-|---------------|-------------|----------------|
-| C-001 | Localhost binding only | Prevents remote test execution |
-| C-002 | No external dependencies | Prevents test framework installation |
-| C-003 | Hardcoded configuration | Prevents test environment configuration |
-| C-005 | Repository immutability | Prevents test infrastructure additions |
-
----
-
-### 6.6.12 References
-
-#### Technical Specification Sections Retrieved
-
-- `1.2 System Overview` - Confirms test project purpose, 14-line implementation, zero dependencies, and success criteria
-- `1.3 Scope` - Documents out-of-scope features including production deployment and monitoring
-- `3.7 Development & Deployment` - Documents CI/CD status (none configured), development tools, and build system (none required)
-- `Package.json Scripts` - Confirms placeholder test script: `echo "Error: no test specified" && exit 1`
-- `4.5 Error Handling` - Documents error scenarios and theoretical test cases for error conditions
-- `5.4 Cross-Cutting Concerns` - Confirms verification methods, performance targets, and recovery procedures
-- `6.1 Core Services Architecture` - Confirms single-component architecture, minimal monolith pattern, and scaling limitations
-- `6.5 Monitoring and Observability` - Confirms diagnostic commands and verification flow
-
-#### Repository Files Referenced
-
-- `server.js` - Complete HTTP server implementation (14 lines); single functionality to test
-- `package.json` - Confirms zero external dependencies; placeholder test script; no devDependencies
-- `README.md` - Confirms test project designation: "test project for backprop integration. Do not touch!"
-- `LoginTest.java` - Non-functional Java test stub (placeholder)
-- `test.py.txt` - Empty placeholder file (0 bytes)
-- `test.txt.txt` - Empty placeholder file (0 bytes)
+- Live runtime verification (`node server.js` with `curl -i`) — confirmed the exact status codes, headers, and bodies (`GET /` → 200, `Content-Length: 14`, `Hello, World!\n`; `GET /good-evening` → 200, `Content-Length: 12`, `Good evening`; unknown route and `POST /` → 404), the suppressed `X-Powered-By` header, the present `nosniff` header, and the startup log line
+- Static and dependency checks (`node --check server.js`, `npm ls`, `npm audit`) — confirmed clean parse (exit 0), `express@5.2.1` resolution, and 0 vulnerabilities across 67 dependencies
+- Runtime capability check — confirmed the built-in `node:test` runner is available on the environment's Node.js (v22.23.1), enabling the recommended zero-dependency unit-testing approach
 
 # 7. User Interface Design
 
-## 7.1 Overview
+## 7.1 User Interface Applicability Assessment
 
-### 7.1.1 UI Applicability Assessment
+The service documented throughout this specification — the `hao-backprop-test` repository, published under the npm package name `hello_world` (version `1.0.0`) — is a headless HTTP service. This section evaluates whether that service defines, renders, or serves any user interface (UI) and records the evidence behind the conclusion. Every statement is grounded in the current repository contents, principally `server.js`, `package.json`, `README.md`, and the complete repository file inventory.
 
 **No user interface required.**
 
-The hao-backprop-test repository implements a minimal, single-purpose HTTP server designed exclusively as a test harness for Backprop integration testing. The system architecture explicitly excludes all user interface components, frontend technologies, and visual presentation layers by design.
+The system is a single-process, single-file Express 5 HTTP microservice that responds with `text/plain` bodies over the loopback interface (`127.0.0.1:3000`). It contains no front-end technology, no rendered or served screens, no client-side code, and no visual presentation layer. A direct search of the repository for UI artifacts — HTML, CSS, client-side JavaScript, template files, image-based screens, and front-end framework directories — returned none. Accordingly, the standard User Interface Design concerns enumerated by this section's scope (core UI technologies, UI use cases, UI/backend interaction boundaries, UI schemas, required screens, user interactions, and visual design considerations) are **not applicable** to this system. The sub-sections below record the determination (7.1.1), the supporting code and repository evidence (7.1.2), the single framework-generated HTML artifact the process can emit and why it is not a UI (7.1.3), and the explicit mapping of each standard UI concern to its not-applicable status together with the conditions that would reopen this assessment (7.1.4).
 
-### 7.1.2 Justification for Non-Applicability
+### 7.1.1 Assessment Determination
 
-The absence of a user interface is an intentional architectural decision aligned with the project's core purpose. The following evidence confirms this determination:
+The determination is unambiguous: the system exposes only a programmatic, plain-text HTTP contract and has no user-facing interface. The dimensions evaluated and their findings are summarized below.
 
-| Assessment Criterion | Finding | Evidence |
-|---------------------|---------|----------|
-| Response Content-Type | Plain text only | `res.setHeader('Content-Type', 'text/plain')` in `server.js` |
-| Response Body | Static string | Returns `"Hello, World!\n"` - no HTML rendering |
-| Frontend Dependencies | None | Empty `dependencies` object in `package.json` |
-| UI Frameworks | None present | No React, Vue, Angular, Svelte, or templating engines |
-| Static Assets | None served | No CSS, JavaScript bundles, or image delivery |
-| View Rendering | Not implemented | No templating engine (EJS, Handlebars, Pug) |
-| Client-Side Code | None | No browser-executable JavaScript |
+| Assessment dimension | Finding | Basis in the repository |
+|---|---|---|
+| HTML rendered or served | None | `server.js` sets `res.type('text/plain')` on both routes; no `res.render()`, `res.sendFile()`, or `express.static()` is used |
+| Front-end dependencies | None | `package.json` declares only `express ^5.2.1` and has no `devDependencies` |
+| UI framework / template engine | None | No React, Vue, Angular, or Svelte, and no EJS/Pug/Handlebars, appear in the dependency tree |
+| Front-end source files | None | No `.html`, `.css`, `.jsx`, `.tsx`, `.vue`, `.svelte`, or template files exist anywhere in the repository |
+| Front-end directories | None | No `views/`, `public/`, `static/`, `client/`, `frontend/`, `assets/`, `templates/`, `components/`, or `pages/` directory exists |
+| Served screens / images | None | The only image file (`demo.jpg`) is never referenced or served by runtime code |
+| Client access method | HTTP client (e.g., `curl`) | `README.md` documents command-line `curl` invocations only, not a browser UI |
 
-### 7.1.3 Project Context
-
-The README.md explicitly identifies this as a **"test project for backprop integration"** with a directive to **"Do not touch!"** This classification places the repository outside the domain of user-facing applications where UI design would apply.
+The following decision cascade records how the determination was reached; every gate resolves away from a UI, so the assessment terminates at "No User Interface Required."
 
 ```mermaid
-flowchart TB
-    subgraph Assessment[UI Requirement Assessment]
-        direction TB
-        Q1{{"Does the system<br/>render HTML?"}}
-        Q2{{"Does it serve<br/>static assets?"}}
-        Q3{{"Are there frontend<br/>dependencies?"}}
-        Q4{{"Does it require<br/>user interaction?"}}
-        Result[["User Interface<br/>NOT REQUIRED"]]
-    end
-    
-    Q1 -->|"No: text/plain only"| Q2
-    Q2 -->|"No: static response"| Q3
-    Q3 -->|"No: zero dependencies"| Q4
-    Q4 -->|"No: test harness"| Result
+flowchart TD
+    Start(["Start: Does the system require a UI?"]) --> Q1{"server.js renders<br/>or serves HTML?"}
+    Q1 -->|"No — text/plain only"| Q2{"Front-end dependencies<br/>in package.json?"}
+    Q2 -->|"No — express only"| Q3{"HTML / CSS / JS / template<br/>files in the repository?"}
+    Q3 -->|"No — none found"| Q4{"views / public / static /<br/>client directories present?"}
+    Q4 -->|"No — none exist"| Result[["No User Interface Required"]]
+    Q1 -->|Yes| UIYes[["A UI layer would be required"]]
+    Q2 -->|Yes| UIYes
+    Q3 -->|Yes| UIYes
+    Q4 -->|Yes| UIYes
 ```
 
-## 7.2 Technical Analysis
+### 7.1.2 Supporting Evidence from the Codebase
 
-### 7.2.1 Response Characteristics
+**Response construction (`server.js`).** The application registers exactly two `GET` route handlers plus an `app.listen()` call. Both handlers construct a plain-text response and set the `Content-Type` to `text/plain` explicitly. A source comment records that this is deliberate: Express's `res.send()` would otherwise default a string body to `text/html`. The root route is representative:
 
-The HTTP server generates a single response type that precludes any user interface functionality:
-
-| Response Element | Value | UI Implication |
-|-----------------|-------|----------------|
-| Status Code | 200 | Standard success response |
-| Content-Type | `text/plain` | **Not** `text/html` - no browser rendering |
-| Response Body | `"Hello, World!\n"` | 14-character static string, no markup |
-| Character Set | Default | No encoding considerations |
-
-### 7.2.2 Server Implementation Analysis
-
-The complete server implementation (`server.js`, 14 lines) confirms no UI rendering capability:
-
-| Implementation Aspect | Status | Analysis |
-|----------------------|--------|----------|
-| Template Engine | ❌ Not present | No view rendering system |
-| HTML Generation | ❌ Not implemented | Plain text response only |
-| Static File Serving | ❌ Not implemented | No `express.static()` or equivalent |
-| Asset Pipeline | ❌ Not present | No build tools for CSS/JS |
-| Route Handling | ❌ Not implemented | All paths return identical response |
-| Content Negotiation | ❌ Not implemented | Single content type only |
-
-### 7.2.3 Dependency Analysis
-
-The `package.json` confirms zero frontend-related dependencies:
-
-| Dependency Category | Expected for UI | Actual Status |
-|--------------------|-----------------|---------------|
-| UI Frameworks | React, Vue, Angular, Svelte | ❌ None |
-| CSS Frameworks | Tailwind, Bootstrap, Material UI | ❌ None |
-| Template Engines | EJS, Handlebars, Pug, Mustache | ❌ None |
-| Build Tools | Webpack, Vite, Rollup, Parcel | ❌ None |
-| CSS Preprocessors | Sass, Less, PostCSS | ❌ None |
-| State Management | Redux, Vuex, MobX | ❌ None |
-| HTTP Clients | Axios, Fetch polyfill | ❌ None |
-
-## 7.3 Excluded UI Elements
-
-### 7.3.1 Comprehensive Exclusion List
-
-The following UI capabilities are explicitly excluded from this system and will not be implemented:
-
-| Feature Category | Excluded Elements | Exclusion Rationale |
-|------------------|-------------------|---------------------|
-| **Frontend Technologies** | HTML, CSS, JavaScript bundles | Plain text response only |
-| **UI Frameworks** | React, Vue, Angular, Svelte | Zero dependency architecture |
-| **Templating** | EJS, Handlebars, Pug, JSX | No dynamic content rendering |
-| **Styling** | CSS files, preprocessors, frameworks | No visual presentation layer |
-| **Responsive Design** | Media queries, mobile layouts | No HTML to render |
-| **Accessibility** | ARIA labels, keyboard navigation | No UI to make accessible |
-| **User Interactions** | Forms, buttons, navigation | Single static response |
-| **Client-Side State** | Sessions, cookies, local storage | Stateless test server |
-| **Asset Delivery** | CDN, static file serving, caching | Not applicable |
-| **UI Testing** | Cypress, Playwright, Jest DOM | No UI to test |
-
-### 7.3.2 Visual Representation of Excluded Architecture
-
-```mermaid
-flowchart TB
-    subgraph ExcludedUIArch["Excluded UI Architecture (Not Implemented)"]
-        direction TB
-        Browser["Browser Client"]
-        HTML["HTML Documents"]
-        CSS["CSS Stylesheets"]
-        JS["JavaScript Bundles"]
-        Assets["Static Assets<br/>(images, fonts)"]
-        Templates["Template Engine"]
-        
-        Browser --> HTML
-        HTML --> CSS
-        HTML --> JS
-        HTML --> Assets
-        Templates --> HTML
-    end
-    
-    subgraph ActualArch["Actual System Response"]
-        PlainText["Plain Text Response<br/>'Hello, World!'"]
-    end
-    
-    style ExcludedUIArch fill:#f5f5f5,stroke:#bdbdbd,stroke-dasharray: 5 5
-    style ActualArch fill:#e8f5e9,stroke:#4caf50
+```javascript
+app.get('/', (req, res) => {
+  res.set('X-Content-Type-Options', 'nosniff').type('text/plain').send('Hello, World!\n');
+});
 ```
 
-## 7.4 Client Interaction Model
+There is no `res.render()`, no view-engine registration (`app.set('view engine', ...)`), no `res.sendFile()`, and no `express.static()` middleware anywhere in `server.js`. No HTML is authored, templated, or transmitted by any registered route.
 
-### 7.4.1 Request-Response Pattern
+**Dependency evidence (`package.json`).** Express is the sole direct dependency, and the manifest declares no `devDependencies`:
 
-While the system has no user interface, it does respond to HTTP requests. The interaction model is purely programmatic:
-
-```mermaid
-sequenceDiagram
-    participant Client as HTTP Client<br/>(Browser/cURL/Tool)
-    participant Server as Node.js HTTP Server<br/>localhost:3000
-    
-    Client->>Server: HTTP Request<br/>(Any method, any path)
-    Note over Server: No rendering<br/>No templating<br/>Static response
-    Server-->>Client: HTTP 200 OK<br/>Content-Type: text/plain<br/>"Hello, World!\n"
-    
-    Note over Client,Server: Response displayed as raw text<br/>No HTML interpretation
+```json
+"dependencies": { "express": "^5.2.1" }
 ```
 
-### 7.4.2 Expected Client Interactions
+No front-end framework, CSS framework, template engine, bundler, or state-management library is present. This is consistent with Section 3.2 (Frameworks and Libraries), which records that "No sub-routers, view engines, sessions, or body-parsing middleware are wired up," and with constraint C-006 ("exactly one direct dependency, no linter or build tooling").
 
-| Client Type | Interaction Method | Response Display |
-|-------------|-------------------|------------------|
-| Web Browser | Direct URL access | Raw text display (no page rendering) |
-| cURL | Command-line request | Text output to terminal |
-| Postman/Insomnia | API testing tool | Plain text response panel |
-| Backprop Tool | Automated testing | Verification of response content |
-| Unit Tests | Programmatic HTTP call | Assertion against expected string |
+**Repository file-inventory evidence.** A complete recursive inventory of the working tree (excluding `node_modules/` and `.git/`) confirms the absence of every category of front-end artifact:
 
-### 7.4.3 Browser Behavior
+| Search target | Result in repository |
+|---|---|
+| `*.html`, `*.htm` | None |
+| `*.css`, `*.scss` | None |
+| `*.jsx`, `*.tsx`, `*.vue`, `*.svelte` | None |
+| `*.ejs`, `*.pug`, `*.hbs`, `*.handlebars` | None |
+| `views/`, `public/`, `static/`, `client/`, `frontend/`, `assets/`, `templates/`, `components/`, `pages/` | None |
+| Image files | One (`demo.jpg`) — a static binary fixture never served at runtime |
 
-When accessed via a web browser, the server returns plain text that browsers display without HTML interpretation:
+The non-runtime artifacts present in the working tree — `industry.csv`, `LoginTest.java`, `test.py.txt`, `test.txt.txt`, `demo.jpg`, `sample.doc`, and `100Pages.pdf` — are neither read nor served by the running process, and none of them constitutes a UI screen. This aligns with Sections 1.2 and 5.1, which classify these files as static or placeholder artifacts that are not read at runtime.
 
-| Browser Action | System Response | User Experience |
-|----------------|-----------------|-----------------|
-| Navigate to `http://localhost:3000` | Returns `Hello, World!\n` | Plain text displayed in browser window |
-| View Page Source | Plain text (not HTML) | Shows `Hello, World!` only |
-| Inspect Elements | No DOM structure | Empty/minimal DOM created by browser |
-| Network Tab | `text/plain` response | Standard HTTP response data |
+### 7.1.3 The Sole HTML Output: Express Default 404 Response
 
-## 7.5 Comparison: Expected vs. Actual
+For completeness, one circumstance produces a `text/html` byte-stream: a request that matches neither registered route. Express's built-in `finalhandler` then emits a default `404` error document (carrying `Content-Security-Policy: default-src 'none'` and `X-Content-Type-Options: nosniff`), as documented in Section 5.1. This artifact is **not a user interface**, for three reasons:
 
-### 7.5.1 Architecture Comparison
+- **Framework-generated, not authored** — it is produced by Express's default handler, not written or maintained by the project; there is no corresponding source file, template, or design asset in the repository.
+- **A diagnostic error page, not a designed screen** — it contains only a short error message with no navigation, styling, layout, forms, images, or interactive controls.
+- **Off the documented surface** — the two documented endpoints (`GET /` and `GET /good-evening`) always return `text/plain`; the `404` HTML is reachable only on unmatched paths and represents an error condition rather than a feature.
 
-```mermaid
-flowchart TB
-    subgraph ExpectedUI["Expected UI Architecture<br/>(Typical Web Application)"]
-        direction LR
-        FE1["React/Vue<br/>Frontend"]
-        API1["REST API<br/>Backend"]
-        DB1["Database"]
-        
-        FE1 <-->|"JSON/HTTP"| API1
-        API1 <--> DB1
-    end
-    
-    subgraph ActualImpl["Actual Implementation<br/>(hao-backprop-test)"]
-        direction LR
-        SingleServer["server.js<br/>14 lines<br/>Plain text response"]
-    end
-    
-    ExpectedUI ~~~ ActualImpl
-    
-    style ExpectedUI fill:#e3f2fd,stroke:#1976d2
-    style ActualImpl fill:#e8f5e9,stroke:#4caf50
-```
+Because it is an emergent framework default rather than an application-designed presentation surface, it does not change the determination. It is recorded here solely to preclude misinterpretation of the only HTML the process can produce.
 
-### 7.5.2 Feature Comparison Matrix
+### 7.1.4 Applicability of Standard UI Design Concerns
 
-| UI Feature | Typical Web App | This System |
-|------------|-----------------|-------------|
-| Frontend Framework | Yes | No |
-| HTML Rendering | Yes | No |
-| CSS Styling | Yes | No |
-| Client-Side JavaScript | Yes | No |
-| Responsive Design | Yes | No |
-| User Authentication UI | Yes | No |
-| Navigation System | Yes | No |
-| Form Handling | Yes | No |
-| Interactive Components | Yes | No |
-| API Integration | Yes | No |
+Each User Interface Design concern in this section's scope maps to "Not applicable," with the rationale grounded in the evidence above.
 
-## 7.6 Future Considerations
+| Standard UI concern | Applicability | Rationale |
+|---|---|---|
+| Core UI technologies | Not applicable | No front-end framework, template engine, or client runtime exists; `express` is the only dependency |
+| UI use cases | Not applicable | The service has no interactive user; consumers are HTTP clients invoking two `GET` endpoints |
+| UI / backend interaction boundaries | Not applicable | The only boundary is the plain-text HTTP request/response contract described in Sections 5.1 and 6.3; there is no client tier to demarcate |
+| UI schemas | Not applicable | No forms, view models, component props, or client-side data schemas exist |
+| Screens required | Not applicable | No screens are defined, rendered, or served; a repository search for screen artifacts returned none |
+| User interactions | Not applicable | Interaction is programmatic (for example, `curl http://127.0.0.1:3000/`); there are no clicks, inputs, or navigation flows |
+| Visual design considerations | Not applicable | No presentation layer, styling, layout, responsive design, theming, or accessibility surface exists |
 
-### 7.6.1 Potential UI Implementation (If Scope Changes)
+**Conditions that would reopen this assessment.** The determination holds for the current codebase and would need to be revisited only if a future change introduced a presentation layer into the runtime path — specifically, a view/template engine (`app.set('view engine', ...)` with `res.render()`), static-asset serving (`express.static()`), file-based HTML delivery (`res.sendFile()`), or a separate front-end application (a build pipeline or a `client/`, `public/`, or `frontend/` directory containing framework source). No such construct is present in the repository as documented.
 
-If the system scope were to expand beyond its current test project purpose to require a user interface, the following would need to be implemented:
+## 7.2 References
 
-| Capability | Required Implementation |
-|------------|------------------------|
-| HTML Responses | Change `Content-Type` to `text/html`; generate HTML markup |
-| Template Engine | Add EJS, Handlebars, or Pug dependency |
-| Frontend Framework | Add React, Vue, or Angular with build pipeline |
-| Static Assets | Implement file serving for CSS, JS, images |
-| Routing | Add path-based request handling |
-| Build Tools | Configure Webpack, Vite, or equivalent |
+The determination in this section was derived from direct inspection of the following repository files, folders, and previously written specification sections.
 
-### 7.6.2 Expansion Constraints
+**Files examined**
 
-However, such expansion would contradict:
+- `server.js` - Confirmed the two `GET` routes both return `text/plain` and that no `res.render()`, `res.sendFile()`, `express.static()`, or view-engine registration is present; established that no HTML is authored or served by any route.
+- `package.json` - Established `express ^5.2.1` as the sole direct dependency with no `devDependencies`; confirmed the absence of any front-end framework, template engine, CSS framework, bundler, or state-management library.
+- `package-lock.json` - Confirmed the resolved dependency tree contains no UI or templating packages.
+- `README.md` - Documented a `curl`-driven, plain-text HTTP API in which both endpoints respond with `Content-Type: text/plain`; confirmed there is no browser-based or graphical usage.
+- `.gitignore` - Confirmed that only `node_modules/` is excluded from version control, so no front-end directory is hidden from the inventory.
+- `industry.csv` - Static dataset that is not read or served at runtime; not a UI artifact.
+- `LoginTest.java` - Incomplete Java stub; not a UI artifact.
+- `test.py.txt`, `test.txt.txt` - Empty (0-byte) placeholder files; not UI artifacts.
+- `demo.jpg`, `sample.doc`, `100Pages.pdf` - Static binary fixtures that are never referenced or served by the running process; not UI screens.
 
-1. The **zero-dependency architecture** policy
-2. The project's **test harness purpose**
-3. The **"Do not touch!"** directive in README.md
-4. The **localhost-only binding** design decision
-5. The **repository immutability** constraint
+**Folders examined**
 
-## 7.7 Summary
+- `` (repository root) - Established the complete recursive file inventory and confirmed the absence of any HTML, CSS, client-side JavaScript, template files, or front-end framework directories.
+- `blitzy/documentation/` - Documentation subtree; contains no runtime UI or served front-end assets.
 
-### 7.7.1 Key Findings
+**Cross-referenced specification sections**
 
-| Assessment Area | Conclusion |
-|-----------------|------------|
-| UI Requirement | **Not Required** |
-| Frontend Technologies | **None Implemented** |
-| Visual Design | **Not Applicable** |
-| User Interactions | **Not Applicable** |
-| Screens/Views | **None Present** |
-| UI/Backend Boundary | **No UI Layer Exists** |
-
-### 7.7.2 Architectural Appropriateness
-
-The absence of a user interface is **appropriate and intentional** for this system's purpose:
-
-| Design Decision | Benefit for Test Project |
-|-----------------|--------------------------|
-| Plain text response | Predictable, easily verifiable output |
-| Zero UI dependencies | Eliminates frontend-related test variables |
-| No HTML rendering | Simplifies response verification |
-| Stateless design | No session/cookie management complexity |
-| Single response type | Consistent behavior across all requests |
-
-### 7.7.3 Final Determination
-
-**User Interface Design is definitively not applicable** for the hao-backprop-test system. The system is a minimal HTTP server that returns plain text responses and serves exclusively as a controlled test environment for Backprop integration testing.
-
----
-
-## 7.8 References
-
-### 7.8.1 Repository Files Examined
-
-| File Path | Relevance |
-|-----------|-----------|
-| `server.js` | Complete HTTP server implementation - confirms `text/plain` response with no HTML rendering |
-| `package.json` | NPM metadata - confirms zero dependencies (no UI frameworks installed) |
-| `README.md` | Project purpose documentation - confirms test project designation |
-
-### 7.8.2 Technical Specification Sections Retrieved
-
-| Section | Information Provided |
-|---------|---------------------|
-| 1.2 System Overview | Confirms plain-text HTTP response capability; single-file architecture |
-| 2.1 Feature Catalog | Enumerates all features - none UI-related; confirms `Content-Type: text/plain` |
-| 3.3 Frameworks & Libraries | Confirms no frameworks used; only Node.js built-in `http` module |
-| 5.1 High-Level Architecture | Confirms Minimal Monolith pattern; zero-dependency design |
-| 5.2 Component Details | Details server.js as sole runtime component with no view rendering |
-| 6.1 Core Services Architecture | Confirms single-component system with no frontend layer |
-| 6.3 Integration Architecture | Confirms no CDN, no static asset delivery, no client-side code |
-
-### 7.8.3 Evidence Summary
-
-The determination that no user interface is required is supported by:
-
-- **14 lines of server code** returning only plain text
-- **Zero dependencies** in `package.json`
-- **No UI-related files** in the repository (no `.html`, `.css`, `.jsx`, `.vue`, `.svelte` files)
-- **Explicit `text/plain` Content-Type** header in server response
-- **Test project designation** with "Do not touch!" directive
-- **Architectural constraints** (C-001 through C-005) preventing frontend expansion
+- 1.2 System Overview - Confirmed the single-file Express service, its two plain-text endpoints, and the classification of the binary/placeholder files as non-runtime artifacts.
+- 3.2 Frameworks and Libraries - Confirmed Express is the sole framework and that "No sub-routers, view engines, sessions, or body-parsing middleware are wired up."
+- 5.1 High-Level Architecture - Confirmed that the only `text/html` output is Express's default `404` `finalhandler` response, which is a framework-generated error document rather than an application-designed user interface.
 
 # 8. Infrastructure
 
@@ -6189,1204 +4190,1027 @@ The determination that no user interface is required is supported by:
 
 **Detailed Infrastructure Architecture is not applicable for this system.**
 
-The hao-backprop-test repository is a deliberately minimal, 14-line Node.js HTTP server designed exclusively as a test harness for Backprop integration testing. This architectural approach explicitly excludes deployment infrastructure, cloud services, containerization, orchestration, and CI/CD pipelines by design. The system operates solely in a local development context with no production deployment requirements.
+The application documented in this repository is a standalone, single-process Node.js/Express HTTP service whose entire runtime is defined in one 64-line CommonJS file (`server.js`) and which binds a single listening socket to the loopback interface `127.0.0.1:3000`. It has no persistence, no external service calls, no authentication, and exposes two static plain-text routes (`GET /` and `GET /good-evening`). It is developed, validated, and run with stock Node.js and npm commands on a single host, and the repository contains **no deployment infrastructure of any kind**: no containers, no infrastructure-as-code, no CI/CD pipelines, no cloud-provider configuration, and no orchestration manifests. This is a deliberate, documented characteristic of the system (consistent with Sections 3.6 and 5.4), not an oversight.
+
+Because there is no deployment tier to architect, this section records the *actual* build, execution, and distribution model of the system and documents each infrastructure domain (cloud, containerization, orchestration, CI/CD, monitoring) as not applicable, with the repository evidence that supports each determination. Where a domain has a minimal real counterpart — the manual npm-driven build/run workflow, or console-based observability — that counterpart is documented rather than a hypothetical production design. The minimal build and distribution requirements are specified in Section 8.8, and infrastructure cost is analyzed in Section 8.9.
 
 ### 8.1.1 Justification for Non-Applicability
 
-The absence of formal infrastructure architecture is an intentional design decision based on the following factors:
+The absence of a formal infrastructure architecture follows directly from the observed characteristics of the codebase:
 
 | Factor | Description | Evidence |
 |--------|-------------|----------|
-| Test Project Designation | Explicitly identified as a test harness, not a production system | `README.md`: "test project for backprop integration. Do not touch!" |
-| Localhost-Only Binding | Network binding restricted to 127.0.0.1, preventing remote deployment | `server.js`: `const hostname = '127.0.0.1'` |
-| Zero Dependencies | No external packages requiring infrastructure management | `package.json`: Empty dependencies object |
-| Single-File Implementation | Complete system contained in 14 lines of code | `server.js`: Single executable file |
-| Repository Immutability | Frozen architecture per project directive | `README.md`: "Do not touch!" warning |
+| Loopback-only binding | The socket binds `127.0.0.1`, so the service is unreachable from any non-loopback interface and cannot be hosted remotely without a code change (verified at runtime: a request to the host's external IP was refused) | `server.js` L11–12 |
+| Single-file, single-process design | The entire application is one 64-line file run directly by Node.js; there is no tier, replica, or component to orchestrate | `server.js` |
+| Minimal dependency surface | Exactly one direct runtime dependency (Express) plus its pinned transitive tree; no cloud SDK, container runtime, or IaC tooling is present | `package.json`; `package-lock.json` |
+| No build or deployment tooling | No `Dockerfile`, IaC, or CI/CD configuration exists anywhere in the repository | Repository inspection (Section 3.6.3) |
+| Manual, local execution | The service is started by an operator with `node server.js` / `npm start`; there is no automated or remote deployment target | `package.json` scripts; `README.md` |
 
 ### 8.1.2 Infrastructure Decision Matrix
 
-The following matrix documents the explicit exclusion of infrastructure features from this system:
+The matrix below records the applicability determination for each infrastructure domain; each is expanded in the referenced sub-section.
 
-| Infrastructure Domain | Implementation Status | Design Rationale |
-|-----------------------|----------------------|------------------|
-| Cloud Services | ❌ Not Applicable | Localhost binding prevents cloud deployment |
-| Containerization | ❌ Not Applicable | Zero dependencies eliminate container benefits |
-| Orchestration | ❌ Not Applicable | Single instance, manual execution by design |
-| CI/CD Pipelines | ❌ Not Configured | Test project with frozen architecture |
-| Load Balancing | ❌ Not Applicable | Single localhost instance only |
-| Auto-Scaling | ❌ Not Applicable | No orchestration or scaling triggers |
-| Infrastructure Monitoring | ❌ Not Applicable | Console output sufficient for test purposes |
+| Infrastructure Domain | Determination | Basis |
+|-----------------------|---------------|-------|
+| Cloud Services (§8.3) | ❌ Not Applicable | Loopback bind; no cloud SDK/config; stateless local service |
+| Containerization (§8.4) | ❌ Not Applicable | No `Dockerfile`/`docker-compose`/`.dockerignore`; single-process local run |
+| Orchestration (§8.5) | ❌ Not Applicable | Single instance; hardcoded `127.0.0.1:3000` precludes multi-instance scale-out |
+| CI/CD Pipeline (§8.6) | ❌ Not Configured | No workflow/pipeline files; manual npm-driven build and run |
+| Infrastructure Monitoring (§8.7) | ❌ Not Applicable (console-only) | No metrics/log/trace stack; only console, exit-code, and HTTP signals |
+| Load Balancing / Auto-Scaling | ❌ Not Applicable | Single event loop and single socket; no orchestrator or scaling trigger |
 
 ### 8.1.3 Architectural Constraints Preventing Infrastructure
 
-The system operates under explicit architectural constraints that prevent traditional infrastructure implementation:
+The system operates under the constraints recorded in Section 2.6. The subset below is what makes traditional infrastructure inapplicable; constraint text is quoted from Section 2.6 (the current, authoritative Express 5 state).
 
-| Constraint ID | Constraint Description | Infrastructure Impact |
-|---------------|------------------------|----------------------|
-| C-001 | Localhost binding only | No cloud, remote, or distributed deployment possible |
-| C-002 | No external dependencies | Cannot integrate infrastructure-as-code tools, monitoring libraries, or container runtimes |
-| C-003 | Hardcoded configuration | No environment variable support for deployment customization |
-| C-004 | Static response content | No dynamic content requiring CDN, caching, or edge infrastructure |
-| C-005 | Repository immutability | Technology stack frozen; cannot add infrastructure components |
+| Constraint ID | Constraint (Section 2.6) | Infrastructure Impact |
+|---------------|--------------------------|-----------------------|
+| C-001 | Preserve original conventions: single-file `server.js`, hardcoded `127.0.0.1:3000` | No remote/distributed deployment target; the endpoint is fixed in source |
+| C-003 | Loopback-only binding; no TLS and no authentication/authorization | Cannot be exposed off-host; no ingress, edge, or CDN tier applies |
+| C-004 | Hardcoded configuration; no `PORT`/`HOST` environment overrides | No per-environment configuration; blocks cloud/12-factor deployment |
+| C-005 | No automated test framework; verification is manual | No automated CI test gate to build a pipeline around |
+| C-006 | Exactly one direct runtime dependency; no linter or build tooling | No build artifact to produce, scan, publish, or containerize |
 
 ### 8.1.4 Infrastructure Classification Diagram
 
+The decision path below shows how the four qualifying questions all resolve negatively, classifying the system as *infrastructure-not-applicable*.
+
 ```mermaid
 flowchart TB
-    subgraph InfrastructureClassification["Infrastructure Architecture Classification"]
-        direction TB
-        Q1{{"Does system require<br/>production deployment?"}}
-        Q2{{"Are there cloud<br/>service dependencies?"}}
-        Q3{{"Does system require<br/>containerization?"}}
-        Q4{{"Is there CI/CD<br/>pipeline configuration?"}}
-        Result[["Infrastructure Architecture<br/>NOT APPLICABLE"]]
-    end
-    
-    Q1 -->|"No: Localhost test project"| Q2
-    Q2 -->|"No: Zero dependencies"| Q3
-    Q3 -->|"No: Single file, direct execution"| Q4
-    Q4 -->|"No: Manual node server.js"| Result
+    Q1{{"Requires a hosted /<br/>production deployment target?"}}
+    Q2{{"Depends on cloud services<br/>(compute, storage, managed data)?"}}
+    Q3{{"Ships as a container image<br/>or requires orchestration?"}}
+    Q4{{"Has CI/CD pipeline<br/>configuration in the repo?"}}
+    Result["Infrastructure Architecture:<br/>NOT APPLICABLE<br/>(manual local execution)"]
+
+    Q1 -->|"No: loopback-only 127.0.0.1:3000"| Q2
+    Q2 -->|"No: only express dep; stateless"| Q3
+    Q3 -->|"No: single file, direct node run"| Q4
+    Q4 -->|"No: manual node server.js / npm start"| Result
 ```
 
----
+**Figure 8.1 — Infrastructure classification decision path.** All four qualifying conditions resolve to "No", so no deployment-infrastructure architecture applies; the system is documented by its actual local build/run/distribution model.
 
 ## 8.2 Deployment Environment
 
+The system's only supported runtime environment is a **single local host** — a developer or CI/integration workstation on which an operator runs the process directly. There is no server, cluster, or hosted environment. The diagram below shows the complete deployment topology: one OS process containing the Express application, one loopback socket, the installed dependency tree, and a co-located local HTTP client.
+
+```mermaid
+flowchart TB
+    subgraph Host["Single host — developer / CI workstation"]
+        direction TB
+        Client["Local HTTP client<br/>curl / browser / Node http client"]
+        subgraph Runtime["Node.js 18+ runtime — one OS process"]
+            direction TB
+            App["Express 5.2.1 application (server.js)<br/>two GET routes, in-memory literals"]
+            Sock["Listening socket 127.0.0.1:3000<br/>loopback only"]
+            App --- Sock
+        end
+        Deps["node_modules (~4.3 MB)<br/>express 5.2.1 + 66 transitive deps"]
+        Client -->|"HTTP/1.1 keep-alive"| Sock
+        App -.->|"require() at startup"| Deps
+    end
+```
+
+**Figure 8.2 — Infrastructure architecture (actual).** The entire deployment footprint: a single Node.js process on one host, bound to loopback `127.0.0.1:3000`, serving a co-located client from in-memory string literals, with dependencies resolved once at startup.
+
 ### 8.2.1 Target Environment Assessment
 
-The system targets exclusively local development environments with no production deployment capability.
+The service targets local execution exclusively; the loopback bind makes any non-local environment unreachable without a code change (C-001, C-003).
 
-#### 8.2.1.1 Environment Type Classification
+#### 8.2.1.1 Environment Type and Geographic Distribution
 
-| Environment Aspect | Classification | Rationale |
-|--------------------|----------------|-----------|
-| Environment Type | Local Development Only | Hardcoded localhost binding (127.0.0.1) |
-| Deployment Model | Single Developer Workstation | Test project for integration testing |
-| Network Accessibility | Private/Local Only | Port 3000 on loopback interface |
-| Geographic Distribution | N/A | No remote deployment support |
+| Attribute | Classification | Basis |
+|-----------|----------------|-------|
+| Environment type | On-host local execution (not cloud, hosted on-prem, or hybrid) | Manual `node server.js` on a workstation |
+| Deployment model | Single developer/CI workstation, single process | `server.js`; `README.md` |
+| Network accessibility | Loopback only (`127.0.0.1:3000`); unreachable off-host | `server.js` L11–12; runtime test (external-IP request refused) |
+| Geographic distribution | None — single host; no multi-region, replica, or edge footprint | No deployment infrastructure present |
+
+The network topology confirms the loopback isolation: a request originating on the host reaches the process, while a request to any external interface is refused because port `3000` is bound only on `127.0.0.1`.
+
+```mermaid
+flowchart TB
+    LocalClient["Local client (curl / browser)<br/>source 127.0.0.1"]
+    Remote["Remote host / LAN / Internet<br/>source external IP"]
+    subgraph Host["Single host running node server.js"]
+        direction TB
+        Loop["Loopback interface (lo)<br/>127.0.0.1:3000 — bound"]
+        ExtIf["External interfaces (e.g. 10.x.x.x)<br/>port 3000 NOT bound"]
+        Proc["Express 5.2.1 process (server.js)"]
+        Loop -->|"accepted"| Proc
+    end
+    LocalClient -->|"HTTP 200 over loopback"| Loop
+    Remote -->|"connection refused (observed)"| ExtIf
+```
+
+**Figure 8.2.1 — Network architecture.** The loopback bind is the trust boundary: local traffic is served; external traffic reaches an interface where port 3000 is not bound and is refused (verified at runtime).
 
 #### 8.2.1.2 Resource Requirements
 
-The system operates with minimal resource requirements inherent to the Node.js runtime:
+Resource figures below are measured on the current codebase (Node.js v22.23.1 running `server.js`); the sizing guidance adds modest headroom for any host running the single process.
 
-| Resource Category | Requirement | Specification |
-|-------------------|-------------|---------------|
-| **Compute** | CPU | Single-core sufficient (single-threaded event loop) |
-| **Memory** | RAM | ~20-50 MB (Node.js baseline) |
-| **Storage** | Disk | < 1 MB (repository files only) |
-| **Network** | Ports | Port 3000 on localhost (127.0.0.1) |
+| Resource | Measured / Required | Sizing Guideline |
+|----------|---------------------|------------------|
+| Node.js runtime | Requires ≥ 18 (Express 5 `engines`); v22.23.1 observed | Node.js 18 LTS or newer |
+| Process memory (RSS) | ~62 MB measured (single process, serving) | 128–256 MB RAM headroom |
+| CPU | Single event loop; zero-I/O handlers | 1 vCPU (fractional is sufficient) |
+| Disk | 4.3 MB `node_modules` + ~52 KB source | < 10 MB working set; ~50 MB incl. npm cache |
+| Network | One TCP listener on loopback | Port 3000 free on `127.0.0.1` |
 
 #### 8.2.1.3 Runtime Environment Specifications
 
-| Component | Required Version | Source |
-|-----------|------------------|--------|
-| Node.js Runtime | v20.19.6 or compatible | Technical specification |
-| npm Package Manager | v7+ (lockfileVersion 3 compatible) | `package-lock.json` format |
-| Operating System | Any supporting Node.js | Cross-platform JavaScript |
+| Component | Requirement | Source |
+|-----------|-------------|--------|
+| Node.js runtime | ≥ 18 (v22.23.1 observed) | `README.md`; Express 5 `engines`; measured |
+| npm package manager | v7+ (lockfileVersion 3); npm 11.1.0 observed | `package-lock.json`; measured |
+| Operating system | Any Node.js-supported OS (cross-platform) | Pure JavaScript; no native addons |
+
+#### 8.2.1.4 Compliance and Regulatory Requirements
+
+No compliance or regulatory requirements are declared or implicated in the repository. The service processes no user data, stores nothing, handles no PII/PHI/PCI data, and issues no credentials; the two endpoints return fixed, non-sensitive plain-text literals. Because the process binds only the loopback interface (C-003), it is not exposed on any network where data-protection, residency, or audit obligations would arise, and the loopback bind itself serves as the trust boundary in place of TLS/authentication (Section 5.4.3). No compliance framework (SOC 2, ISO 27001, GDPR, HIPAA, PCI-DSS) is referenced anywhere in the codebase or documentation.
+
+| Compliance Dimension | Status | Basis |
+|----------------------|--------|-------|
+| Data protection (PII/PHI/PCI) | Not applicable | No data collected, stored, or processed |
+| Data residency / sovereignty | Not applicable | Single local host; no off-host data |
+| Transport security (TLS) | Not implemented (by design) | Loopback-only trust boundary (C-003) |
+| Audit / regulatory framework | None declared | No framework referenced in repo or docs |
 
 ### 8.2.2 Environment Configuration
 
+Configuration is entirely hardcoded in source; there is no configuration-management layer and no infrastructure-as-code.
+
 #### 8.2.2.1 Configuration Management Status
 
-The system employs **no external configuration management**:
-
 | Configuration Aspect | Implementation | Evidence |
-|---------------------|----------------|----------|
-| Environment Variables | Not Supported | Hardcoded values in source |
-| Configuration Files | Not Present | No `.env`, `config.json`, or similar |
-| Secrets Management | N/A | No secrets required |
-| Feature Flags | Not Implemented | Static behavior only |
+|----------------------|----------------|----------|
+| Environment variables | Not supported | `server.js` reads none (C-004) |
+| Configuration files | None present | No `.env`, `config.*` in repository |
+| Secrets management | Not applicable | No secrets/credentials required (A-005) |
+| Feature flags | Not implemented | Static behavior only |
 
 #### 8.2.2.2 Hardcoded Configuration Values
 
-All system configuration is embedded directly in `server.js`:
+| Parameter | Value | Modifiability |
+|-----------|-------|---------------|
+| Host | `127.0.0.1` | Source edit only (`server.js` L11) |
+| Port | `3000` | Source edit only (`server.js` L12) |
+| `GET /` body | `Hello, World!\n` (14 bytes) | Source edit only (byte-exact, C-007) |
+| `GET /good-evening` body | `Good evening` (12 bytes) | Source edit only |
 
-| Parameter | Hardcoded Value | Modifiability |
-|-----------|-----------------|---------------|
-| Hostname | `127.0.0.1` | Requires source code change |
-| Port | `3000` | Requires source code change |
-| Response Body | `Hello, World!\n` | Requires source code change |
-| Content-Type | `text/plain` | Requires source code change |
-| Status Code | `200` | Requires source code change |
+#### 8.2.2.3 Infrastructure as Code (IaC)
+
+No IaC is used. There is no Terraform, CloudFormation, Pulumi, Ansible, Helm chart, or Kubernetes manifest in the repository (Section 3.6.3). Because the only deployment action is `node server.js` on an existing host, there is no provisioned infrastructure to declare or manage. Environment reproducibility is achieved at the dependency layer instead: the committed `package-lock.json` (lockfileVersion 3) pins the exact dependency graph, so `npm install` (or `npm ci`) rebuilds an identical `node_modules` deterministically (C-002; Section 5.4.5).
 
 ### 8.2.3 Environment Promotion Strategy
 
-**Not Applicable.** The system operates in a single environment context (local development) with no promotion workflow:
+**Not applicable — the system has a single environment.** Development, staging, and production tiers are not separated because the service runs only on a local host; the loopback bind and hardcoded configuration (C-001, C-003, C-004) leave no mechanism to promote a build from one environment to another. The only "promotion" that exists is the source-control flow — feature work merged via pull request (for example PR #1, merge commit `893bd8d`) — after which any host simply runs the same `server.js`.
 
 | Environment Tier | Status | Rationale |
 |------------------|--------|-----------|
-| Development | ✅ Only Environment | Local execution on developer machine |
-| Staging | ❌ Not Applicable | No pre-production testing required |
-| Production | ❌ Not Applicable | Test project; localhost binding prevents deployment |
+| Development / local run | ✅ Only tier | Local execution on the operator's host |
+| Staging | ❌ Not applicable | No pre-production environment is provisioned |
+| Production | ❌ Not applicable | Loopback bind precludes any hosted deployment |
+
+```mermaid
+flowchart LR
+    Code["Source in Git<br/>(working copy)"]
+    Dev["Local run environment<br/>node server.js on 127.0.0.1:3000"]
+    NA["Staging / Production tiers<br/>NOT APPLICABLE"]
+    Code -->|"npm install; npm start"| Dev
+    Dev -->|"no promotion pipeline"| NA
+```
+
+**Figure 8.2.3 — Environment promotion flow.** The source-control working copy is installed and run locally; there is no staging or production tier and therefore no promotion pipeline.
 
 ### 8.2.4 Backup and Disaster Recovery
 
-Given the stateless, zero-persistence architecture, disaster recovery is trivial:
+Recovery is **entirely operator-driven and manual**, and — because the service is stateless — there is nothing to back up (Section 5.4.5). `server.js` registers no supervisor, watchdog, or automatic-restart logic; the repository declares only a `start` script.
 
-| Failure Scenario | Recovery Procedure | Recovery Time Objective |
-|------------------|-------------------|------------------------|
-| Server Process Crash | Execute `node server.js` | < 1 second |
-| Port Conflict (EADDRINUSE) | Clear port 3000; restart server | < 1 minute |
-| Repository Corruption | Re-clone from source control | < 5 minutes |
-| Node.js Runtime Failure | Reinstall Node.js runtime | < 10 minutes |
+- **Backups:** none required or present — the service stores no data, so there is nothing to back up or restore.
+- **High availability / failover:** none — a single process, no replica or standby; the hardcoded host and port preclude the process from self-selecting an alternate endpoint.
+- **Recovery:** for the dominant failure (`EADDRINUSE`), the operator frees port `3000` (or resolves the reported error) and re-runs the process. The fail-fast signalling — empty `stdout`, exit code `1`, and an explicit `stderr` message — makes the failure observable and *could* be automated by an external process manager, though none is configured.
+- **Reproducibility:** the committed `package-lock.json` allows the exact runtime to be rebuilt deterministically via `npm install`, so recovering a lost environment is a matter of reinstalling dependencies and restarting.
+
+| Failure Scenario | Detection Signal | Manual Recovery Action |
+|------------------|------------------|------------------------|
+| Startup bind failure (`EADDRINUSE`) | `stderr` "Failed to start server…"; exit code `1` | Free port 3000 or resolve the error; re-run |
+| Process crash / termination | Process gone; no `stdout` startup line | Re-run `node server.js` / `npm start` (no state to restore) |
+| Lost / corrupt `node_modules` | `Cannot find module 'express'` at startup | `npm install` (rebuild from lockfile), then re-run |
+| Lost working copy | Files absent | Re-clone the Git repository, `npm install`, re-run |
 
 #### 8.2.4.1 Recovery Decision Flow
 
 ```mermaid
 flowchart TD
-    subgraph RecoveryFlow["Recovery Decision Flow"]
-        Start([Server Not Responding])
-        CheckProcess{{"Is Node.js<br/>process running?"}}
-        CheckPort{{"Is port 3000<br/>available?"}}
-        CheckNode{{"Is Node.js<br/>installed?"}}
-        
-        KillProcess["Kill conflicting<br/>process on port"]
-        InstallNode["Install Node.js<br/>v20.19.6+"]
-        StartServer["Execute<br/>node server.js"]
-        Recovered([Server Recovered])
-    end
-    
-    Start --> CheckProcess
-    CheckProcess -->|"No"| CheckPort
-    CheckProcess -->|"Yes but crashed"| StartServer
-    CheckPort -->|"In Use"| KillProcess
-    CheckPort -->|"Available"| CheckNode
-    KillProcess --> StartServer
-    CheckNode -->|"No"| InstallNode
-    CheckNode -->|"Yes"| StartServer
-    InstallNode --> StartServer
-    StartServer --> Recovered
+    Start(["Service not responding"])
+    CheckProc{{"Node.js process<br/>still running?"}}
+    CheckPort{{"Is 127.0.0.1:3000 free?<br/>(EADDRINUSE?)"}}
+    CheckDeps{{"node_modules present<br/>and Node 18+ installed?"}}
+    FreePort["Stop the process<br/>holding port 3000"]
+    Reinstall["npm install<br/>(rebuild from lockfile)"]
+    Restart["node server.js / npm start"]
+    Verify(["Startup line printed;<br/>GET / returns 200"])
+
+    Start --> CheckProc
+    CheckProc -->|"No / crashed"| CheckPort
+    CheckProc -->|"Yes but wedged"| Restart
+    CheckPort -->|"In use"| FreePort
+    CheckPort -->|"Free"| CheckDeps
+    FreePort --> Restart
+    CheckDeps -->|"Missing"| Reinstall
+    CheckDeps -->|"Present"| Restart
+    Reinstall --> Restart
+    Restart --> Verify
 ```
 
----
+**Figure 8.2.4 — Disaster-recovery decision flow.** The manual, operator-driven recovery path for the only actionable failures; there is no automated restart or standby.
 
 ## 8.3 Cloud Services
 
-### 8.3.1 Cloud Services Assessment
-
 **Cloud Services are not applicable for this system.**
 
-The hao-backprop-test repository is bound exclusively to the localhost interface (127.0.0.1), which architecturally prevents any form of cloud deployment or cloud service integration.
+The application binds exclusively to the loopback interface (`127.0.0.1`) and depends on exactly one runtime package (Express); no cloud-provider SDK, client library, credential, or configuration appears anywhere in `package.json`, `package-lock.json`, or `server.js`. There is therefore no cloud provider to select, no managed service to version, and no cloud high-availability, cost-optimization, or cloud-security design to document. This determination follows the loopback-only constraint (C-003) and the "no external services" assumption (A-005) recorded in Section 2.6.
+
+### 8.3.1 Cloud Services Assessment
 
 #### 8.3.1.1 Cloud Services Exclusion Rationale
 
-| Cloud Service Category | Exclusion Rationale | Evidence |
-|------------------------|---------------------|----------|
-| Compute (EC2, GCE, Azure VMs) | Localhost binding prevents remote execution | `server.js`: `hostname = '127.0.0.1'` |
-| Container Services (ECS, GKE, AKS) | No containerization present | No Dockerfile in repository |
-| Serverless (Lambda, Cloud Functions) | Architecture incompatible with FaaS model | Long-running HTTP server pattern |
-| Databases (RDS, Cloud SQL) | No data persistence requirements | Stateless by design |
-| Storage (S3, Cloud Storage) | No file storage requirements | Response is static string literal |
-| CDN/Edge | No static assets or distribution needs | Single localhost endpoint |
-| Message Queues (SQS, Pub/Sub) | No asynchronous processing | Synchronous request-response only |
-| Monitoring (CloudWatch, Stackdriver) | No cloud deployment to monitor | Localhost execution only |
+| Cloud Service Category | Determination | Basis |
+|------------------------|---------------|-------|
+| Compute (VM / EC2 / GCE / Azure VM) | Not applicable | Loopback bind; manual local `node server.js` |
+| Serverless (Lambda / Cloud Functions) | Not applicable | Long-running `app.listen` server model, not FaaS |
+| Managed databases (RDS / Cloud SQL) | Not applicable | Stateless; no persistence (A-005) |
+| Object storage (S3 / GCS) | Not applicable | Responses are in-memory literals; no files served |
+| CDN / edge | Not applicable | Single loopback endpoint; no static assets distributed |
+| Message queues (SQS / Pub/Sub) | Not applicable | Synchronous request/response; no async processing |
+| Cloud monitoring (CloudWatch / etc.) | Not applicable | No cloud deployment; console-only observability (§8.7) |
+| Secrets managers (KMS / Secrets Manager) | Not applicable | No secrets or credentials are used (A-005) |
 
 #### 8.3.1.2 Cloud Provider Exclusion Matrix
 
-| Provider | Status | Constraint |
-|----------|--------|------------|
-| Amazon Web Services (AWS) | ❌ Not Applicable | C-001: Localhost binding only |
-| Google Cloud Platform (GCP) | ❌ Not Applicable | C-001: Localhost binding only |
-| Microsoft Azure | ❌ Not Applicable | C-001: Localhost binding only |
-| Other Cloud Providers | ❌ Not Applicable | C-001: Localhost binding only |
-
----
+| Provider | Status | Basis |
+|----------|--------|-------|
+| Amazon Web Services (AWS) | ❌ Not applicable | Loopback-only bind (C-003); no cloud SDK/config |
+| Google Cloud Platform (GCP) | ❌ Not applicable | Loopback-only bind (C-003); no cloud SDK/config |
+| Microsoft Azure | ❌ Not applicable | Loopback-only bind (C-003); no cloud SDK/config |
+| PaaS (Heroku / Vercel / Netlify / etc.) | ❌ Not applicable | No platform manifest (`Procfile`, `vercel.json`, `app.yaml`) present |
 
 ## 8.4 Containerization
 
-### 8.4.1 Containerization Assessment
-
 **Containerization is not applicable for this system.**
 
-The repository contains no container-related artifacts, and the project's architectural constraints eliminate the benefits that containerization would typically provide.
+The repository contains no container artifacts, and the project's minimal, single-process, loopback-only design negates the benefits containerization normally provides. Containerizing the service is *technically feasible* (it is an ordinary Node.js app with a pinned dependency tree), but it is neither present nor warranted given the loopback-only execution model (C-003) and the deliberate no-build-tooling constraint (C-006).
+
+### 8.4.1 Containerization Assessment
 
 #### 8.4.1.1 Container Artifact Status
 
-| Container Artifact | Status | Evidence |
-|--------------------|--------|----------|
-| Dockerfile | ❌ Not Present | Repository search confirms absence |
-| docker-compose.yml | ❌ Not Present | No multi-container orchestration |
-| .dockerignore | ❌ Not Present | No container build context |
-| Container Registry Config | ❌ Not Present | No image publishing |
+| Artifact | Status | Evidence |
+|----------|--------|----------|
+| `Dockerfile` | ❌ Not present | Repository inspection (Section 3.6.3) |
+| `docker-compose.yml` | ❌ Not present | No multi-container composition |
+| `.dockerignore` | ❌ Not present | No container build context |
+| Container registry config | ❌ Not present | No image build or publish step |
 
 #### 8.4.1.2 Containerization Exclusion Rationale
 
 | Typical Container Benefit | Applicability | Reason |
 |---------------------------|---------------|--------|
-| Environment Consistency | Not Needed | Zero dependencies eliminate environment drift |
-| Dependency Isolation | Not Needed | No external packages to isolate |
-| Deployment Portability | Not Applicable | Localhost binding prevents deployment |
-| Scalability | Not Applicable | Single instance, test project only |
-| Resource Limits | Not Needed | Minimal resource footprint (~20MB) |
+| Environment consistency | Low value | Runtime already pinned by `package-lock.json`; `node --check` gate; OS-agnostic single file |
+| Dependency isolation | Low value | One direct dependency; deterministic install from the lockfile |
+| Deployment portability | Not applicable | Loopback bind precludes hosted deployment (C-003) |
+| Horizontal scalability | Not applicable | Single instance; hardcoded port prevents multi-instance (C-001, C-004) |
+| Resource limiting | Not needed | ~62 MB RSS footprint; no noisy-neighbor concern on a workstation |
 
-#### 8.4.1.3 Container Architecture Comparison
+#### 8.4.1.3 Illustrative Container Mapping (Not Implemented)
+
+For reference only, the diagram contrasts the system's actual execution path with a minimal container path that a future maintainer *could* add. The right-hand path is **not present in the repository**; if it were introduced, the base-image strategy would be a pinned, slim official image (for example `node:lts-alpine`), image tags would track the package version (`1.0.0`), the build would use `npm ci` from the committed lockfile, and image scanning would reuse the existing `npm audit` gate.
 
 ```mermaid
 flowchart TB
-    subgraph ExpectedContainer["Expected Container Architecture"]
-        Dockerfile["Dockerfile"]
-        BaseImage["Base Image<br/>node:20-alpine"]
-        Layers["Application Layers"]
-        Registry["Container Registry"]
-        Orchestrator["Kubernetes/ECS"]
-        
-        Dockerfile --> BaseImage
-        BaseImage --> Layers
-        Layers --> Registry
-        Registry --> Orchestrator
+    subgraph Actual["Actual — direct local execution (implemented)"]
+        direction TB
+        A1["node server.js / npm start"]
+        A2["Node.js 18+ runtime + node_modules"]
+        A1 --> A2
     end
-    
-    subgraph ActualImplementation["Actual System Implementation"]
-        DirectExec["Direct Execution<br/>node server.js"]
-        NodeRuntime["Local Node.js<br/>Runtime"]
-        
-        DirectExec --> NodeRuntime
+    subgraph Hypo["Hypothetical container image (NOT in repository)"]
+        direction TB
+        H1["FROM node:lts-alpine (pinned)"]
+        H2["COPY source; RUN npm ci"]
+        H3["CMD [node, server.js]"]
+        H1 --> H2
+        H2 --> H3
     end
-    
-    ExpectedContainer ~~~ ActualImplementation
 ```
 
----
+**Figure 8.4 — Actual execution vs. a hypothetical container (illustrative).** The left path is implemented; the right path documents what a minimal, versioned, scanned image would contain, and is explicitly not part of the repository.
 
 ## 8.5 Orchestration
 
-### 8.5.1 Orchestration Assessment
-
 **Orchestration is not applicable for this system.**
 
-The system operates as a single-instance, manually-executed server with no requirements for container orchestration, service discovery, or automated scaling.
+The service is a single, manually-executed process with no containers to schedule, no replicas to coordinate, and no scaling triggers. The hardcoded loopback bind (`127.0.0.1:3000`) causes any second instance on the same host to collide with `EADDRINUSE`, so multi-instance scale-out is impossible without a code change (Sections 5.4.4 and 6.5.2.5).
+
+### 8.5.1 Orchestration Assessment
 
 #### 8.5.1.1 Orchestration Exclusion Rationale
 
-| Orchestration Feature | Applicability | Reason |
-|----------------------|---------------|--------|
-| Container Scheduling | ❌ Not Applicable | No containers to schedule |
-| Service Discovery | ❌ Not Applicable | Single instance, hardcoded endpoint |
-| Load Balancing | ❌ Not Applicable | Localhost binding, single instance |
-| Auto-Scaling | ❌ Not Applicable | No scaling triggers or orchestrator |
-| Health Checks | ❌ Not Applicable | HTTP availability check sufficient |
-| Rolling Updates | ❌ Not Applicable | Manual execution model |
+| Orchestration Capability | Applicability | Reason |
+|--------------------------|---------------|--------|
+| Container scheduling | ❌ Not applicable | No containers to schedule (§8.4) |
+| Service discovery | ❌ Not applicable | Single instance; fixed hardcoded endpoint |
+| Load balancing | ❌ Not applicable | One loopback socket; no upstream pool |
+| Auto-scaling | ❌ Not applicable | No orchestrator; single event loop |
+| Health checks / probes | ❌ Not applicable | No `/health` endpoint; external `curl` check only (§8.7) |
+| Rolling / canary updates | ❌ Not applicable | Manual stop/start execution model |
 
 #### 8.5.1.2 Orchestration Platform Status
 
-| Platform | Status | Constraint |
-|----------|--------|------------|
-| Kubernetes | ❌ Not Configured | No manifests, no containers |
-| Docker Swarm | ❌ Not Configured | No Dockerfile, no compose files |
-| Amazon ECS | ❌ Not Configured | No task definitions, localhost binding |
-| Nomad | ❌ Not Configured | No job specifications |
+| Platform | Status | Evidence |
+|----------|--------|----------|
+| Kubernetes | ❌ Not configured | No manifests or Helm charts; no containers |
+| Docker Swarm | ❌ Not configured | No `Dockerfile`/compose files |
+| Amazon ECS / Fargate | ❌ Not configured | No task definitions; loopback bind |
+| HashiCorp Nomad | ❌ Not configured | No job specifications |
 
-#### 8.5.1.3 Scaling Architecture Limitations
+#### 8.5.1.3 Scaling Limitation Basis
+
+The constraints below map directly to the orchestration/scaling capabilities they preclude.
 
 ```mermaid
-flowchart TB
-    subgraph ScalingLimitations["Scaling Limitations"]
-        LocalhostBinding["Constraint: Localhost<br/>Binding (127.0.0.1)"]
-        SingleProcess["Constraint: Single<br/>Process Model"]
-        NoDependencies["Constraint: Zero<br/>Dependencies"]
-    end
-    
-    subgraph BlockedCapabilities["Blocked Orchestration Capabilities"]
-        HorizontalScale["Horizontal Scaling<br/>BLOCKED"]
-        LoadBalancing["Load Balancing<br/>BLOCKED"]
-        AutoScaling["Auto-Scaling<br/>BLOCKED"]
-        ServiceMesh["Service Mesh<br/>BLOCKED"]
-    end
-    
-    LocalhostBinding --> HorizontalScale
-    LocalhostBinding --> LoadBalancing
-    SingleProcess --> AutoScaling
-    NoDependencies --> ServiceMesh
+flowchart LR
+    C1["Loopback bind 127.0.0.1:3000<br/>(C-001, C-003)"]
+    C2["Hardcoded config; no PORT/HOST<br/>(C-004)"]
+    C3["Single event loop; no clustering"]
+    B1["Horizontal scale-out<br/>BLOCKED"]
+    B2["Load balancing<br/>BLOCKED"]
+    B3["Auto-scaling<br/>BLOCKED"]
+    C1 --> B1
+    C2 --> B1
+    C1 --> B2
+    C3 --> B3
 ```
 
----
+**Figure 8.5 — Scaling limitations.** The hardcoded loopback endpoint and single-event-loop model structurally block horizontal scaling, load balancing, and auto-scaling, so no orchestration layer applies.
 
 ## 8.6 CI/CD Pipeline
 
+**No CI/CD pipeline is configured in this repository.** There is no `.github/workflows/`, `Jenkinsfile`, `.circleci/`, `.gitlab-ci.yml`, `.travis.yml`, or `azure-pipelines.yml` (Section 3.6.3). Building, validating, and running the service are performed manually with stock npm and Node.js commands. This section documents that *actual* manual workflow — its triggers, environment, dependency handling, quality gates, and (non-)deployment model — rather than an absent automated pipeline.
+
 ### 8.6.1 CI/CD Configuration Status
-
-**No CI/CD configuration exists in this repository.**
-
-The project has no continuous integration or deployment configuration files. All execution is performed manually through direct Node.js invocation.
 
 #### 8.6.1.1 CI/CD Platform Status
 
-| CI/CD Platform | Configuration File | Status | Evidence |
-|----------------|-------------------|--------|----------|
-| GitHub Actions | `.github/workflows/` | ❌ Not Configured | Directory not present |
-| Jenkins | `Jenkinsfile` | ❌ Not Configured | File not present |
-| CircleCI | `.circleci/config.yml` | ❌ Not Configured | Directory not present |
-| Travis CI | `.travis.yml` | ❌ Not Configured | File not present |
-| GitLab CI | `.gitlab-ci.yml` | ❌ Not Configured | File not present |
-| Azure DevOps | `azure-pipelines.yml` | ❌ Not Configured | File not present |
+| CI/CD Platform | Expected Config Path | Status |
+|----------------|----------------------|--------|
+| GitHub Actions | `.github/workflows/*.yml` | ❌ Not configured |
+| Jenkins | `Jenkinsfile` | ❌ Not configured |
+| CircleCI | `.circleci/config.yml` | ❌ Not configured |
+| GitLab CI | `.gitlab-ci.yml` | ❌ Not configured |
+| Travis CI | `.travis.yml` | ❌ Not configured |
+| Azure Pipelines | `azure-pipelines.yml` | ❌ Not configured |
 
-#### 8.6.1.2 CI/CD Exclusion Rationale
+#### 8.6.1.2 Automation Status by Stage
 
-| CI/CD Feature | Status | Rationale |
-|---------------|--------|-----------|
-| Automated Builds | Not Needed | No build process required (direct JS execution) |
-| Automated Testing | Not Configured | Placeholder test script in package.json |
-| Linting/Quality Checks | Not Configured | Minimal codebase (14 lines) |
-| Security Scanning | Not Configured | Zero dependencies, no supply chain risk |
-| Automated Deployment | Not Applicable | Localhost binding prevents deployment |
-| Release Management | Not Applicable | Test project, no versioned releases |
+| Pipeline Stage | Status | Actual Mechanism |
+|----------------|--------|------------------|
+| Source-control trigger | Manual | Developer runs commands locally; changes reviewed via Git PR (e.g. PR #1) |
+| Build | Not needed | No compile/bundle/transpile; Node runs `server.js` directly |
+| Automated tests | Not configured | `npm test` is a placeholder that exits `1` (C-005) |
+| Lint / format | Not configured | No linter or formatter (C-006) |
+| Security scan | Manual | `npm audit` (reported 0 vulnerabilities) |
+| Deploy | Not applicable | Loopback-only; manual `node server.js` |
 
 ### 8.6.2 Build Pipeline
 
-#### 8.6.2.1 Build System Status
+There is no build step in the compilation sense. The "build" is `npm install` populating `node_modules` from the committed lockfile; Node.js then executes `server.js` directly.
 
-**No build process is required.** The project runs directly as interpreted JavaScript:
+#### 8.6.2.1 Build Characteristics
 
-| Build Aspect | Status | Rationale |
-|--------------|--------|-----------|
-| Transpilation | ❌ Not Needed | Plain JavaScript (no TypeScript, Babel) |
-| Bundling | ❌ Not Needed | Single-file application |
-| Minification | ❌ Not Needed | Development/test use only |
-| Compilation | ❌ Not Needed | Interpreted language |
-| Asset Processing | ❌ Not Needed | No frontend assets |
+| Build Aspect | Status | Basis |
+|--------------|--------|-------|
+| Transpilation | Not needed | Plain CommonJS JavaScript; no TypeScript/Babel |
+| Bundling / minification | Not needed | Single-file app; local use |
+| Compilation | Not needed | Interpreted runtime |
+| Artifact generation | None | No build output; source is the deliverable |
 
-#### 8.6.2.2 Execution Model Diagram
+#### 8.6.2.2 Build Environment and Dependency Management
+
+| Aspect | Detail | Evidence |
+|--------|--------|----------|
+| Build environment | Node.js ≥ 18 + npm v7+ (any OS) | `README.md`; Express 5 `engines` |
+| Dependency install | `npm install` / `npm ci` from `package-lock.json` (lockfileVersion 3) | `package-lock.json` (C-002) |
+| Dependency footprint | `express` (direct) + 66 transitive = 67 packages (~4.3 MB) | `package-lock.json` |
+| Artifact storage | Git repository (source-only); no registry publish; `node_modules/` git-ignored | `.gitignore` |
+
+#### 8.6.2.3 npm Scripts
+
+The manifest defines two scripts; there is no `build` or `lint` script.
+
+| Script | Command | Role |
+|--------|---------|------|
+| `start` | `node server.js` | Launches the HTTP service |
+| `test` | `echo "Error: no test specified" && exit 1` | Placeholder; deliberately fails (C-005) |
+
+#### 8.6.2.4 Quality Gates
+
+Quality is enforced by manual gates rather than an automated pipeline (drawn from Section 3.6.2 and the Project Guide validation record).
+
+| Quality Gate | Command | Pass Criterion |
+|--------------|---------|----------------|
+| Syntax check | `node --check server.js` | Parses with no error |
+| Dependency resolution | `npm install` / `npm ls` | Clean install from the lockfile |
+| Vulnerability scan | `npm audit` | 0 vulnerabilities (reported clean) |
+| Functional smoke test | `curl http://127.0.0.1:3000/` | `200`, body `Hello, World!\n` (14 bytes) |
+
+#### 8.6.2.5 Build / Execution Model
 
 ```mermaid
 flowchart LR
-    Source["server.js<br/>(Source Code)"] -->|"Direct Execution"| NodeJS["Node.js Runtime"]
-    NodeJS --> Server["HTTP Server<br/>Running on :3000"]
-    
-    style Source fill:#e3f2fd
-    style NodeJS fill:#fff3e0
-    style Server fill:#e8f5e9
+    Src["server.js + package.json<br/>(source in Git)"]
+    Install["npm install / npm ci<br/>(from package-lock.json)"]
+    Gate["node --check + npm audit<br/>(quality gates)"]
+    Run["npm start -> node server.js"]
+    Serve["Listening on 127.0.0.1:3000<br/>serves GET / and GET /good-evening"]
+    Src --> Install
+    Install --> Gate
+    Gate --> Run
+    Run --> Serve
 ```
 
-#### 8.6.2.3 Package.json Scripts Analysis
-
-The `package.json` contains minimal script configuration:
-
-| Script | Command | Status |
-|--------|---------|--------|
-| `test` | `echo "Error: no test specified" && exit 1` | Placeholder (returns error) |
-| `start` | Not defined | Requires manual `node server.js` |
-| `build` | Not defined | No build process |
-| `lint` | Not defined | No linting configured |
+**Figure 8.6.2 — Build/execution model.** Install from the lockfile, pass the manual quality gates, then run the source directly; there is no compiled artifact.
 
 ### 8.6.3 Deployment Pipeline
 
-**Not Applicable.** The system has no deployment pipeline due to its localhost-only binding and test project designation.
+**No deployment pipeline exists**, and formal progressive-delivery strategies (blue-green, canary, rolling) are not applicable because there is a single local instance and no hosted target or traffic router.
 
-#### 8.6.3.1 Deployment Status Summary
+#### 8.6.3.1 Deployment Strategy Status
 
-| Deployment Strategy | Applicability |
-|--------------------|---------------|
-| Blue-Green Deployment | ❌ Not Applicable |
-| Canary Deployment | ❌ Not Applicable |
-| Rolling Updates | ❌ Not Applicable |
-| Feature Flags | ❌ Not Applicable |
-| A/B Testing | ❌ Not Applicable |
+| Deployment Strategy | Applicability | Reason |
+|---------------------|---------------|--------|
+| Blue-Green | ❌ Not applicable | Single local instance; no traffic router |
+| Canary | ❌ Not applicable | No fleet or load balancer to split traffic |
+| Rolling | ❌ Not applicable | Single process; stop/start only |
+| Recreate (stop / start) | ✅ De-facto model | Operator stops and re-runs the process |
 
-#### 8.6.3.2 Expected vs. Actual Pipeline Comparison
+#### 8.6.3.2 Promotion, Rollback, Validation, and Release Management
+
+| Concern | Mechanism | Evidence |
+|---------|-----------|----------|
+| Environment promotion | None — single local tier (§8.2.3) | Loopback bind (C-003) |
+| Rollback | Check out a prior commit, `npm install`, re-run; deterministic rebuild from lockfile | Git history; `package-lock.json` |
+| Post-deployment validation | Manual `curl` of both endpoints; verify startup line + exit code | Section 6.5.2.1; `server.js` |
+| Release management | Semantic version `1.0.0` in `package.json`; changes merged via pull request (PR #1, merge `893bd8d`) | `package.json`; Git history |
+
+#### 8.6.3.3 Deployment Workflow
 
 ```mermaid
-flowchart TB
-    subgraph ExpectedPipeline["Expected CI/CD Pipeline"]
-        Commit["Git Commit"]
-        Build["Build Stage"]
-        Test["Test Stage"]
-        Scan["Security Scan"]
-        Deploy["Deploy Stage"]
-        Verify["Post-Deploy<br/>Verification"]
-        
-        Commit --> Build
-        Build --> Test
-        Test --> Scan
-        Scan --> Deploy
-        Deploy --> Verify
-    end
-    
-    subgraph ActualWorkflow["Actual Execution Workflow"]
-        Clone["Clone Repository"]
-        Run["node server.js"]
-        Access["Access localhost:3000"]
-        
-        Clone --> Run
-        Run --> Access
-    end
-    
-    ExpectedPipeline ~~~ ActualWorkflow
+flowchart TD
+    Commit["Commit / merge PR<br/>(e.g. PR #1 -> 893bd8d)"]
+    Pull["Operator pulls source<br/>on the target host"]
+    Install["npm install / npm ci"]
+    Check["node --check + npm audit"]
+    Bind{"node server.js<br/>bind 127.0.0.1:3000?"}
+    Ok["stdout: Server running...<br/>exit code 0 (healthy)"]
+    Fail["stderr: Failed to start...<br/>exit code 1"]
+    Validate["curl GET / -> 200 (14B)<br/>curl /good-evening -> 200"]
+    Rollback["Rollback: check out prior commit,<br/>npm install, restart"]
+    Commit --> Pull
+    Pull --> Install
+    Install --> Check
+    Check --> Bind
+    Bind -->|"bind ok"| Ok
+    Ok --> Validate
+    Bind -->|"EADDRINUSE / error"| Fail
+    Fail --> Rollback
+    Validate -->|"unexpected response"| Rollback
+    Rollback --> Bind
 ```
 
----
+**Figure 8.6.3 — Deployment workflow.** The manual promote-install-validate loop for a single local host, including the fail-fast branch and the git-based rollback path.
 
 ## 8.7 Infrastructure Monitoring
 
+**Detailed Infrastructure Monitoring is not applicable for this system**, and none is installed. Consistent with Section 6.5, the service ships no metrics client, log shipper, tracing SDK, alert manager, or dashboard; observability is limited to console output, the process exit code, and the HTTP responses themselves. This section summarizes that surface from the infrastructure perspective — Section 6.5 is the authoritative, detailed treatment.
+
 ### 8.7.1 Monitoring Assessment
 
-**Detailed Infrastructure Monitoring is not applicable for this system.**
+#### 8.7.1.1 Monitoring Domain Status
 
-The system implements no monitoring infrastructure, relying exclusively on console output and manual verification for observability.
+The five infrastructure-monitoring domains all resolve to "not implemented" or "not applicable" for the reasons shown.
 
-#### 8.7.1.1 Monitoring Exclusion Matrix
+| Monitoring Domain | Status | Basis |
+|-------------------|--------|-------|
+| Resource monitoring (CPU / memory / disk) | ❌ Not implemented | No agent or exporter; no hosted infrastructure to monitor |
+| Performance metrics collection | ❌ Not implemented | No latency/throughput instrumentation (Section 6.5.1.1) |
+| Cost monitoring / optimization | ❌ Not applicable | No cloud resources; $0 infrastructure cost (§8.9) |
+| Security monitoring | ❌ Not implemented | Loopback isolation (C-003); only static header hardening present |
+| Compliance auditing | ❌ Not applicable | No compliance obligations (§8.2.1.4) |
 
-| Monitoring Domain | Implementation Status | Rationale |
-|-------------------|----------------------|-----------|
-| Resource Monitoring | ❌ Not Implemented | No infrastructure to monitor |
-| Performance Metrics | ❌ Not Implemented | Test environment scope |
-| Cost Monitoring | ❌ Not Applicable | No cloud resources deployed |
-| Security Monitoring | ❌ Not Implemented | Localhost isolation sufficient |
-| Compliance Auditing | ❌ Not Applicable | No compliance requirements |
+The only security-relevant controls that *are* implemented are static response-hardening headers — `X-Powered-By` disabled and `X-Content-Type-Options: nosniff` on both routes (feature F-004) — plus the fail-fast startup. There is no runtime security monitoring (no WAF, IDS, audit log, or access log).
 
-#### 8.7.1.2 Current Observability Implementation
+#### 8.7.1.2 Actual Observability Surface
 
-The system's observability is limited to a single startup notification:
+The complete set of signals the process emits (identical to the canonical surface in Sections 5.4.1 and 6.5.1):
 
-| Observability Feature | Implementation | Output |
-|----------------------|----------------|--------|
-| Startup Notification | `console.log()` | `Server running at http://127.0.0.1:3000/` |
-| Error Output | Node.js default to stderr | Stack trace on exceptions |
-| Request Logging | Not Implemented | No access logs |
-| Metrics Export | Not Implemented | No metrics endpoints |
+| Observable Signal | Channel | Emitted When |
+|-------------------|---------|--------------|
+| Startup success line | `stdout` | `server.listening` is `true` (`server.js:50–51`) |
+| Bind-failure diagnostic | `stderr` | Server `'error'` event (`server.js:60–61`) |
+| Process exit code (`0` / `1`) | Process | On process exit (`server.js:62`) |
+| HTTP status + headers | HTTP response | Per request (`200` routes / `404` unmatched) |
 
 ### 8.7.2 Basic Verification Methods
 
-Manual verification procedures replace automated monitoring:
+Manual verification replaces automated monitoring; these are the checks used during the project's validation.
 
-| Verification Type | Command/Method | Expected Outcome |
-|-------------------|----------------|------------------|
-| Server Running | `curl http://localhost:3000` | `Hello, World!` response |
-| Startup Success | Console output inspection | "Server running at..." message |
-| Process Status | `ps aux \| grep node` | Node.js process on port 3000 |
-| Port Availability | `lsof -i :3000` | Process ID if port in use |
-| Node.js Version | `node --version` | v20.19.6 or compatible |
+| Verification | Command / Method | Expected Outcome |
+|--------------|------------------|------------------|
+| Server liveness (root) | `curl http://127.0.0.1:3000/` | `200`, body `Hello, World!\n` (14 B) |
+| Second route | `curl http://127.0.0.1:3000/good-evening` | `200`, body `Good evening` (12 B) |
+| Startup success | Inspect console output | `Server running at http://127.0.0.1:3000/` |
+| Process / port status | Process list; port check on 3000 | Node process bound to loopback:3000 |
+| Runtime version | `node --version` | v18 or newer (v22.23.1 observed) |
 
-### 8.7.3 Basic Verification Flow Diagram
+### 8.7.3 Verification Flow
 
 ```mermaid
 flowchart LR
-    subgraph VerificationMethods["Basic System Verification"]
-        Start([Start Verification])
-        CheckProcess["Check Process<br/>ps aux | grep node"]
-        CheckPort["Check Port<br/>lsof -i :3000"]
-        CheckHTTP["HTTP Request<br/>curl localhost:3000"]
-        VerifyResponse["Verify Response<br/>'Hello, World!'"]
-        Complete([System Verified])
-    end
-    
-    Start --> CheckProcess
-    CheckProcess --> CheckPort
-    CheckPort --> CheckHTTP
-    CheckHTTP --> VerifyResponse
-    VerifyResponse --> Complete
+    Start(["Start verification"])
+    Proc["Check process / port<br/>bound to 127.0.0.1:3000?"]
+    Log["Check stdout<br/>Server running..."]
+    Http1["curl GET / -> 200 (14B)"]
+    Http2["curl GET /good-evening -> 200 (12B)"]
+    Done(["Service verified"])
+    Start --> Proc
+    Proc --> Log
+    Log --> Http1
+    Http1 --> Http2
+    Http2 --> Done
 ```
 
----
+**Figure 8.7 — Basic verification flow.** In the absence of a monitoring stack, liveness and correctness are confirmed by inspecting the process/port, the startup line, and the two HTTP endpoints.
 
 ## 8.8 Minimal Build and Distribution Requirements
 
+This section documents the minimal requirements for building (installing), executing, and distributing the system in its intended local context. It is the substantive counterpart to the "not applicable" infrastructure domains above.
+
 ### 8.8.1 Runtime Requirements
 
-This section documents the minimal requirements for executing the system in its intended local development context.
-
-#### 8.8.1.1 Core Runtime Dependencies
+#### 8.8.1.1 Core Runtime Requirements
 
 | Requirement | Specification | Purpose |
 |-------------|---------------|---------|
-| Node.js | v20.19.6 or compatible LTS | JavaScript runtime execution |
-| npm | v7+ (lockfileVersion 3 compatible) | Package metadata management |
-| Operating System | Any supporting Node.js | Cross-platform compatibility |
-| Network | Loopback interface (127.0.0.1) | HTTP server binding |
-| Port | 3000 available | Server listening port |
+| Node.js | ≥ 18 (v22.23.1 observed) | JavaScript runtime that executes `server.js` |
+| npm | v7+ (lockfileVersion 3); v11.1.0 observed | Installs the dependency tree from the lockfile |
+| Operating system | Any Node.js-supported OS | Cross-platform; no native addons |
+| Network | Loopback interface `127.0.0.1` | HTTP server bind target |
+| Port | 3000 free on loopback | Listening port (fail-fast on `EADDRINUSE`) |
 
 #### 8.8.1.2 Hardware Requirements
 
+Figures are grounded in the measured footprint (~62 MB process RSS; 4.3 MB `node_modules` + ~52 KB source).
+
 | Resource | Minimum | Recommended |
 |----------|---------|-------------|
-| CPU | 1 core | 1 core |
-| Memory | 128 MB | 256 MB |
-| Disk Space | < 1 MB (repository) + Node.js | Standard Node.js installation |
+| CPU | 1 core (fractional acceptable) | 1 vCPU |
+| Memory | 128 MB (process RSS ~62 MB measured) | 256 MB |
+| Disk | ~5 MB (deps + source) plus the Node.js install | Standard Node.js installation |
 
 ### 8.8.2 Execution Procedure
 
 #### 8.8.2.1 Standard Startup Procedure
 
-```
-1. Ensure Node.js runtime is installed
-2. Clone or navigate to repository directory
-3. Execute: node server.js
-4. Verify startup message appears
-5. Access http://localhost:3000 to test
-```
+1. Install Node.js 18+ (npm is bundled).
+2. Obtain the source — clone the Git repository — and change into its directory.
+3. Run `npm install` to populate `node_modules` from `package-lock.json`.
+4. Start the service with `npm start` (equivalently `node server.js`).
+5. Confirm the startup line `Server running at http://127.0.0.1:3000/` on `stdout`.
+6. Verify with `curl http://127.0.0.1:3000/` (expect `200` and `Hello, World!`).
 
-#### 8.8.2.2 Execution Workflow Diagram
-
-```mermaid
-flowchart TB
-    subgraph ExecutionWorkflow["Development Workflow"]
-        Clone["Clone Repository<br/>git clone ..."]
-        Navigate["Navigate to Directory<br/>cd hao-backprop-test"]
-        Execute["Execute Server<br/>node server.js"]
-        Verify["Verify Running<br/>Check console output"]
-        Test["Test Endpoint<br/>curl localhost:3000"]
-        Analyze["Backprop Analysis<br/>Tool integration"]
-        
-        Warning["⚠️ Repository marked<br/>'Do not touch!'"]
-    end
-    
-    Clone --> Navigate
-    Navigate --> Execute
-    Execute --> Verify
-    Verify --> Test
-    Test --> Analyze
-    Warning -.-> Clone
-```
+The build/execution and deployment flows are diagrammed in Figures 8.6.2 and 8.6.3; they are not repeated here.
 
 ### 8.8.3 Distribution Model
 
 #### 8.8.3.1 Distribution Status
 
-The system follows a source-only distribution model with no compiled artifacts or package publishing:
+The system is distributed as source through version control; there is no compiled artifact, published package, or image.
 
-| Distribution Method | Status | Rationale |
-|--------------------|--------|-----------|
-| npm Registry Publishing | ❌ Not Published | Test project, not a library |
-| Container Registry | ❌ Not Applicable | No containerization |
-| Binary Distribution | ❌ Not Applicable | Interpreted JavaScript |
-| Source Distribution | ✅ Git Repository | Primary distribution mechanism |
+| Distribution Method | Status | Basis |
+|---------------------|--------|-------|
+| npm registry publish | ❌ Not published | An application, not a library; no `files`/`publishConfig` in `package.json` |
+| Container registry | ❌ Not applicable | No container image (§8.4) |
+| Binary distribution | ❌ Not applicable | Interpreted JavaScript; nothing to compile |
+| Source distribution (Git) | ✅ Primary | The Git repository is the unit of distribution |
 
-#### 8.8.3.2 Repository Structure
+#### 8.8.3.2 Repository Structure (Runtime-Relevant Files)
 
-```
-hao-backprop-test/
-├── server.js           # Main HTTP server (14 lines)
-├── package.json        # NPM manifest (zero dependencies)
-├── package-lock.json   # Dependency lock (empty)
-├── README.md           # Project documentation
-├── industry.csv        # Static test data (44 records)
-├── LoginTest.java      # Java placeholder (non-functional)
-├── test.py.txt         # Python placeholder (empty)
-├── test.txt.txt        # Text placeholder (empty)
-├── 100Pages.pdf        # Test file
-├── demo.jpg            # Test image
-└── sample.doc          # Test document
+```text
+repository-root/
+├── server.js            # Express 5 HTTP server (64 lines); binds 127.0.0.1:3000
+├── package.json         # npm manifest; one dependency (express ^5.2.1); start/test scripts
+├── package-lock.json    # Dependency lock (lockfileVersion 3); 67 packages pinned
+├── README.md            # Run instructions (Node 18+, npm install, npm start)
+├── .gitignore           # Ignores node_modules/
+├── industry.csv         # Static data (1 header + 43 rows); NOT read at runtime
+└── blitzy/documentation/ # Project Guide and (superseded) Technical Specifications
 ```
 
----
+The repository also contains non-functional placeholder/sample artifacts (`LoginTest.java`, `test.py.txt`, `test.txt.txt`, `100Pages.pdf`, `demo.jpg`, `sample.doc`) that are not part of the runnable service and require no build or distribution handling.
 
 ## 8.9 Infrastructure Cost Analysis
 
+**Incremental infrastructure cost is $0.** The system runs entirely on an existing local host with no cloud resources, managed services, container registry, CI minutes, or monitoring subscriptions. The only resources consumed are a developer/CI workstation that already exists and the operator's time; all software is free and open-source — the Node.js runtime (OpenJS Foundation) and the MIT-licensed Express dependency tree.
+
 ### 8.9.1 Cost Assessment Summary
 
-**Infrastructure costs are not applicable for this system.**
-
-The system operates entirely on local development hardware with no cloud resources, no managed services, and no ongoing infrastructure expenses.
-
-| Cost Category | Status | Estimated Cost |
-|---------------|--------|----------------|
-| Cloud Compute | N/A | $0 |
-| Container Orchestration | N/A | $0 |
-| Storage Services | N/A | $0 |
-| Network/CDN | N/A | $0 |
-| Monitoring Services | N/A | $0 |
-| CI/CD Pipeline | N/A | $0 |
-| **Total Monthly Infrastructure** | **N/A** | **$0** |
+| Cost Category | Basis | Estimated Monthly Cost |
+|---------------|-------|------------------------|
+| Cloud compute | None provisioned (§8.3) | $0 |
+| Container orchestration / registry | None (§8.4, §8.5) | $0 |
+| Storage / database | Stateless; none (A-005) | $0 |
+| Network / CDN / load balancer | Loopback only (§8.2.1.1) | $0 |
+| Monitoring / observability services | Console-only (§8.7) | $0 |
+| CI/CD pipeline / build minutes | None configured (§8.6) | $0 |
+| Software licensing | Node.js (OpenJS) + MIT-licensed deps | $0 |
+| **Total incremental infrastructure** | Runs on an existing workstation | **$0** |
 
 ### 8.9.2 Resource Sizing Summary
 
-| Environment | Node.js Memory | CPU | Storage | Notes |
-|-------------|----------------|-----|---------|-------|
-| Local Development | ~20-50 MB | Single-threaded | < 1 MB | Only applicable environment |
+| Environment | Memory (RSS) | CPU | Disk |
+|-------------|--------------|-----|------|
+| Local development / run (only tier) | ~62 MB measured; 128–256 MB recommended | 1 vCPU (single event loop) | ~5 MB deps + source, plus Node.js runtime |
 
----
+### 8.9.3 External Dependencies
+
+The system's only external dependencies are the Node.js runtime and the npm-installed package tree; there are no external runtime services or third-party APIs (A-005).
+
+| Dependency | Version | Type |
+|------------|---------|------|
+| Node.js runtime | ≥ 18 (v22.23.1 observed) | Host-provided build + runtime |
+| `express` | `^5.2.1` (5.2.1 installed) | Direct runtime dependency |
+| Transitive npm packages | 66 packages (pinned in `package-lock.json`) | Indirect runtime dependencies |
+| npm registry | n/a | Install-time source of the dependency tree |
 
 ## 8.10 Future Infrastructure Considerations
 
+The current scope deliberately excludes production infrastructure (Sections 3.6 and 5.4; Project Guide accepted risk **O1**). This section is included for completeness and records what the repository's own documentation identifies as prerequisites *were* the service ever taken beyond its localhost scope. These are documented gaps, not planned work; implementing any of them would require relaxing the constraints in Section 2.6 and would change the system's deliberately minimal character.
+
 ### 8.10.1 Production Readiness Gap Analysis
 
-If the system scope were to expand beyond its current test project purpose, the following infrastructure would need to be implemented:
+The Project Guide explicitly lists the items below as out of scope for the current deliverable; each would become a prerequisite for any non-localhost deployment (Section 6.5.3.2 flags the health-check and structured-logging items specifically).
 
-| Infrastructure Domain | Required Implementation | Priority |
-|----------------------|------------------------|----------|
-| Cloud Deployment | Remove localhost binding; add cloud configuration | P0 (Critical) |
-| Containerization | Create Dockerfile; establish image registry | P0 (Critical) |
-| Orchestration | Kubernetes manifests or similar orchestration | P1 (High) |
-| CI/CD Pipeline | GitHub Actions or equivalent automation | P1 (High) |
-| Infrastructure Monitoring | Prometheus/Grafana or cloud-native monitoring | P1 (High) |
-| Load Balancing | NGINX, HAProxy, or cloud load balancer | P1 (High) |
-| Secret Management | HashiCorp Vault, AWS Secrets Manager, or similar | P2 (Medium) |
+| Capability | Current State | Prerequisite for Production |
+|------------|---------------|-----------------------------|
+| Configurable host/port | Hardcoded `127.0.0.1:3000` (C-004) | Env-var/config-driven `HOST`/`PORT` |
+| Non-localhost exposure | Loopback-only (C-003) | Bind a routable interface behind an ingress |
+| Transport security (TLS) | None (C-003) | TLS termination (reverse proxy or in-app) |
+| Authentication / authorization | None (C-003) | Identity and access-control layer |
+| Health-check endpoint | None (risk O1) | `/health` or `/ready` route |
+| Structured logging / monitoring | Console only (risk O1) | Log shipping, metrics, and alerting |
+| Automated tests / CI | Placeholder test (C-005) | Test suite plus a CI pipeline |
 
 ### 8.10.2 Architectural Change Requirements
 
-| Current Constraint | Required Change for Production |
-|-------------------|-------------------------------|
-| C-001: Localhost binding | Configurable hostname via environment variable |
-| C-002: Zero dependencies | Add necessary production dependencies |
-| C-003: Hardcoded configuration | Implement configuration management |
-| C-004: Static response | Add dynamic content capabilities |
-| C-005: Repository immutability | Enable ongoing development |
+Because the constraints in Section 2.6 encode the current design intent, production readiness would specifically require changing the following. These map to the *current* (Express 5) constraint set, not the superseded baseline.
 
-**Note:** Such expansion would directly contradict the project's stated purpose and the "Do not touch!" directive in the `README.md`.
+| Current Constraint (Section 2.6) | Required Change for Production |
+|----------------------------------|--------------------------------|
+| C-001: single-file, hardcoded endpoint | Externalize the endpoint; optionally modularize the app |
+| C-003: loopback-only, no TLS/auth | Add a routable bind, TLS, and access control |
+| C-004: hardcoded config, no env overrides | Adopt env-var/config management (12-factor) |
+| C-005: no automated test framework | Add a test framework and a CI test gate |
+| C-006: one dependency, no build tooling | Add the necessary production/observability dependencies and tooling |
 
----
+Such expansion is neither planned nor in scope; it is recorded here only as a gap analysis for a hypothetical future beyond the system's stated localhost purpose.
 
 ## 8.11 Summary
 
+The repository documents a standalone, localhost-only Express 5.2.1 HTTP service with **no deployment infrastructure**. Every infrastructure domain is either not applicable or reduced to a minimal, manual, local counterpart — by deliberate design (Sections 2.6, 3.6, 5.4).
+
 ### 8.11.1 Key Findings
 
-The hao-backprop-test repository deliberately excludes formal infrastructure architecture based on its constrained scope as a test project for Backprop integration:
-
-| Infrastructure Domain | Status | Rationale |
-|----------------------|--------|-----------|
-| Deployment Environment | Local development only | Localhost binding (127.0.0.1) |
-| Cloud Services | Not applicable | No cloud deployment support |
-| Containerization | Not applicable | Zero dependencies, no container benefits |
-| Orchestration | Not applicable | Single instance, manual execution |
-| CI/CD Pipeline | Not configured | No automated build or deployment |
-| Infrastructure Monitoring | Not applicable | Console output sufficient |
+| Infrastructure Domain | Status | Basis |
+|-----------------------|--------|-------|
+| Deployment environment | Local single-host only | Loopback bind `127.0.0.1:3000` (C-001, C-003) |
+| Cloud services | Not applicable | No cloud SDK/config; stateless (A-005) |
+| Containerization | Not applicable | No `Dockerfile`; single-process local run |
+| Orchestration | Not applicable | Single instance; hardcoded port |
+| CI/CD pipeline | Not configured | Manual npm-driven build and run |
+| Infrastructure monitoring | Console-only | Four-signal surface; no telemetry stack |
+| Infrastructure cost | $0 incremental | Runs on an existing workstation |
 
 ### 8.11.2 Infrastructure Posture Summary
 
 ```mermaid
 flowchart TB
-    subgraph InfrastructureSummary["Infrastructure Architecture Summary"]
-        System["hao-backprop-test<br/>Minimal Test Harness"]
-        
-        subgraph Implemented["✅ Implemented"]
-            LocalExec["Local Execution<br/>node server.js"]
-            ConsoleLog["Console Logging<br/>Startup message"]
-        end
-        
-        subgraph NotApplicable["❌ Not Applicable"]
-            Cloud["Cloud Services"]
-            Container["Containerization"]
-            Orchestration["Orchestration"]
-            CICD["CI/CD Pipeline"]
-            Monitoring["Infrastructure Monitoring"]
-        end
+    System["hello_world (Express 5.2.1)<br/>single-process localhost service"]
+    subgraph Implemented["Implemented"]
+        direction TB
+        I1["Local execution: node server.js"]
+        I2["Console logging + exit codes"]
+        I3["Fail-fast startup; header hardening"]
     end
-    
-    System --> Implemented
-    System --> NotApplicable
+    subgraph NotApplicable["Not applicable"]
+        direction TB
+        N1["Cloud services"]
+        N2["Containerization"]
+        N3["Orchestration"]
+        N4["CI/CD pipeline"]
+        N5["Infrastructure monitoring stack"]
+    end
+    System --> I1
+    System --> N1
 ```
+
+**Figure 8.11 — Infrastructure posture.** The service implements only local execution, console logging, and fail-fast/header-hardening controls; cloud, containers, orchestration, CI/CD, and a monitoring stack are all not applicable.
 
 ### 8.11.3 Minimal Execution Requirements
 
 | Requirement | Value |
 |-------------|-------|
-| Runtime | Node.js v20.19.6+ |
-| Package Manager | npm v7+ |
-| Execution Command | `node server.js` |
-| Endpoint | http://localhost:3000 |
-| Response | `Hello, World!` |
-
----
+| Runtime | Node.js 18+ (v22.23.1 observed) |
+| Package manager | npm v7+ (v11.1.0 observed) |
+| Install | `npm install` (from `package-lock.json`) |
+| Execution command | `node server.js` / `npm start` |
+| Endpoint | `http://127.0.0.1:3000/` |
+| Responses | `GET /` → `Hello, World!\n` (14 B); `GET /good-evening` → `Good evening` (12 B) |
 
 ## 8.12 References
 
+All findings in this section are grounded in direct inspection and runtime measurement of the current codebase; no external web sources were required. Repository files reflect the current Express 5 state, which is authoritative where it differs from the superseded native-`http` baseline described in `blitzy/documentation/Technical Specifications.md`.
+
 ### 8.12.1 Repository Files Referenced
 
-| File | Relevance |
-|------|-----------|
-| `server.js` | Complete HTTP server implementation confirming localhost binding and minimal architecture (14 lines) |
-| `package.json` | NPM manifest confirming zero external dependencies and placeholder test script |
-| `package-lock.json` | Dependency lock file (lockfileVersion 3) confirming empty dependency tree |
-| `README.md` | Project documentation containing "Do not touch!" warning and test project designation |
+- `server.js` — established the single-file Express application, the hardcoded loopback bind `127.0.0.1:3000` (L11–12), the two `GET` routes with `text/plain`/`nosniff` responses (L19–33), the disabled `X-Powered-By` header (L9), and the fail-fast startup with `server.listening` guard and `'error'` handler setting `process.exitCode = 1` (L45–63).
+- `package.json` — established package identity (`hello_world` 1.0.0), the single direct dependency `express ^5.2.1`, and the `start` (`node server.js`) and placeholder `test` scripts; confirmed no build/lint scripts and no `devDependencies`.
+- `package-lock.json` — established `lockfileVersion 3` and the pinned dependency graph of 67 packages (Express plus 66 transitive), enabling deterministic rebuild.
+- `README.md` — established the operational contract: Node.js 18+ requirement, `npm install`, `node server.js` / `npm start`, the loopback URL, and the two-endpoint table.
+- `.gitignore` — established that only `node_modules/` is excluded; no infrastructure or deployment configuration is tracked.
+- `industry.csv` — confirmed a static 44-line file (1 header + 43 category rows) that is not read at runtime and drives no infrastructure behavior.
+- `node_modules/express/package.json` — confirmed the installed Express version `5.2.1`.
 
-### 8.12.2 Technical Specification Sections Referenced
+### 8.12.2 Repository Folders Referenced
 
-| Section | Relevance |
-|---------|-----------|
-| 1.2 System Overview | Project context, runtime requirements, and success criteria |
-| 1.3 Scope | In-scope/out-of-scope elements including production deployment exclusion |
-| 3.7 Development & Deployment | Build system status, containerization absence, CI/CD configuration status |
-| 5.1 High-Level Architecture | System boundaries, minimal monolith pattern, and architectural principles |
-| 5.5 Architectural Constraints | Constraints C-001 through C-005 affecting infrastructure decisions |
-| 6.1 Core Services Architecture | Single-component architecture, scaling limitations, disaster recovery |
-| 6.5 Monitoring and Observability | Monitoring non-applicability, basic verification methods, recovery procedures |
+- Repository root — inspected for infrastructure artifacts; confirmed the absence of any `Dockerfile`/`docker-compose`/`.dockerignore`, Terraform/IaC, `.github/workflows`/`.circleci`/`.gitlab-ci.yml`/`Jenkinsfile`/`.travis.yml`/`azure-pipelines.yml`, cloud/PaaS manifests, Kubernetes/Helm, and `.env`/`nginx`/`pm2` configuration (negative evidence for deployment infrastructure).
+- `node_modules/` — contained Express 5.2.1 and its transitive dependencies only (~4.3 MB, 67 packages); no cloud SDK, container runtime, IaC, or monitoring/telemetry packages.
+- `blitzy/documentation/` — contained `Project Guide.md` (delivery record; explicit out-of-scope exclusions and accepted risks O1/O2) and the superseded `Technical Specifications.md` (older native-`http` baseline).
+
+### 8.12.3 Runtime Measurements
+
+- `node --version` → v22.23.1; `npm --version` → v11.1.0 (satisfies the Node.js ≥ 18 requirement).
+- Process resident memory ~62 MB (RSS) while serving; `node --check server.js` passed.
+- `du -sh node_modules` → 4.3 MB; dependency count reconciled via `package-lock.json` (67 installed packages).
+- Loopback isolation confirmed: a request to the host's external IP on port 3000 was refused, while `GET http://127.0.0.1:3000/` returned `200`, `Content-Length: 14`, `X-Content-Type-Options: nosniff`, `Keep-Alive: timeout=5`.
+
+### 8.12.4 Technical Specification Sections Referenced
+
+- Section 2.6 Assumptions and Constraints — assumptions A-001–A-006 and constraints C-001–C-007 (current Express 5 state).
+- Section 3.6 Development and Deployment — no build/containerization/IaC/CI-CD; manual local deployment; absent-tooling inventory and validation utilities.
+- Section 5.4 Cross-Cutting Concerns — 5.4.3 loopback trust boundary; 5.4.4 no SLA and scaling limits; 5.4.5 disaster recovery (stateless, operator-driven).
+- Section 6.5 Monitoring and Observability — console-only observability, the four-signal surface, and accepted risks O1/O2.
 
 # 9. Appendices
 
-## 9.1 Overview
+## 9.1 Additional Technical Information
 
-This appendix provides supplementary technical information for the hao-backprop-test Technical Specification document. It consolidates reference material including additional technical details not covered in main sections, a comprehensive glossary of terminology, and a complete list of acronyms used throughout the document. This section serves as a quick reference guide for readers requiring clarification on technical terms or seeking additional context.
+This appendix consolidates cross-cutting reference material that supports Sections 1–8 without being their primary subject: a version compatibility matrix, a wire-level endpoint reference, an operations command reference, the complete repository artifact inventory, and a single index of every identifier scheme used in this document. Every value below was verified first-hand against the repository checkout (`server.js`, `package.json`, `package-lock.json`, `README.md`, `industry.csv`, `.gitignore`) and by executing the server on Node.js v22.23.1 with Express 5.2.1.
 
----
+Two standing caveats apply throughout the appendices. First, the repository's older reference document `blitzy/documentation/Technical Specifications.md` describes a **superseded** zero-dependency native-`http` baseline; wherever it disagrees with the current code, the Express 5 implementation observed in `server.js` and the manifests is authoritative, consistent with the caveat recorded in Section 2.6. Second, the commit-to-requirement provenance mapping is already documented in Section 2.6.3 (Requirement Version Tracking) and is referenced here rather than repeated.
 
-## 9.2 Additional Technical Information
+### 9.1.1 Version Compatibility Matrix
 
-### 9.2.1 Repository File Inventory
+The service pins a single direct dependency and inherits its runtime floor from that dependency's `engines` declaration. The matrix below distinguishes what the project *declares* from what was *resolved/verified* in this environment.
 
-The following table provides a complete inventory of all files in the hao-backprop-test repository with their technical characteristics:
+| Component | Declared / Required | Resolved / Verified | Evidence |
+|-----------|---------------------|---------------------|----------|
+| Node.js runtime | `>= 18` | v22.23.1 | `README.md`; Express `engines.node`; Assumption A-001 |
+| npm client | `>= 7` (implied by lockfile v3) | 11.1.0 | `package-lock.json` `lockfileVersion: 3` |
+| Express framework | `^5.2.1` (declared) | 5.2.1 (installed) | `package.json`; `node_modules/express/package.json` |
+| Package (`hello_world`) | `1.0.0` | `1.0.0` | `package.json`; `package-lock.json` |
+| Lockfile schema | `lockfileVersion: 3` | `lockfileVersion: 3` | `package-lock.json` |
 
-| File Name | Size | Lines | Status | Primary Purpose |
-|-----------|------|-------|--------|-----------------|
-| `server.js` | ~450 bytes | 14 | Functional | Main HTTP server entry point |
-| `package.json` | ~300 bytes | ~12 | Configured | NPM metadata and package identity |
-| `package-lock.json` | ~300 bytes | ~13 | Present | Dependency lock (lockfileVersion 3) |
-| `README.md` | ~60 bytes | 2 | Minimal | Project identity and access warning |
-| `industry.csv` | ~1.1 KB | 45 | Static data | 44 industry category entries |
-| `LoginTest.java` | ~150 bytes | ~8 | Non-functional | Java placeholder stub |
-| `test.py.txt` | 0 bytes | 0 | Empty | Python test placeholder |
-| `test.txt.txt` | 0 bytes | 0 | Empty | General test placeholder |
+The Node.js floor of `>= 18` originates from Express 5's own `engines` field; the caret range `^5.2.1` permits any `5.x` at or above the pinned patch while the committed lockfile guarantees the exact `5.2.1` install. The `blitzy/documentation/` reference material additionally cites Node.js v20.19.6 as a known-compatible version; both v20.19.6 and the verified v22.23.1 satisfy the `>= 18` floor. The project's own `package.json` declares no `engines` field of its own and no `devDependencies`.
 
-#### 9.2.1.1 Repository Structure Diagram
+### 9.1.2 Consolidated Endpoint and HTTP Wire Reference
 
-```mermaid
-flowchart TB
-    subgraph Repository["hao-backprop-test Repository (Flat Structure)"]
-        direction TB
-        
-        subgraph CoreFiles["Core Runtime Files"]
-            Server["server.js<br/>14 lines<br/>Main Entry Point"]
-        end
-        
-        subgraph ConfigFiles["Configuration Files"]
-            Package["package.json<br/>NPM Metadata"]
-            Lock["package-lock.json<br/>Dependency Lock"]
-        end
-        
-        subgraph Documentation["Documentation"]
-            Readme["README.md<br/>Project Identity"]
-        end
-        
-        subgraph StaticData["Static Data"]
-            CSV["industry.csv<br/>44 Categories"]
-        end
-        
-        subgraph Placeholders["Test Placeholders (Non-Functional)"]
-            Java["LoginTest.java<br/>Java Stub"]
-            Python["test.py.txt<br/>Empty"]
-            Text["test.txt.txt<br/>Empty"]
-        end
-    end
+The service exposes exactly two application routes; all other path/method combinations fall through to Express's default `finalhandler` 404. The following table is the authoritative wire-level summary (byte counts verified with `wc -c`, headers verified with `curl -D -`).
+
+| Method / Path | Status | Body (bytes) | Content-Type |
+|---------------|--------|--------------|--------------|
+| `GET /` | `200 OK` | `Hello, World!\n` (14) | `text/plain; charset=utf-8` |
+| `GET /good-evening` | `200 OK` | `Good evening` (12) | `text/plain; charset=utf-8` |
+| `GET` (unmatched path) | `404 Not Found` | `Cannot GET <path>` HTML (143) | `text/html; charset=utf-8` |
+| Non-`GET` (any path) | `404 Not Found` | `Cannot <METHOD> <path>` HTML | `text/html; charset=utf-8` |
+
+Response-header behavior differs between the application's success routes and the framework's default 404, as summarized below.
+
+| Header | Success routes (`200`) | Default `404` |
+|--------|------------------------|---------------|
+| `X-Content-Type-Options` | `nosniff` (set in each handler) | `nosniff` (framework default) |
+| `Content-Security-Policy` | *absent* | `default-src 'none'` (framework default) |
+| `ETag` | weak, e.g. `W/"e-…"` / `W/"c-…"` | *absent* |
+| `X-Powered-By` | *absent* (`app.disable`) | *absent* (`app.disable`) |
+
+Supplementary wire facts: the weak `ETag` is generated by Express from the response body — the character after `W/"` encodes the body length in hexadecimal (`e` = 14 for `GET /`, `c` = 12 for `GET /good-evening`) — and is a framework default rather than a deliberate caching strategy. Every connection carries `Connection: keep-alive` with `Keep-Alive: timeout=5`, the Node.js default. The 404 body is a standard Express HTML error document whose only variable content is the method and path:
+
+```text
+<pre>Cannot GET /nope</pre>
 ```
 
-### 9.2.2 Configuration Details
+The successful startup log line printed to stdout is `Server running at http://127.0.0.1:3000/`; a failed bind prints `Failed to start server at http://127.0.0.1:3000/: <error message>` to stderr and sets `process.exitCode = 1`. These behaviors are analyzed in Sections 4.2, 4.5, and 5.4.
 
-#### 9.2.2.1 Server Configuration Reference
+### 9.1.3 Operations Command Quick Reference
 
-| Parameter | Value | Source | Mutability |
-|-----------|-------|--------|------------|
-| Hostname | `127.0.0.1` | `server.js` line 2 | Hardcoded |
-| Port | `3000` | `server.js` line 3 | Hardcoded |
-| Protocol | HTTP (not HTTPS) | `http` module usage | Hardcoded |
-| Response Body | `Hello, World!\n` | `server.js` line 7 | Hardcoded |
-| Status Code | `200 OK` | `server.js` line 5 | Hardcoded |
-| Content-Type | `text/plain` | `server.js` line 6 | Hardcoded |
+The complete operational surface is a handful of npm and Node.js commands; no build, container, or CI/CD tooling exists (Sections 3.6 and 8). The commands below reproduce installation, execution, and the manual validation performed for delivery (Section 6.6).
 
-#### 9.2.2.2 Package.json Configuration Reference
+| Command | Purpose | Expected Result |
+|---------|---------|-----------------|
+| `npm install` | Install the locked dependency graph | Populates `node_modules/` (~4.3 MB, 65 top-level packages) |
+| `node server.js` | Start the server directly | stdout: `Server running at http://127.0.0.1:3000/` |
+| `npm start` | Start via the npm script | Identical to `node server.js` |
+| `npm test` | Placeholder test script | Prints `Error: no test specified`, exits `1` |
+| `node --check server.js` | Static syntax gate | Exit `0` (parses cleanly) |
+| `npm ls express` | Verify dependency resolution | `express@5.2.1` |
+| `npm audit` | Supply-chain vulnerability audit | `0 vulnerabilities` across 67 packages |
+| `curl http://127.0.0.1:3000/` | Verify the root endpoint | `200`, body `Hello, World!\n` |
+| `curl http://127.0.0.1:3000/good-evening` | Verify the evening endpoint | `200`, body `Good evening` |
 
-| Field | Value | Purpose |
-|-------|-------|---------|
-| `name` | `hao-backprop-test` | Package identifier |
-| `version` | `1.0.0` | Semantic version |
-| `main` | `index.js` | Declared entry point (discrepancy noted) |
-| `author` | `hxu` | Package author |
-| `license` | `MIT` | Open source license |
-| `scripts.test` | `echo "Error: no test specified" && exit 1` | Placeholder test script |
-| `dependencies` | `{}` (empty) | Zero external dependencies |
+### 9.1.4 Repository Artifact Inventory
 
-#### 9.2.2.3 Configuration Discrepancy Note
+The repository mixes the small active service with several non-runtime artifacts. The inventory below lists every git-tracked file with its measured size and its relationship to the running service; `node_modules/` is git-ignored (per `.gitignore`) and installed on demand. Feature IDs F-007 and F-008 (Section 2.1) classify the non-runtime data and placeholder/fixture artifacts respectively.
 
-A documentation inconsistency exists between the declared and actual entry points:
+| Artifact | Size | Category | Runtime Role |
+|----------|------|----------|--------------|
+| `server.js` | 3,297 B | Application source (Express) | Entry point (self-starting) |
+| `package.json` | 343 B | npm manifest | Build-time (dependency + scripts) |
+| `package-lock.json` | 35,478 B | Dependency lockfile | Build-time (deterministic install) |
+| `README.md` | 812 B | Documentation | None |
+| `.gitignore` | 29 B | VCS configuration | None |
+| `industry.csv` | 749 B | Static data (1 header + 43 categories) | None — not read (F-007) |
+| `LoginTest.java` | 128 B | Non-compiling Java stub | None (F-008) |
+| `test.py.txt` | 0 B | Empty placeholder | None (F-008) |
+| `test.txt.txt` | 0 B | Empty placeholder | None (F-008) |
+| `100Pages.pdf` | 9,456,545 B (~9 MB) | Binary test fixture | None (F-008) |
+| `demo.jpg` | 2,123,398 B (~2 MB) | Binary test fixture | None (F-008) |
+| `sample.doc` | 98,304 B (~96 KB) | Binary test fixture | None (F-008) |
+| `blitzy/documentation/Project Guide.md` | — | Express 5 delivery guide | None (documentation) |
+| `blitzy/documentation/Technical Specifications.md` | — | Superseded native-`http` baseline | None (documentation) |
 
-| Configuration | Declared Value | Actual Implementation |
-|---------------|----------------|----------------------|
-| Entry Point | `"main": "index.js"` (in `package.json`) | `server.js` (actual executable) |
-| Impact | None on runtime functionality | Documentation inconsistency only |
-| Resolution | No change required | Preserved per C-005 repository immutability |
+The `server.js` module does not `require`, read, or serve any of the non-runtime artifacts; they are inert with respect to the two HTTP routes. Total tracked source (excluding binaries and documentation) is roughly 52 KB.
 
-### 9.2.3 Industry Categories Reference
+### 9.1.5 Consolidated Identifier Index
 
-The `industry.csv` file contains 44 industry categories for static test data purposes. These categories are organized alphabetically:
+This document uses several parallel identifier schemes defined in different sections. The index below is a navigation aid mapping each scheme to its range, meaning, and defining section. Note the two distinct `C`-prefixed schemes: the AAP convention labels `C1`–`C2` (from `blitzy/documentation/Project Guide.md`) are mapped onto the numbered constraints `C-001`–`C-002` in Section 2.6.2.
 
-| Category Group | Industries |
-|----------------|------------|
-| A-B | Accounting/Finance, Advertising/Public Relations, Aerospace/Aviation, Arts/Entertainment/Publishing, Automotive, Banking/Mortgage, Business Development, Business Opportunity |
-| C-E | Clerical/Administrative, Construction/Facilities, Consumer Goods, Customer Service, Education/Training, Energy/Utilities, Engineering |
-| G-I | Government/Military, Green, Healthcare, Hospitality/Travel, Human Resources, Installation/Maintenance, Insurance, Internet |
-| J-M | Job Search Aids, Law Enforcement/Security, Legal, Management/Executive, Manufacturing/Operations, Marketing |
-| N-R | Non-Profit/Volunteer, Pharmaceutical/Biotech, Professional Services, QA/Quality Control, Real Estate, Restaurant/Food Service, Retail |
-| S-T | Sales, Science/Research, Skilled Labor, Technology, Telecommunications, Transportation/Logistics |
-| Other | Other (catch-all category) |
+| Scheme | Range | Meaning | Defining Section |
+|--------|-------|---------|------------------|
+| `F-XXX` | F-001 – F-008 | Feature identifiers | 2.1 Feature Catalog |
+| `F-XXX-RQ-YYY` | per feature | Functional requirement identifiers | 2.2 Functional Requirements |
+| `R#` | R1 – R4 | Delivery requirements (AAP) | 1.4 / 2.6.3 |
+| `H#` | H1 – H2 | Repository-hygiene requirements | 2.6.3 |
+| `C#` | C1 – C2 | AAP convention constraints | 2.6.2 (mapped) |
+| `A-###` | A-001 – A-006 | Assumptions | 2.6.1 |
+| `C-###` | C-001 – C-007 | Constraints | 2.6.2 |
+| `ADR-##` | ADR-01 – ADR-07 | Architecture Decision Records | 5.3.4 |
+| Risk IDs | T1–T3, S1–S2, O1–O2, I1–I3 | Risk-register entries | Project Guide (cited in 6.x) |
 
-### 9.2.4 Error Code Reference
+Feature-to-requirement traceability appears in Section 2.5, and the mapping of these identifiers to the commit history appears in Section 2.6.3.
 
-The following error codes may be encountered during server operation, all handled by Node.js runtime defaults:
+## 9.2 Glossary
 
-| Error Code | OS Level | Description | Trigger Condition |
-|------------|----------|-------------|-------------------|
-| `EADDRINUSE` | POSIX | Address already in use | Port 3000 occupied by another process |
-| `EACCES` | POSIX | Permission denied | Insufficient privileges to bind port |
-| `MODULE_NOT_FOUND` | Node.js | Required module not found | Corrupted Node.js installation |
-| `ENETDOWN` | POSIX | Network is down | Network interface unavailable |
-| `ENOMEM` | POSIX | Out of memory | Insufficient system memory |
-
-#### 9.2.4.1 Error Recovery Procedures
-
-| Error Scenario | Diagnostic Command | Recovery Steps |
-|----------------|-------------------|----------------|
-| Port 3000 in use | `lsof -i :3000` (Unix) or `netstat -ano \| findstr :3000` (Windows) | 1. Identify conflicting process<br/>2. Terminate process<br/>3. Restart with `node server.js` |
-| Permission denied | Verify user permissions | 1. Check port binding privileges<br/>2. Run with appropriate permissions<br/>3. Restart with `node server.js` |
-| Node.js unavailable | `node --version` | 1. Install Node.js v20.19.6+<br/>2. Verify installation<br/>3. Start with `node server.js` |
-| Server crash | Review stderr output | 1. Examine stack trace<br/>2. Address root cause<br/>3. Restart with `node server.js` |
-
-### 9.2.5 Constraint and Assumption Quick Reference
-
-#### 9.2.5.1 Architectural Constraints Summary
-
-| ID | Constraint | Technical Impact | Enforcement Method |
-|----|------------|------------------|-------------------|
-| C-001 | Localhost binding only | No cloud/remote/distributed deployment | Hardcoded `127.0.0.1` in `server.js` |
-| C-002 | No external dependencies | Zero npm packages; built-in modules only | Empty `dependencies` in `package.json` |
-| C-003 | Hardcoded configuration | No environment variable support | Values embedded in source code |
-| C-004 | Static response content | No templating or dynamic content | Response string literal in handler |
-| C-005 | Repository immutability | Technology stack frozen | "Do not touch!" policy in `README.md` |
-
-#### 9.2.5.2 Documented Assumptions Summary
-
-| ID | Assumption | Validation Method | Impact if Invalid |
-|----|------------|-------------------|-------------------|
-| A-001 | Node.js runtime available | `node --version` | Server cannot start |
-| A-002 | Port 3000 available | `lsof -i :3000` | Binding fails with `EADDRINUSE` |
-| A-003 | Backprop tool compatible with Node.js | Integration testing | Integration fails |
-| A-004 | Repository unchanged during testing | Version control status | Inconsistent test results |
-| A-005 | Single-user test execution model | Process monitoring | Concurrent access undefined |
-
-### 9.2.6 Node.js Module Reference
-
-#### 9.2.6.1 Built-in Module Usage
-
-| Module | Type | Import Syntax | Usage |
-|--------|------|---------------|-------|
-| `http` | Core (built-in) | `const http = require('http');` | HTTP server creation and management |
-
-#### 9.2.6.2 Module API Methods Used
-
-| Method | Purpose | Parameters | Return Value |
-|--------|---------|------------|--------------|
-| `http.createServer()` | Create HTTP server instance | Callback function `(req, res)` | `http.Server` object |
-| `server.listen()` | Bind server to port and hostname | `port`, `hostname`, callback | void |
-| `res.statusCode` | Set HTTP status code | Integer (e.g., 200) | Assignment |
-| `res.setHeader()` | Set response header | Header name, value | void |
-| `res.end()` | Send response and end connection | Response body string | void |
-
-### 9.2.7 Excluded Feature Reference
-
-The following features are explicitly excluded from this system by design:
-
-```mermaid
-flowchart TB
-    subgraph ExcludedByDesign["Features Excluded by Design"]
-        direction TB
-        
-        subgraph SecurityFeatures["Security Features"]
-            Auth["Authentication"]
-            Authz["Authorization"]
-            TLS["HTTPS/TLS Encryption"]
-            Session["Session Management"]
-        end
-        
-        subgraph InfraFeatures["Infrastructure Features"]
-            Cloud["Cloud Deployment"]
-            Container["Containerization"]
-            Orch["Orchestration"]
-            CICD["CI/CD Pipelines"]
-        end
-        
-        subgraph DataFeatures["Data Features"]
-            DB["Database Connectivity"]
-            Cache["Caching Layer"]
-            Queue["Message Queues"]
-        end
-        
-        subgraph RuntimeFeatures["Runtime Features"]
-            Routing["Request Routing"]
-            Middleware["Middleware Stack"]
-            ErrorHandler["Custom Error Handling"]
-            Logging["Structured Logging"]
-        end
-    end
-    
-    Constraint["Architectural Constraints<br/>C-001 through C-005"]
-    Purpose["Test Project Purpose"]
-    
-    Constraint --> ExcludedByDesign
-    Purpose --> ExcludedByDesign
-```
-
----
-
-## 9.3 Glossary
-
-### 9.3.1 Core Project Terminology
+This glossary defines the domain and technical terms as they are used in this document. Each definition is grounded in the observed behavior of the current Express 5 implementation. Acronyms and initialisms are expanded separately in Section 9.3.
 
 | Term | Definition |
 |------|------------|
-| **Backprop** | A code analysis, refactoring, or AI-assisted development tool being tested through this project. The primary integration target for this test harness. |
-| **Test Harness** | The controlled environment (this project) used for integration testing with the Backprop tool. Provides a minimal, predictable codebase for analysis validation. |
-| **Placeholder File** | Files present in the repository but not functionally implemented. Examples include `LoginTest.java`, `test.py.txt`, and `test.txt.txt`. Reserved for potential future multi-language testing. |
-| **Zero-dependency Architecture** | Architectural approach using only Node.js built-in modules with no external npm packages. Eliminates supply chain risk and ensures test predictability. |
+| Backward compatibility | The property that a change preserves prior observable behavior. The re-platform onto Express preserved the `GET /` body byte-for-byte (`Hello, World!\n`), so existing callers see no difference (Requirement R3, Constraint C-007). |
+| Byte-exact response | A response body that matches a target down to the individual byte, including whitespace and any trailing newline. `GET /` is 14 bytes (with one trailing newline); `GET /good-evening` is 12 bytes (no trailing newline). |
+| Caret range (`^`) | An npm semantic-version range that permits updates which do not change the left-most non-zero version component. `^5.2.1` allows any `5.x` at or above `5.2.1` but excludes `6.0.0`. |
+| CommonJS | The Node.js module system that loads dependencies with `require()` and exposes them with `module.exports`. `server.js` uses `require('express')` and intentionally exports nothing (it is self-starting). |
+| Event loop | Node.js's single-threaded concurrency mechanism for processing I/O callbacks. The service runs on one event loop with no clustering or worker threads. |
+| Fail-fast startup | A startup discipline that surfaces a bind failure immediately and exits non-zero rather than continuing in a broken state. Implemented via the `server.listening` success guard and a `server.on('error')` handler that sets `process.exitCode = 1` (ADR-05, Feature F-005). |
+| `finalhandler` | The Express component that produces the terminal response — including the default `404` HTML page carrying `Content-Security-Policy: default-src 'none'` — when no route matches. |
+| Health check | An endpoint or probe used to determine service liveness. None is implemented; process up/down and the two routes serve as manual liveness checks (Section 6.5). |
+| Information disclosure | Unintentional exposure of implementation details to clients. Mitigated here by disabling the `X-Powered-By` header (CWE-200, ADR-06). |
+| Keep-alive | The HTTP/1.1 persistent-connection mechanism that reuses one TCP connection across requests. Responses carry `Connection: keep-alive` and `Keep-Alive: timeout=5` (the Node.js default). |
+| Lockfile | `package-lock.json`, which records the exact resolved dependency graph (versions, integrity hashes) for reproducible installs. This project uses `lockfileVersion: 3` (Constraint C-002). |
+| Loopback interface | The host-internal network interface at `127.0.0.1`, unreachable from other hosts. The server binds here exclusively, making the loopback boundary the trust boundary (Constraint C-003). |
+| MIME sniffing | Client behavior that guesses a response's content type from its bytes. Suppressed by the `X-Content-Type-Options: nosniff` header set on both routes. |
+| Monolith (single-file) | An architecture in which the entire application resides in one deployable unit. All logic here is in the single file `server.js` (ADR-02). |
+| npm registry | The default public package registry (`registry.npmjs.org`) from which dependencies are downloaded at install time — the only external touchpoint, and only during `npm install`. |
+| Route / routing | The mapping of an HTTP method and path to a handler. Express registers `GET /` and `GET /good-evening`; all other requests receive the default `404`. |
+| Semantic versioning (SemVer) | The `MAJOR.MINOR.PATCH` versioning convention that npm ranges operate on. Express is pinned with the SemVer caret range `^5.2.1`. |
+| Stateless | A design in which no request-derived state persists between requests. Both handlers return fixed string literals; there is no database, cache, or session (ADR-04). |
+| Static asset | A repository file that is neither served nor read at runtime. `industry.csv` is a static asset (Feature F-007). |
+| Stub / placeholder artifact | A non-functional file retained for scaffolding. `LoginTest.java` (non-compiling) and the empty `test.py.txt` / `test.txt.txt` are placeholder artifacts (Feature F-008). |
+| Supply chain | The full set of upstream packages a project depends on — here Express plus 67 transitive packages, validated by a clean `npm audit` (0 vulnerabilities) and a committed lockfile. |
+| Transitive dependency | A package installed not directly but because a direct dependency requires it. The project has one direct dependency (Express) and 67 transitive packages. |
+| Trailing newline | A line-feed (`\n`) at the end of a body. Present in `GET /` and absent in `GET /good-evening`. |
+| Trust boundary | The line separating trusted from untrusted actors. Because the service binds only to `127.0.0.1`, the loopback interface itself is the trust boundary; there is no authentication or TLS (Constraint C-003, ADR-07). |
+| Weak ETag | An HTTP entity validator (prefixed `W/`) denoting semantic rather than byte-for-byte equivalence, used for conditional requests. Express derives it automatically from the response body. |
+| Zero-configuration | Operation without external configuration input. Host and port are hardcoded constants and no environment variables are read (Constraint C-004). |
 
-### 9.3.2 Architectural Terminology
+## 9.3 Acronyms
 
-| Term | Definition |
-|------|------------|
-| **Minimal Monolith** | Deliberately constrained single-component architecture used by this project. Consolidates all functionality within a single entry point while eliminating external dependencies. |
-| **Stateless Architecture** | Design pattern where no session data or state persists between requests. Each HTTP request is independent and self-contained. Implemented by this project. |
-| **Localhost Binding** | Network configuration restricting server to accept connections only from the local machine (127.0.0.1). Provides network isolation without firewall configuration. |
-| **Single-file Implementation** | Architecture where the complete functional system is contained within a single source code file (`server.js` in this project). |
+The following acronyms and initialisms appear in this document. Expansions reflect the meaning intended in this specification; where a term is domain-specific or could be ambiguous, the relevant context is noted parenthetically. Several of the compliance acronyms (for example GDPR, HIPAA, PCI-DSS) appear only where Section 6.4 records that the associated regime is *not applicable* to this loopback-only, data-free service.
 
-### 9.3.3 Node.js and JavaScript Terminology
+| Acronym | Expanded Form |
+|---------|---------------|
+| AAP | Agent Action Plan (the primary delivery directive; `blitzy/documentation/Project Guide.md`) |
+| ADR | Architecture Decision Record (Section 5.3.4) |
+| API | Application Programming Interface |
+| APM | Application Performance Monitoring |
+| BSD | Berkeley Software Distribution (as in the BSD-3-Clause license) |
+| CCPA | California Consumer Privacy Act |
+| CI/CD | Continuous Integration / Continuous Delivery (or Deployment) |
+| CPU | Central Processing Unit |
+| CSP | Content Security Policy |
+| CSV | Comma-Separated Values (as in `industry.csv`) |
+| CWE | Common Weakness Enumeration (as in CWE-200, information disclosure) |
+| DR | Disaster Recovery |
+| EADDRINUSE | Error, Address In Use (Node.js/POSIX error code emitted when port 3000 is already bound) |
+| ERD | Entity-Relationship Diagram |
+| GDPR | General Data Protection Regulation |
+| HA | High Availability |
+| HIPAA | Health Insurance Portability and Accountability Act |
+| HTML | HyperText Markup Language (the default 404 error body) |
+| HTTP | HyperText Transfer Protocol |
+| HTTPS | HyperText Transfer Protocol Secure |
+| IaC | Infrastructure as Code |
+| IdP | Identity Provider |
+| IP | Internet Protocol |
+| IPC | Inter-Process Communication |
+| ISC | Internet Systems Consortium (as in the ISC license) |
+| JSON | JavaScript Object Notation |
+| JWT | JSON Web Token |
+| KPI | Key Performance Indicator |
+| LF | Line Feed (the `\n` trailing-newline character) |
+| MFA | Multi-Factor Authentication |
+| MIME | Multipurpose Internet Mail Extensions (the content-type family the `nosniff` header protects) |
+| MIT | Massachusetts Institute of Technology (as in the MIT license) |
+| npm | Node Package Manager (the Node.js package manager and registry client) |
+| OSS | Open-Source Software |
+| OTel | OpenTelemetry |
+| PCI-DSS | Payment Card Industry Data Security Standard |
+| PEP | Policy Enforcement Point (Section 6.4 authorization analysis) |
+| PHI | Protected Health Information |
+| PID | Process Identifier |
+| PR | Pull Request |
+| QA | Quality Assurance |
+| RAM | Random-Access Memory |
+| RBAC | Role-Based Access Control |
+| RPC | Remote Procedure Call |
+| RSS | Resident Set Size (measured process memory) |
+| SDK | Software Development Kit |
+| SemVer | Semantic Versioning |
+| SHA | Secure Hash Algorithm (as in the SHA-512 lockfile integrity hashes) |
+| SLA | Service-Level Agreement |
+| SOC 2 | System and Organization Controls 2 |
+| TCP | Transmission Control Protocol |
+| TLS | Transport Layer Security |
+| UI | User Interface |
+| URL | Uniform Resource Locator |
+| vCPU | Virtual Central Processing Unit |
+| VCS | Version Control System (Git) |
+| VSZ | Virtual Size (process virtual memory) |
 
-| Term | Definition |
-|------|------------|
-| **CommonJS** | JavaScript module system using `require()` and `module.exports` syntax. The module format used by this project for importing the `http` module. |
-| **ES6 (ECMAScript 2015)** | JavaScript specification version introducing `const`, `let`, arrow functions, and other features. The syntax level used in `server.js`. |
-| **Event Loop** | Node.js mechanism for handling asynchronous operations in a single-threaded environment. Processes I/O operations non-blocking. |
-| **Built-in Module** | Node.js core module that ships with the runtime and requires no external installation. The `http` module is an example. |
-| **lockfileVersion** | Version identifier in `package-lock.json` indicating npm compatibility. Version 3 indicates npm v7+ compatibility. |
+## 9.4 References
 
-### 9.3.4 HTTP and Networking Terminology
+The following repository files, folders, and technical-specification sections were examined as evidence for this appendix. All facts were verified first-hand against the repository checkout and by executing the server on Node.js v22.23.1; no external web sources were used.
 
-| Term | Definition |
-|------|------------|
-| **HTTP Server** | Software component that listens for HTTP requests and sends HTTP responses. Created using `http.createServer()` in this project. |
-| **Request Handler** | Callback function invoked when the server receives an HTTP request. Processes the request and generates a response. |
-| **Status Code** | Three-digit number indicating HTTP response status. This project returns 200 (OK) for all requests. |
-| **Content-Type Header** | HTTP header specifying the media type of the response body. Set to `text/plain` in this project. |
+**Repository files examined**
 
-### 9.3.5 Security Terminology
+- `server.js` — established the entry point, both route handlers, header hardening (`x-powered-by` disabled, `nosniff`), hardcoded `127.0.0.1:3000` bind, and the fail-fast `listen` error handling reflected in the wire and identifier references.
+- `package.json` — established the package identity (`hello_world` 1.0.0), the `main: index.js` discrepancy, the `start`/`test` scripts, the single `express ^5.2.1` dependency, author, and MIT license.
+- `package-lock.json` — established `lockfileVersion: 3`, the 68-entry graph (root + 67 packages), SHA-512 integrity, and the 62 MIT / 4 ISC / 1 BSD-3-Clause license composition.
+- `README.md` — established the Node.js 18+ requirement, install/run commands, the endpoint table, and the trailing-newline distinction used in the wire reference.
+- `.gitignore` — established that `node_modules/` is git-ignored (installed on demand).
+- `industry.csv` — established the static-asset inventory entry (1 header + 43 category rows; not read at runtime).
+- `LoginTest.java`, `test.py.txt`, `test.txt.txt`, `100Pages.pdf`, `demo.jpg`, `sample.doc` — established the non-runtime placeholder/fixture artifact rows and their measured sizes in the artifact inventory.
+- `node_modules/express/package.json` — established the resolved Express version 5.2.1, its `engines.node: ">= 18"`, and MIT license.
+- `blitzy/documentation/Project Guide.md` — established the AAP (Agent Action Plan) expansion (its own acronym entry) and the R#/H#/C# and risk-register (S/O/I/T) identifier schemes.
+- `blitzy/documentation/Technical Specifications.md` — identified as the superseded native-`http` baseline that the current Express implementation overrides (documentation caveat).
 
-| Term | Definition |
-|------|------------|
-| **Supply Chain Risk** | Security vulnerabilities introduced through third-party dependencies. Eliminated in this project through zero-dependency design. |
-| **Network Isolation** | Security practice of restricting network access to prevent unauthorized connections. Achieved through localhost-only binding (127.0.0.1). |
-| **Attack Surface** | Total sum of vulnerabilities that can be exploited in a system. Minimized in this project through static responses and no input processing. |
-| **Injection Attack** | Security exploit where malicious code is inserted into a system. Not applicable to this project due to static response content. |
+**Folders examined**
 
-### 9.3.6 Deployment and Infrastructure Terminology
+- `` (repository root) — established the complete top-level file inventory.
+- `blitzy/documentation/` — established the two documentation artifacts (delivery guide and superseded baseline).
+- `node_modules/` — established the installed dependency footprint (~4.3 MB, 65 top-level packages).
 
-| Term | Definition |
-|------|------------|
-| **Blue-Green Deployment** | Deployment strategy using two identical production environments for zero-downtime releases. Not applicable to this project. |
-| **Canary Deployment** | Deployment strategy releasing changes to a small subset of users before full rollout. Not applicable to this project. |
-| **Containerization** | Packaging applications with their dependencies in isolated containers for consistent deployment. Not used in this project. |
-| **CI/CD Pipeline** | Continuous Integration/Continuous Deployment automation for building, testing, and deploying software. Not configured for this project. |
-| **Orchestration** | Automated management of container deployment, scaling, and networking. Not applicable to this project. |
+**Technical-specification sections cross-referenced**
 
-### 9.3.7 Resilience and Reliability Terminology
+- `2.1 Feature Catalog` and `2.2 Functional Requirements` — feature identifiers (F-001–F-008) and functional-requirement identifiers (F-XXX-RQ-YYY) used in the identifier index and artifact inventory.
+- `2.5 Traceability Matrix` — feature-to-requirement traceability referenced by the identifier index.
+- `2.6 Assumptions and Constraints` — assumptions (A-001–A-006), constraints (C-001–C-007), the AAP `C1`/`C2` mapping, and the commit-to-requirement provenance (2.6.3) referenced rather than duplicated.
+- `3.6 Development and Deployment` — the absence of build/CI/CD tooling behind the operations command reference.
+- `4.2 Detailed Process Flows by Feature` and `4.5 Error Handling and Recovery Flows` — the request and startup/error behaviors underlying the wire reference.
+- `5.3 Technical Decisions` — the Architecture Decision Records (ADR-01–ADR-07).
+- `5.4 Cross-Cutting Concerns` — the no-SLA, keep-alive, and observability posture referenced by the wire and command references.
+- `6.4 Security Architecture` — the PEP concept and the compliance regimes (GDPR, HIPAA, PCI-DSS, SOC 2, CCPA) marked not applicable, cited in the glossary and acronyms.
+- `6.5 Monitoring and Observability` — the health-check and monitoring posture cited in the glossary.
+- `6.6 Testing Strategy` — the manual validation reproduced in the operations command reference.
+- `8. Infrastructure` (and its cost/footprint sub-sections) — the measured resource footprint referenced in the version and command references.
 
-| Term | Definition |
-|------|------------|
-| **Circuit Breaker** | Resilience pattern preventing repeated calls to failing services. Not implemented in this project. |
-| **Bulkhead Pattern** | Fault isolation design preventing failures from cascading across system components. Not implemented. |
-| **Recovery Time Objective (RTO)** | Target duration for restoring service after a failure. For this project, RTO is under 1 second (simple restart). |
-| **Horizontal Scaling** | Adding more server instances to handle increased load. Not supported due to localhost binding constraint. |
-| **Vertical Scaling** | Adding resources (CPU, memory) to existing servers. Limited to Node.js defaults for this project. |
-
-### 9.3.8 Testing and Quality Terminology
-
-| Term | Definition |
-|------|------------|
-| **Deterministic Behavior** | System behavior that produces identical outputs given identical inputs. A core principle of this test harness. |
-| **Reproducibility** | Ability to recreate identical test conditions and results across executions. Ensured through hardcoded configuration. |
-| **Integration Testing** | Testing that verifies interactions between system components or external tools. The primary purpose of this project with Backprop. |
-
----
-
-## 9.4 Acronyms
-
-### 9.4.1 Technology Acronyms
-
-| Acronym | Expansion | Context of Use |
-|---------|-----------|----------------|
-| **API** | Application Programming Interface | General; this project exposes a basic HTTP endpoint |
-| **CDN** | Content Delivery Network | Infrastructure (not applicable to this project) |
-| **CLI** | Command-Line Interface | Method of executing `node server.js` |
-| **CPU** | Central Processing Unit | Performance and resource discussions |
-| **CSV** | Comma-Separated Values | Format of `industry.csv` data file |
-| **DNS** | Domain Name System | Networking (not applicable; localhost only) |
-| **ES6** | ECMAScript 2015 | JavaScript specification version used |
-| **HTTP** | Hypertext Transfer Protocol | Primary protocol used by the server |
-| **HTTPS** | HTTP Secure (over TLS) | Encrypted HTTP (not implemented) |
-| **I/O** | Input/Output | File system and network operations |
-| **JSON** | JavaScript Object Notation | Format of `package.json` and `package-lock.json` |
-| **JWT** | JSON Web Token | Authentication token format (not implemented) |
-| **NPM** | Node Package Manager | Package management ecosystem |
-| **OS** | Operating System | Deployment and process context |
-| **REST** | Representational State Transfer | API architectural style (not formally implemented) |
-| **SSL** | Secure Sockets Layer | Deprecated encryption protocol (not implemented) |
-| **TCP** | Transmission Control Protocol | Network layer underlying HTTP |
-| **TLS** | Transport Layer Security | Encryption protocol (not implemented) |
-| **UI** | User Interface | Visual interface (not applicable) |
-| **URL** | Uniform Resource Locator | Server address format in startup log |
-
-### 9.4.2 DevOps and Infrastructure Acronyms
-
-| Acronym | Expansion | Context of Use |
-|---------|-----------|----------------|
-| **CI/CD** | Continuous Integration/Continuous Deployment | Pipeline automation (not configured) |
-| **K8s** | Kubernetes | Container orchestration (not applicable) |
-| **VM** | Virtual Machine | Virtualization (not required) |
-
-### 9.4.3 Security and Compliance Acronyms
-
-| Acronym | Expansion | Context of Use |
-|---------|-----------|----------------|
-| **GDPR** | General Data Protection Regulation | EU data privacy law (not applicable) |
-| **gRPC** | Google Remote Procedure Call | Service communication (not applicable) |
-| **HIPAA** | Health Insurance Portability and Accountability Act | Health data regulation (not applicable) |
-| **LDAP** | Lightweight Directory Access Protocol | Directory services (not applicable) |
-| **MFA** | Multi-Factor Authentication | Security feature (not implemented) |
-| **OAuth** | Open Authorization | Authorization protocol (not implemented) |
-| **OTP** | One-Time Password | Authentication method (not applicable) |
-| **OWASP** | Open Web Application Security Project | Security standards organization |
-| **PCI-DSS** | Payment Card Industry Data Security Standard | Payment data security (not applicable) |
-| **PHI** | Protected Health Information | Health data category (not applicable) |
-| **PII** | Personally Identifiable Information | Data privacy category (not applicable) |
-| **RBAC** | Role-Based Access Control | Authorization model (not implemented) |
-| **SOC 2** | Service Organization Control 2 | Compliance framework (not applicable) |
-| **SOX** | Sarbanes-Oxley Act | Financial compliance (not applicable) |
-| **SQLi** | SQL Injection | Attack type (not applicable; no SQL) |
-| **XSS** | Cross-Site Scripting | Attack type (mitigated by static response) |
-
-### 9.4.4 Performance and Operations Acronyms
-
-| Acronym | Expansion | Context of Use |
-|---------|-----------|----------------|
-| **KPI** | Key Performance Indicator | Metrics such as startup time, response latency |
-| **RTO** | Recovery Time Objective | Disaster recovery target time |
-| **SLA** | Service Level Agreement | Service commitments (none defined for test project) |
-
-### 9.4.5 Project-Specific Identifiers
-
-| Identifier | Meaning | Context |
-|------------|---------|---------|
-| **C-001** through **C-005** | Constraint identifiers | Documented architectural constraints |
-| **A-001** through **A-005** | Assumption identifiers | Documented system assumptions |
-| **MIT** | Massachusetts Institute of Technology | License type for this project |
-| **N/A** | Not Applicable | Indicates inapplicable features |
-
----
-
-## 9.5 Quick Reference Cards
-
-### 9.5.1 Server Startup Quick Reference
-
-```
-┌─────────────────────────────────────────────────────────┐
-│              SERVER STARTUP QUICK REFERENCE             │
-├─────────────────────────────────────────────────────────┤
-│  Command:        node server.js                         │
-│  Working Dir:    Repository root                        │
-│  Prerequisites:  Node.js v20.19.6+ installed            │
-├─────────────────────────────────────────────────────────┤
-│  Success Output: Server running at http://127.0.0.1:3000/│
-│  Access URL:     http://localhost:3000                  │
-│  Stop Command:   Ctrl+C                                 │
-├─────────────────────────────────────────────────────────┤
-│  Expected Response:                                     │
-│    Status:       200 OK                                 │
-│    Content-Type: text/plain                             │
-│    Body:         Hello, World!                          │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 9.5.2 Troubleshooting Quick Reference
-
-| Symptom | Likely Cause | Solution |
-|---------|--------------|----------|
-| `EADDRINUSE` error | Port 3000 in use | Kill process on port 3000, restart |
-| `EACCES` error | Permission denied | Run with appropriate privileges |
-| `MODULE_NOT_FOUND` | Node.js issue | Reinstall Node.js |
-| No startup message | Server not started | Execute `node server.js` |
-| Connection refused | Server not running | Start server first |
-
-### 9.5.3 File Purpose Quick Reference
-
-| File | One-Line Purpose |
-|------|------------------|
-| `server.js` | Main HTTP server (run this) |
-| `package.json` | NPM package metadata |
-| `package-lock.json` | Dependency version lock |
-| `README.md` | Project identity and warning |
-| `industry.csv` | Static test data (44 industries) |
-| `LoginTest.java` | Java placeholder (non-functional) |
-| `test.py.txt` | Python placeholder (empty) |
-| `test.txt.txt` | Text placeholder (empty) |
-
----
-
-## 9.6 Version Compatibility Matrix
-
-### 9.6.1 Runtime Compatibility
-
-| Component | Minimum Version | Recommended Version | Maximum Tested |
-|-----------|-----------------|---------------------|----------------|
-| Node.js | Not specified | v20.19.6 | Not specified |
-| npm | v7+ | v7+ (for lockfileVersion 3) | Not specified |
-
-### 9.6.2 Module Compatibility
-
-| Module | Type | Compatibility |
-|--------|------|---------------|
-| `http` | Built-in | All Node.js versions |
-
----
-
-## 9.7 Document Cross-Reference Index
-
-### 9.7.1 Constraint References
-
-| Constraint ID | Primary Documentation | Related Sections |
-|---------------|----------------------|------------------|
-| C-001 | Section 2.6.2 | 5.5, 6.4.5, 8.1.3 |
-| C-002 | Section 2.6.2 | 3.4, 6.4.6.2, 8.1.3 |
-| C-003 | Section 2.6.2 | 5.5, 6.4.6.4, 8.1.3 |
-| C-004 | Section 2.6.2 | 5.5, 6.4.6.3, 8.1.3 |
-| C-005 | Section 2.6.2 | 5.5, 8.1.3 |
-
-### 9.7.2 Assumption References
-
-| Assumption ID | Primary Documentation | Related Sections |
-|---------------|----------------------|------------------|
-| A-001 | Section 2.6.1 | 3.2, 4.5 |
-| A-002 | Section 2.6.1 | 4.5, 5.4 |
-| A-003 | Section 2.6.1 | 1.1, 1.2 |
-| A-004 | Section 2.6.1 | 6.6 |
-| A-005 | Section 2.6.1 | 6.4.1 |
-
----
-
-## 9.8 References
-
-### 9.8.1 Repository Files Referenced
-
-| File Path | Relevance to Appendices |
-|-----------|------------------------|
-| `server.js` | Server configuration parameters, error handling behavior, HTTP response specification |
-| `package.json` | Package metadata, configuration discrepancy documentation, dependency confirmation |
-| `package-lock.json` | lockfileVersion compatibility, zero-dependency verification |
-| `README.md` | Project identity, repository immutability policy |
-| `industry.csv` | Static data reference, industry category enumeration |
-| `LoginTest.java` | Placeholder file documentation |
-| `test.py.txt` | Placeholder file documentation |
-| `test.txt.txt` | Placeholder file documentation |
-
-### 9.8.2 Technical Specification Sections Retrieved
-
-| Section | Information Used |
-|---------|-----------------|
-| 1.3 Scope | In-scope and out-of-scope feature definitions |
-| 1.4 Document Conventions | Existing terminology definitions, configuration discrepancy note |
-| 2.6 Assumptions and Constraints | Constraint and assumption ID definitions (C-001 to C-005, A-001 to A-005) |
-| 3.2 Programming Languages | JavaScript/Node.js specification, placeholder language documentation |
-| 3.4 Open Source Dependencies | Zero-dependency architecture confirmation |
-| Node.js `http` Module | Module capabilities, excluded library reference |
-| 4.5 Error Handling | Error codes, recovery procedures, error handling architecture |
-| 5.1 High-Level Architecture | Architectural terminology, system boundary definitions |
-| 5.4 Cross-Cutting Concerns | Observability, logging, error handling, SLA terminology |
-| 6.4 Security Architecture | Security terminology, compliance framework references, threat mitigation |
-| 8.1 Applicability Assessment | Infrastructure terminology, deployment strategy definitions |
-| 8.6 CI/CD Pipeline | CI/CD terminology, build system status |
-
----
-
-*End of Appendices*
