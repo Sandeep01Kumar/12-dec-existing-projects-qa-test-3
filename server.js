@@ -1,6 +1,6 @@
-const express = require('express');
+const express = require('express'); // Import the Express web framework (CommonJS require, per constraint C1)
 
-const app = express();
+const app = express(); // Instantiate the Express application instance that registers routes and listens
 
 // Disable Express's default `X-Powered-By: Express` response header so the
 // service does not advertise the underlying framework on any response
@@ -8,8 +8,8 @@ const app = express();
 // and changes no route behavior, response body, host, or port.
 app.disable('x-powered-by');
 
-const hostname = '127.0.0.1';
-const port = 3000;
+const hostname = '127.0.0.1'; // Loopback host the server binds to (unchanged from the original http server)
+const port = 3000; // TCP port the server listens on (unchanged from the original http server)
 
 // Root route — preserves the original greeting for backward compatibility (R3).
 // res.type('text/plain') is set explicitly so the Content-Type matches the
