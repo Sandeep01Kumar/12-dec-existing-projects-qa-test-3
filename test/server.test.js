@@ -11,7 +11,10 @@ const {                                                                    // SK
 } = require('./helpers/server');                                           // SK
 // SK
 before(async () => {                                                       // SK
-  await startServer();                                                     // SK
+  // Assert the readiness contract precisely: the server must emit its ready // SK
+  // line EXACTLY once. startServer() resolves with that observed count.     // SK
+  const started = await startServer();                                     // SK
+  assert.strictEqual(started.readyLineCount, 1);                           // SK
 });                                                                        // SK
 // SK
 after(async () => {                                                        // SK
@@ -54,7 +57,9 @@ describe('Routing & negative cases', () => {                               // SK
     const res = await fetch(`${BASE_URL}/nonexistent`);                    // SK
     const body = await res.text();                                         // SK
     assert.strictEqual(res.status, 404);                                   // SK
-    assert.ok(res.headers.get('content-type').startsWith('text/html'));    // SK
+    const contentType = res.headers.get('content-type');                   // SK
+    assert.notStrictEqual(contentType, null, 'content-type header must be present on the 404 response'); // SK
+    assert.ok(contentType.startsWith('text/html'), `expected a text/html content-type on 404, got: ${contentType}`); // SK
     assert.ok(body.length > 0);                                            // SK
   });                                                                      // SK
   it('POST / returns 404 (Express 5 method/route mismatch)', async () => { // SK
@@ -80,8 +85,13 @@ describe('Security headers', () => {                                       // SK
     await eveningRes.text();                                               // SK
     const missingRes = await fetch(`${BASE_URL}/nonexistent`);             // SK
     await missingRes.text();                                               // SK
+    // Include the POST / method-mismatch (Express 5 -> 404) response so     // SK
+    // X-Powered-By suppression is verified on a non-GET path too.          // SK
+    const postRes = await fetch(`${BASE_URL}/`, { method: 'POST' });       // SK
+    await postRes.text();                                                   // SK
     assert.strictEqual(rootRes.headers.get('x-powered-by'), null);         // SK
     assert.strictEqual(eveningRes.headers.get('x-powered-by'), null);      // SK
     assert.strictEqual(missingRes.headers.get('x-powered-by'), null);      // SK
+    assert.strictEqual(postRes.headers.get('x-powered-by'), null);         // SK
   });                                                                      // SK
 });                                                                        // SK

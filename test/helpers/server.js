@@ -46,11 +46,13 @@ function appendCapture(buffer, chunk) {                                    // SK
   return (buffer + chunk.toString()).slice(0, MAX_CAPTURE_BYTES);          // SK
 }                                                                          // SK
 // SK
-// Deterministically terminate a specific child and resolve once it is gone.  // SK
-// Settles EXACTLY once across 'exit'/'close'/'error'; tolerates kill()       // SK
-// throwing or returning false (undelivered signal); escalates SIGTERM ->     // SK
-// SIGKILL after a grace window; and rejects with context on a hard deadline  // SK
-// so teardown can never hang indefinitely. Always removes its listeners.     // SK
+// Deterministically terminate a specific child and RESOLVE only once it has  // SK
+// actually exited ('exit'/'close'). Tolerates kill() throwing or returning   // SK
+// false (undelivered signal) and a child 'error' event WITHOUT prematurely   // SK
+// resolving or rejecting a still-live child; escalates SIGTERM -> SIGKILL     // SK
+// after a grace window; and REJECTS only on a hard deadline with the child    // SK
+// still alive, so teardown never hangs yet never falsely reports a live       // SK
+// child as gone. Always clears its listeners and timers before settling.      // SK
 function terminateChild(target) {                                          // SK
   return new Promise((resolve, reject) => {                                // SK
     if (!target || target.exitCode !== null || target.signalCode !== null) { // SK
@@ -60,6 +62,12 @@ function terminateChild(target) {                                          // SK
     let finished = false;                                                  // SK
     let graceTimer = null;                                                 // SK
     let hardTimer = null;                                                  // SK
+    // Non-fatal errors seen while the child is still alive (a kill() throw   // SK
+    // or a child 'error' event) are RECORDED here rather than used to        // SK
+    // settle: an error does not prove the process exited, so settling on it  // SK
+    // would wrongly report a still-live child as terminated. It is surfaced  // SK
+    // only if the hard deadline is ultimately reached.                       // SK
+    let lastError = null;                                                  // SK
     function settle(err) {                                                 // SK
       if (finished) {                                                      // SK
         return;                                                            // SK
@@ -80,19 +88,26 @@ function terminateChild(target) {                                          // SK
         resolve();                                                         // SK
       }                                                                    // SK
     }                                                                      // SK
+    // Success path: settle (resolve) ONLY when the child has actually       // SK
+    // exited. This is the core F3 guarantee — callers release ownership      // SK
+    // exclusively after a CONFIRMED exit, never on a mere signal send.       // SK
     function onDone() {                                                    // SK
       settle();                                                            // SK
     }                                                                      // SK
+    // A child 'error' event does not imply the process is gone: record it   // SK
+    // for diagnostics and keep waiting/escalating rather than settling.     // SK
     function onError(err) {                                                // SK
-      settle(err);                                                         // SK
+      lastError = err;                                                     // SK
     }                                                                      // SK
     target.once('exit', onDone);                                           // SK
     target.once('close', onDone);                                          // SK
-    target.once('error', onError);                                         // SK
-    // Hard deadline: guarantees settlement even if every signal is ignored, // SK
-    // converting a would-be hang into an actionable rejection.              // SK
+    target.on('error', onError);                                           // SK
+    // Hard deadline: the ONLY rejection path. Reached only when the child   // SK
+    // is STILL alive after the full SIGTERM -> SIGKILL escalation, i.e. a    // SK
+    // genuinely un-killable process; it surfaces any recorded lastError.    // SK
     hardTimer = setTimeout(function onHardDeadline() {                     // SK
-      settle(new Error('Server did not terminate within ' + (STOP_TIMEOUT_MS * 2) + 'ms')); // SK
+      const base = 'Server did not terminate within ' + (STOP_TIMEOUT_MS * 2) + 'ms'; // SK
+      settle(new Error(lastError ? base + ': ' + lastError.message : base)); // SK
     }, STOP_TIMEOUT_MS * 2);                                               // SK
     try {                                                                  // SK
       const delivered = target.kill('SIGTERM');                           // SK
@@ -100,8 +115,10 @@ function terminateChild(target) {                                          // SK
         target.kill('SIGKILL');                                           // SK
       }                                                                    // SK
     } catch (err) {                                                        // SK
-      settle(err);                                                         // SK
-      return;                                                              // SK
+      // Do NOT settle: the child may still be alive. Record the error and   // SK
+      // fall through so the grace timer can escalate and the hard deadline  // SK
+      // stays the sole rejection path.                                     // SK
+      lastError = err;                                                     // SK
     }                                                                      // SK
     // Bounded graceful window: escalate to SIGKILL if the child ignores     // SK
     // SIGTERM and is still alive when the grace timer fires.                // SK
@@ -112,7 +129,8 @@ function terminateChild(target) {                                          // SK
       try {                                                                // SK
         target.kill('SIGKILL');                                           // SK
       } catch (err) {                                                      // SK
-        settle(err);                                                       // SK
+        // Record-only again; the hard deadline remains the sole rejection. // SK
+        lastError = err;                                                   // SK
       }                                                                    // SK
     }, STOP_TIMEOUT_MS);                                                   // SK
   });                                                                      // SK
@@ -138,6 +156,14 @@ function startServer() {                                                   // SK
     let stderrBuffer = '';                                                 // SK
     let settled = false;                                                   // SK
     let timer = null;                                                      // SK
+    // Readiness is gated on parsing COMPLETE, newline-delimited stdout lines // SK
+    // and matching the ready text EXACTLY (not a loose substring), so a      // SK
+    // prefixed or partial write can never be mistaken for readiness.        // SK
+    // `pendingLine` accumulates the not-yet-terminated tail; readyLineCount  // SK
+    // counts exact matches and is surfaced to the caller for an exact-once   // SK
+    // assertion.                                                             // SK
+    let pendingLine = '';                                                  // SK
+    let readyLineCount = 0;                                                // SK
     // Compose bounded, actionable diagnostics (e.g. the EADDRINUSE line the  // SK
     // unchanged server.js writes to stderr) to append to failure messages.  // SK
     function diagnostics() {                                               // SK
@@ -171,6 +197,11 @@ function startServer() {                                                   // SK
       }                                                                    // SK
       state = 'idle';                                                      // SK
     }                                                                      // SK
+    // Resolve with the spawned child AND the observed readyLineCount so the  // SK
+    // suite can assert the ready line appeared EXACTLY once. The module's    // SK
+    // public export list is unchanged (still five names); only startServer's // SK
+    // resolved value shape carries this metadata, and nothing internal       // SK
+    // depends on it.                                                         // SK
     function succeed() {                                                   // SK
       if (settled) {                                                       // SK
         return;                                                            // SK
@@ -178,11 +209,14 @@ function startServer() {                                                   // SK
       settled = true;                                                      // SK
       detach();                                                            // SK
       state = 'running';                                                   // SK
-      resolve(spawnedChild);                                               // SK
+      resolve({ child: spawnedChild, readyLineCount });                    // SK
     }                                                                      // SK
-    // Terminate the owned child BEFORE rejecting, then clear ownership       // SK
-    // regardless of cleanup outcome, so a failed startup never orphans a     // SK
-    // process or holds port 3000.                                           // SK
+    // Terminate the owned child BEFORE rejecting. On a CONFIRMED exit,       // SK
+    // release ownership and return to 'idle'. If cleanup could NOT confirm   // SK
+    // the child exited, RETAIN ownership and leave the module non-idle       // SK
+    // ('stopping') so a later stopServer() can retry termination and a       // SK
+    // concurrent startServer() is refused — never orphaning a live process   // SK
+    // that still holds port 3000. Both failures are surfaced together.      // SK
     function fail(err) {                                                   // SK
       if (settled) {                                                       // SK
         return;                                                            // SK
@@ -192,14 +226,41 @@ function startServer() {                                                   // SK
       terminateChild(spawnedChild).then(function afterCleanup() {          // SK
         clearOwnership();                                                  // SK
         reject(err);                                                       // SK
-      }, function afterCleanupError() {                                    // SK
-        clearOwnership();                                                  // SK
-        reject(err);                                                       // SK
+      }, function afterCleanupError(cleanupErr) {                          // SK
+        // Cleanup failed with the child still alive: keep child ===         // SK
+        // spawnedChild (do NOT clearOwnership) and mark 'stopping' so the    // SK
+        // single-owner guard still blocks a new start and stopServer() can   // SK
+        // retry termination later.                                          // SK
+        state = 'stopping';                                                // SK
+        reject(new AggregateError([err, cleanupErr], 'Startup failed and cleanup could not confirm the server exited')); // SK
       });                                                                  // SK
     }                                                                      // SK
     function onStdout(chunk) {                                             // SK
       stdoutBuffer = appendCapture(stdoutBuffer, chunk);                   // SK
-      if (!settled && stdoutBuffer.includes(READY_LINE)) {                 // SK
+      // Assemble COMPLETE lines from the raw stream: append the chunk, then  // SK
+      // consume each newline-terminated line, tolerating Windows CRLF by     // SK
+      // stripping a trailing '\r'. Only a line EXACTLY equal to READY_LINE   // SK
+      // counts toward readiness, so a substring or prefixed write cannot     // SK
+      // spoof the ready signal.                                             // SK
+      pendingLine += chunk.toString();                                     // SK
+      let newlineIndex = pendingLine.indexOf('\n');                        // SK
+      while (newlineIndex !== -1) {                                         // SK
+        let line = pendingLine.slice(0, newlineIndex);                     // SK
+        pendingLine = pendingLine.slice(newlineIndex + 1);                 // SK
+        if (line.endsWith('\r')) {                                         // SK
+          line = line.slice(0, -1);                                        // SK
+        }                                                                  // SK
+        if (line === READY_LINE) {                                         // SK
+          readyLineCount += 1;                                             // SK
+        }                                                                  // SK
+        newlineIndex = pendingLine.indexOf('\n');                          // SK
+      }                                                                    // SK
+      // Bound the unterminated tail so a newline-less flood cannot grow it   // SK
+      // without limit; keep only the most recent MAX_CAPTURE_BYTES chars.    // SK
+      if (pendingLine.length > MAX_CAPTURE_BYTES) {                         // SK
+        pendingLine = pendingLine.slice(-MAX_CAPTURE_BYTES);               // SK
+      }                                                                    // SK
+      if (!settled && readyLineCount >= 1) {                               // SK
         succeed();                                                         // SK
       }                                                                    // SK
     }                                                                      // SK
@@ -228,9 +289,11 @@ function startServer() {                                                   // SK
 // SK
 // Idempotent, bounded teardown of the owned child. Resolves immediately if   // SK
 // nothing is running (never started, or already exited); otherwise delegates // SK
-// to terminateChild for signal escalation and guaranteed settlement, and     // SK
-// clears ownership on BOTH success and failure (re-throwing any cleanup       // SK
-// error so callers can observe a teardown that could not complete).          // SK
+// to terminateChild for signal escalation. On a CONFIRMED exit it clears     // SK
+// ownership and returns to 'idle'. If termination could NOT confirm the      // SK
+// child exited, it RETAINS ownership and stays non-idle ('stopping') — so a  // SK
+// concurrent start is refused and a later stopServer() can retry — then      // SK
+// re-throws so the caller observes the incomplete teardown.                  // SK
 function stopServer() {                                                    // SK
   const target = child;                                                    // SK
   if (!target || target.exitCode !== null || target.signalCode !== null) { // SK
@@ -245,10 +308,11 @@ function stopServer() {                                                    // SK
     }                                                                      // SK
     state = 'idle';                                                        // SK
   }, function onStopFailed(err) {                                          // SK
-    if (child === target) {                                                // SK
-      child = null;                                                        // SK
-    }                                                                      // SK
-    state = 'idle';                                                        // SK
+    // Termination could not confirm the child exited: RETAIN ownership      // SK
+    // (leave child === target) and stay non-idle so the single-owner guard  // SK
+    // keeps blocking a new start and a subsequent stopServer() can retry     // SK
+    // the same process. Re-throw so the caller sees the incomplete teardown. // SK
+    state = 'stopping';                                                    // SK
     throw err;                                                             // SK
   });                                                                      // SK
 }                                                                          // SK
