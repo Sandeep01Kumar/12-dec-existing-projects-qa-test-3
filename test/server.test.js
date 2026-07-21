@@ -10,15 +10,26 @@ const {                                                                    // SK
   EXPECTED_EVENING_BODY,                                                   // SK
 } = require('./helpers/server');                                           // SK
 // SK
+// Holds the object returned by startServer() so both the before() startup // SK
+// assertion and the after() lifetime assertion can read the LIVE readiness// SK
+// count the helper exposes. Module scope lets both hooks share it.        // SK
+let started;                                                               // SK
+// SK
 before(async () => {                                                       // SK
-  // Assert the readiness contract precisely: the server must emit its ready // SK
-  // line EXACTLY once. startServer() resolves with that observed count.     // SK
-  const started = await startServer();                                     // SK
+  // Assert the readiness contract at STARTUP: by the time startup resolves// SK
+  // the server must have emitted its ready line EXACTLY once (this also   // SK
+  // catches a duplicate that arrives within the very first stdout chunk). // SK
+  started = await startServer();                                           // SK
   assert.strictEqual(started.readyLineCount, 1);                           // SK
 });                                                                        // SK
 // SK
 after(async () => {                                                        // SK
+  // Stop the owned child, then RE-ASSERT the exact-once contract over the // SK
+  // child's FULL lifetime. After teardown the helper has observed every   // SK
+  // stdout line the server wrote, so a delayed duplicate readiness line   // SK
+  // (emitted after startup resolved) is caught here, not silently missed. // SK
   await stopServer();                                                      // SK
+  assert.strictEqual(started.readyLineCount, 1);                           // SK
 });                                                                        // SK
 // SK
 describe('Root endpoint (GET /)', () => {                                  // SK

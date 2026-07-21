@@ -197,19 +197,40 @@ function startServer() {                                                   // SK
       }                                                                    // SK
       state = 'idle';                                                      // SK
     }                                                                      // SK
-    // Resolve with the spawned child AND the observed readyLineCount so the  // SK
-    // suite can assert the ready line appeared EXACTLY once. The module's    // SK
-    // public export list is unchanged (still five names); only startServer's // SK
-    // resolved value shape carries this metadata, and nothing internal       // SK
-    // depends on it.                                                         // SK
+    // Resolve with the spawned child AND a LIVE view of readyLineCount so // SK
+    // the suite can assert the ready line appeared EXACTLY once over the  // SK
+    // child's ENTIRE lifetime, not merely at the first match. It is       // SK
+    // exposed as a getter so a later read (after stopServer(), once all   // SK
+    // stdout has drained) still observes a duplicate readiness line that  // SK
+    // arrived AFTER startup resolved. The public export list is unchanged // SK
+    // (still five names); only startServer's resolved value shape carries // SK
+    // this metadata, and nothing internal depends on it.                  // SK
     function succeed() {                                                   // SK
       if (settled) {                                                       // SK
         return;                                                            // SK
       }                                                                    // SK
       settled = true;                                                      // SK
-      detach();                                                            // SK
+      // Startup SUCCEEDED: retire only the startup-failure guards         // SK
+      // (timeout, spawn 'error', premature 'close'), but KEEP the stdout  // SK
+      // line parser attached so a LATER duplicate readiness line is still // SK
+      // counted over the child's full lifetime. The parser and stderr     // SK
+      // capture are released once the child closes (onLifetimeClose).     // SK
+      if (timer) {                                                         // SK
+        clearTimeout(timer);                                               // SK
+      }                                                                    // SK
+      spawnedChild.removeListener('error', onError);                       // SK
+      spawnedChild.removeListener('close', onClose);                       // SK
+      spawnedChild.once('close', onLifetimeClose);                         // SK
       state = 'running';                                                   // SK
-      resolve({ child: spawnedChild, readyLineCount });                    // SK
+      resolve({ child: spawnedChild, get readyLineCount() { return readyLineCount; } }); // SK
+    }                                                                      // SK
+    // Lifetime cleanup: after a successful start this fires when the owned// SK
+    // child finally exits/closes, detaching the stdout/stderr data        // SK
+    // listeners so none outlives the process. It never settles the        // SK
+    // already-resolved start promise; it only releases the data listeners.// SK
+    function onLifetimeClose() {                                           // SK
+      spawnedChild.stdout.removeListener('data', onStdout);                // SK
+      spawnedChild.stderr.removeListener('data', onStderr);                // SK
     }                                                                      // SK
     // Terminate the owned child BEFORE rejecting. On a CONFIRMED exit,       // SK
     // release ownership and return to 'idle'. If cleanup could NOT confirm   // SK
