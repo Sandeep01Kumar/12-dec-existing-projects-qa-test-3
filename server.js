@@ -32,6 +32,17 @@ app.get('/good-evening', (req, res) => {
   res.set('X-Content-Type-Options', 'nosniff').type('text/plain').send('Good evening');
 });
 
+// New route (Refine PR): returns the plain-text 'Good morning' response. // SK
+// Mirrors the /good-evening handler — same X-Content-Type-Options: nosniff // SK
+// and explicit text/plain, and, like /good-evening, NO trailing newline, so // SK
+// the body is byte-for-byte 'Good morning' (12 bytes). text/plain is set // SK
+// explicitly because Express's res.send would otherwise default a string // SK
+// body to text/html. // SK
+app.get('/good-morning', (req, res) => { // SK
+  // nosniff on this 200 response as well (parity with the routes above). // SK
+  res.set('X-Content-Type-Options', 'nosniff').type('text/plain').send('Good morning'); // SK
+}); // SK
+
 // Start listening on the configured host/port. In Express 5 (Node's net
 // stack) the listen callback fires even when the underlying bind FAILS — for
 // example when the port is already in use: the callback runs with

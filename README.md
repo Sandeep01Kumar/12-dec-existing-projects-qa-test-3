@@ -24,16 +24,18 @@ The server listens at http://127.0.0.1:3000/.
 
 ## Endpoints
 
-Both endpoints respond with `Content-Type: text/plain`.
+All three endpoints respond with `Content-Type: text/plain`.
 
 | Method | Path            | Response        |
 |--------|-----------------|-----------------|
 | GET    | `/`             | `Hello, World!` |
 | GET    | `/good-evening` | `Good evening`  |
+| GET    | `/good-morning` | `Good morning`  |
 
-The exact response bodies differ only by a trailing newline: `GET /` returns `Hello, World!\n` (one trailing newline), while `GET /good-evening` returns `Good evening` (no trailing newline).
+The exact response bodies differ only by a trailing newline: `GET /` returns `Hello, World!\n` (one trailing newline), while `GET /good-evening` (`Good evening`) and `GET /good-morning` (`Good morning`) have no trailing newline.
 
 ```bash
 curl http://127.0.0.1:3000/
 curl http://127.0.0.1:3000/good-evening
+curl http://127.0.0.1:3000/good-morning
 ```

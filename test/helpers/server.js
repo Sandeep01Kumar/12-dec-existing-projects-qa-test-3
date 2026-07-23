@@ -23,6 +23,7 @@ const path = require('node:path');                                         // SK
 const BASE_URL = 'http://127.0.0.1:3000';                                  // SK
 const EXPECTED_ROOT_BODY = 'Hello, World!\n';                              // SK
 const EXPECTED_EVENING_BODY = 'Good evening';                              // SK
+const EXPECTED_MORNING_BODY = 'Good morning';                              // SK
 // SK
 const READY_LINE = 'Server running at http://127.0.0.1:3000/';             // SK
 const STARTUP_TIMEOUT_MS = 10000;                                          // SK
@@ -202,8 +203,8 @@ function startServer() {                                                   // SK
     // child's ENTIRE lifetime, not merely at the first match. It is       // SK
     // exposed as a getter so a later read (after stopServer(), once all   // SK
     // stdout has drained) still observes a duplicate readiness line that  // SK
-    // arrived AFTER startup resolved. The public export list is unchanged // SK
-    // (still five names); only startServer's resolved value shape carries // SK
+    // arrived AFTER startup resolved. The public export list now lists    // SK
+    // six names; only startServer's resolved value shape carries          // SK
     // this metadata, and nothing internal depends on it.                  // SK
     function succeed() {                                                   // SK
       if (settled) {                                                       // SK
@@ -344,4 +345,5 @@ module.exports = {                                                         // SK
   BASE_URL,                                                                // SK
   EXPECTED_ROOT_BODY,                                                      // SK
   EXPECTED_EVENING_BODY,                                                   // SK
+  EXPECTED_MORNING_BODY,                                                   // SK
 };                                                                         // SK

@@ -8,6 +8,7 @@ const {                                                                    // SK
   BASE_URL,                                                                // SK
   EXPECTED_ROOT_BODY,                                                      // SK
   EXPECTED_EVENING_BODY,                                                   // SK
+  EXPECTED_MORNING_BODY,                                                   // SK
 } = require('./helpers/server');                                           // SK
 // SK
 // Holds the object returned by startServer() so both the before() startup // SK
@@ -63,6 +64,22 @@ describe('Evening greeting (GET /good-evening)', () => {                   // SK
   });                                                                      // SK
 });                                                                        // SK
 // SK
+describe('Morning greeting (GET /good-morning)', () => {                   // SK
+  it('responds 200 with 12-byte body and no trailing newline', async () => { // SK
+    const res = await fetch(`${BASE_URL}/good-morning`);                   // SK
+    const body = await res.text();                                         // SK
+    assert.strictEqual(res.status, 200);                                   // SK
+    assert.strictEqual(body, EXPECTED_MORNING_BODY);                       // SK
+    assert.strictEqual(body, 'Good morning');                              // SK
+    assert.strictEqual(body.endsWith('\n'), false);                        // SK
+    assert.strictEqual(Buffer.byteLength(body), 12);                       // SK
+    assert.strictEqual(res.headers.get('content-type'), 'text/plain; charset=utf-8'); // SK
+    assert.strictEqual(res.headers.get('content-length'), '12');           // SK
+    assert.strictEqual(res.headers.get('x-content-type-options'), 'nosniff'); // SK
+    assert.strictEqual(res.headers.get('x-powered-by'), null);             // SK
+  });                                                                      // SK
+});                                                                        // SK
+// SK
 describe('Routing & negative cases', () => {                               // SK
   it('GET /nonexistent returns 404 with text/html content-type', async () => { // SK
     const res = await fetch(`${BASE_URL}/nonexistent`);                    // SK
@@ -81,27 +98,33 @@ describe('Routing & negative cases', () => {                               // SK
 });                                                                        // SK
 // SK
 describe('Security headers', () => {                                       // SK
-  it('both success routes carry x-content-type-options: nosniff', async () => { // SK
+  it('all success routes carry x-content-type-options: nosniff', async () => { // SK
     const rootRes = await fetch(`${BASE_URL}/`);                           // SK
     await rootRes.text();                                                  // SK
     const eveningRes = await fetch(`${BASE_URL}/good-evening`);            // SK
     await eveningRes.text();                                               // SK
+    const morningRes = await fetch(`${BASE_URL}/good-morning`);            // SK
+    await morningRes.text();                                               // SK
     assert.strictEqual(rootRes.headers.get('x-content-type-options'), 'nosniff'); // SK
     assert.strictEqual(eveningRes.headers.get('x-content-type-options'), 'nosniff'); // SK
+    assert.strictEqual(morningRes.headers.get('x-content-type-options'), 'nosniff'); // SK
   });                                                                      // SK
   it('no response exposes x-powered-by', async () => {                     // SK
     const rootRes = await fetch(`${BASE_URL}/`);                           // SK
     await rootRes.text();                                                  // SK
     const eveningRes = await fetch(`${BASE_URL}/good-evening`);            // SK
     await eveningRes.text();                                               // SK
+    const morningRes = await fetch(`${BASE_URL}/good-morning`);            // SK
+    await morningRes.text();                                               // SK
     const missingRes = await fetch(`${BASE_URL}/nonexistent`);             // SK
     await missingRes.text();                                               // SK
-    // Include the POST / method-mismatch (Express 5 -> 404) response so     // SK
-    // X-Powered-By suppression is verified on a non-GET path too.          // SK
+    // Include the POST / method-mismatch (Express 5 -> 404) response so   // SK
+    // X-Powered-By suppression is verified on a non-GET path too.         // SK
     const postRes = await fetch(`${BASE_URL}/`, { method: 'POST' });       // SK
-    await postRes.text();                                                   // SK
+    await postRes.text();                                                  // SK
     assert.strictEqual(rootRes.headers.get('x-powered-by'), null);         // SK
     assert.strictEqual(eveningRes.headers.get('x-powered-by'), null);      // SK
+    assert.strictEqual(morningRes.headers.get('x-powered-by'), null);      // SK
     assert.strictEqual(missingRes.headers.get('x-powered-by'), null);      // SK
     assert.strictEqual(postRes.headers.get('x-powered-by'), null);         // SK
   });                                                                      // SK
